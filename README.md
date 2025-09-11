@@ -6,3 +6,5 @@ Team Members:
 - Bhagi Dhakal
 - Fletcher Burton
 - Nick Filemyr
+- Basu Subedi
+- Ben Richardson
