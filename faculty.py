@@ -1,4 +1,6 @@
 import json
+with open('test_config.json', 'r') as config:
+    existing_data = json.load(config)
 
 # Gets the days and times the faculty is available
 def daysAndTimes():
@@ -63,25 +65,37 @@ def createFaculty():
     if len(courses_taught) == 0:
         courses_taught = ["N/A"]
 
-    # Not sure what 'weight' is supposed to make me do
+    
+    # Loop for getting course weight
+    i = 0
+    course_weight = [None] * len(preferences)
+
+    while i < len(preferences):
+        print("Enter the course weight (1-5) for " + preferences[i] + ":")
+        course_weight[i] = input()
+        i += 1
     
     # This is the data that will be passed into the json file
-    data = {
+    new_faculty = { 
         "name": faculty_name,
         "full-time/adjunct": full_or_part_time,
         "unique course limit": unique_course_limit,
-        "available days/times": {
-            "Monday": time_available[0],
-            "Tuesday": time_available[1],
-            "Wednesday": time_available[2],
-            "Thursday": time_available[3],
-            "Friday": time_available[4]
-        },
+        "available days/times": [
+            {"Monday": time_available[0]},
+            {"Tuesday": time_available[1]},
+            {"Wednesday": time_available[2]},
+            {"Thursday": time_available[3]},
+            {"Friday": time_available[4]}
+            ],
         "course preferences": preferences,
+        "course weight": course_weight,
         "course(s) taught": courses_taught
     }
-    print(data)
-    return data
+    print(new_faculty)
+    existing_data["faculty"].append(new_faculty)        #Adds the new faculty to the faculty list
+    with open("test_config.json", "w") as config:       
+         json.dump(existing_data, config, indent=2)     #Writes that updated list into the JSON file.
+    return new_faculty
 
 
 # Add a new faculty / modify an existing faculty / delete a faculty
@@ -159,13 +173,13 @@ def editFaculty(faculty_to_edit):
         "name": new_faculty_name,
         "full-time/adjunct": full_or_part_time,
         "unique course limit": unique_course_limit,
-        "available days/times": {
-            "Monday": time_available[0],
-            "Tuesday": time_available[1],
-            "Wednesday": time_available[2],
-            "Thursday": time_available[3],
-            "Friday": time_available[4]
-        },
+        "available days/times": [
+            {"Monday": time_available[0]},
+            {"Tuesday": time_available[1]},
+            {"Wednesday": time_available[2]},
+            {"Thursday": time_available[3]},
+            {"Friday": time_available[4]}
+        ],
         "course preferences": preferences,
         "course(s) taught": courses_taught
     }
@@ -175,45 +189,29 @@ def editFaculty(faculty_to_edit):
 # Removes a faculty
 # Will add functionality when the JSON file is available, this is just the framework
 def removeFaculty(name_to_remove):
+    temp = existing_data["faculty"]
+    data_length = len(temp)-1
+    delete_option = input("select a number 0-{data_length}")
+    i = 0
+    for entry in temp:
+        if i != int(delete_option):
+            existing_data["faculty"].append(entry)
+            i=i+1
+        else:
+            i=i+1
+            
     print("Are you sure you want to delete this faculty? This cannot be undone. (y/n)")
     remove_or_not = input().lower()
 
     if remove_or_not == "yes" or remove_or_not == "y":
         # The code to remove the faculty member will go here
-        data = {
-            "name": None,
-            "full-time/adjunct": None,
-            "unique course limit": None,
-            "available days/times": {
-                "Monday": None,
-                "Tuesday": None,
-                "Wednesday": None,
-                "Thursday": None,
-                "Friday": None
-            },
-            "course preferences": None,
-            "course(s) taught": None
-        }
         print("Faculty has been successfully removed")
-    else:
-        data = {
-            "name": name_to_remove,
-            "full-time/adjunct": None,
-            "unique course limit": None,
-            "available days/times": {
-                "Monday": None,
-                "Tuesday": None,
-                "Wednesday": None,
-                "Thursday": None,
-                "Friday": None
-            },
-            "course preferences": None,
-            "course(s) taught": None
-        }        
+    else:   
         print("Removal cancelled")
     return data
 
 # This is the initial prompt asking the user what action they want to take
+#largely for testing purposes, this should be embedded into front end for ease of access from startup.
 def promptUser():
     print("What would like to do? Your options are: " \
     "\n Add faculty (Type 1 or add), \n Edit faculty (Type 2 or edit), \n Remove faculty (Type 3 or remove)" \
@@ -226,7 +224,7 @@ def promptUser():
     # Adds a faculty
     if action == "1" or action.lower() == "add":
         new_faculty = createFaculty()
-        # writeFile(new_faculty)
+        #writeFile(new_faculty)
         print('\033[32mFaculty created successfully.\033[0m')
 
     # Edits a faculty
@@ -237,9 +235,10 @@ def promptUser():
 
     # Removes a faculty
     elif action == "3" or action.lower() == "remove":
-        print("What is the name of the faculty you want to remove?")
-        name_to_remove = input()
-        removeFaculty(name_to_remove)
+        #print("What is the name of the faculty you want to remove?")
+        #name_to_remove = input()
+        #removeFaculty(name_to_remove)
+        removeFaculty()
         
 
     # If the user enters an invalid input
@@ -249,8 +248,3 @@ def promptUser():
 
 # Runs the initial prompting
 promptUser()
-
-# Writes the file
-# def writeFile(data):
-#     with open("output.json", "w") as json_file:
-#         json.dump(data, json_file)
