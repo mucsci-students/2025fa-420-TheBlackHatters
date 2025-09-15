@@ -53,6 +53,16 @@ def createFaculty():
     if len(preferences) == 0:
         preferences = ["N/A"]
 
+
+    # Loop for getting course weight
+    i = 0
+    course_weight = [None] * len(preferences)
+
+    while i < len(preferences):
+        print("Enter the course weight (1-5) for " + preferences[i] + ":")
+        course_weight[i] = input()
+        i += 1
+
     # Gets the courses the faculty member teaches
     # Checks if faculty is adjunct or not, if so remove everything after first entry
     # If courses_taught is empty then it replaces the list with "N/A"
@@ -62,8 +72,6 @@ def createFaculty():
         courses_taught = courses_taught[:1]
     if len(courses_taught) == 0:
         courses_taught = ["N/A"]
-
-    # Not sure what 'weight' is supposed to make me do
     
     # This is the data that will be passed into the json file
     data = {
@@ -78,23 +86,11 @@ def createFaculty():
             "Friday": time_available[4]
         },
         "course preferences": preferences,
+        "course weight": course_weight,
         "course(s) taught": courses_taught
     }
     print(data)
     return data
-
-
-# Add a new faculty / modify an existing faculty / delete a faculty
-# Name
-# Full-time (12 credits) or Adjunct (0-4 credits)
-# Unique course limit (2 for full-time, 1 for adjunct)
-# Times
-# Default time range of 9-5
-# Specify a day
-# Preferences
-# Specify a course (need not exist yet)
-# Specify a weight
-
 
 # Edits information of a faculty
 # Add a check to see if they exist or not
@@ -108,6 +104,7 @@ def editFaculty(faculty_to_edit):
     time_available = [None, None, None, None, None]
     preferences = None
     courses_taught = None
+    
 
     # Prompts the user to edit information and asks what information they want to edit
     print("What would you like to edit? Your options are:")
@@ -144,6 +141,14 @@ def editFaculty(faculty_to_edit):
         if len(preferences) == 0:
             preferences = ["N/A"]
 
+        # Loop for getting course weight
+        course_weight = [None] * len(preferences)
+        i = 0
+        while i < len(preferences):
+            print("Enter the course weight (1-5) for " + preferences[i] + ":")
+            course_weight[i] = input()
+            i += 1
+
     # Updates the courses taught
     if "coursestaught" in things_to_edit:
         print("What courses do they teach? (Maximum of 2 for full-time, 1 for adjunct)")
@@ -167,6 +172,7 @@ def editFaculty(faculty_to_edit):
             "Friday": time_available[4]
         },
         "course preferences": preferences,
+        "course_weight": course_weight,
         "course(s) taught": courses_taught
     }
     print(data)
