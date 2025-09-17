@@ -1,6 +1,4 @@
-import json
-with open('test_config.json', 'r') as config:
-    existing_data = json.load(config)
+import Faculty_model as faculty
 
 # Gets the days and times the faculty is available
 def daysAndTimes():
@@ -27,8 +25,8 @@ def daysAndTimes():
         i += 1
     return time_available
 
-# Creates a faculty
-def createFaculty():
+# This adds the faculty, just here to make things cleaner in the promptUser method
+def addFacultyHelper():
     # Gets faculty name
     print("Enter a faculty name: ")
     faculty_name = input()
@@ -74,36 +72,17 @@ def createFaculty():
         courses_taught = courses_taught[:1]
     if len(courses_taught) == 0:
         courses_taught = ["N/A"]
-    
-    # This is the data that will be passed into the json file
-    new_faculty = { 
-        "name": faculty_name,
-        "full-time/adjunct": full_or_part_time,
-        "unique course limit": unique_course_limit,
-        "available days/times": [
-            {"Monday": time_available[0]},
-            {"Tuesday": time_available[1]},
-            {"Wednesday": time_available[2]},
-            {"Thursday": time_available[3]},
-            {"Friday": time_available[4]}
-            ],
-        "course preferences": preferences,
-        "course weight": course_weight,
-        "course(s) taught": courses_taught
-    }
-    print(new_faculty)
-    existing_data["faculty"].append(new_faculty)        #Adds the new faculty to the faculty list
-    with open("test_config.json", "w") as config:       
-         json.dump(existing_data, config, indent=2)     #Writes that updated list into the JSON file.
+
+    # This creates the new faculty with the info gotten from above
+    new_faculty = faculty.Faculty(faculty_name, full_or_part_time, unique_course_limit, time_available, preferences, courses_taught, course_weight)
     return new_faculty
+    
 
-# Edits information of a faculty
-# Add a check to see if they exist or not
-def editFaculty(faculty_to_edit):
-
+# This edits a faculty, just here to make things cleaner in the promptUser method
+def editFacultyHelper(faculty_to_edit):
     # Creating the variables used in returned data
     # Get information from file, "None's" are temporary
-    new_faculty_name = None
+    faculty_name = None
     full_or_part_time = None
     unique_course_limit = None
     time_available = [None, None, None, None, None]
@@ -121,7 +100,7 @@ def editFaculty(faculty_to_edit):
     # As a QOL addition for the user, the strings below have no spaces between them
     if "name" in things_to_edit:
         print("Enter the new name for this faculty:")
-        new_faculty_name = input()
+        faculty_name = input()
 
     # Updates if the faculty is full-time or adjunct
     if "fulltimeoradjunct" in things_to_edit:
@@ -163,52 +142,24 @@ def editFaculty(faculty_to_edit):
             courses_taught = courses_taught[:1]
         if len(courses_taught) == 0:
             courses_taught = ["N/A"]
+    
+    edited_faculty = faculty.Faculty(faculty_name, full_or_part_time, unique_course_limit, time_available, preferences, courses_taught, course_weight)
+    return edited_faculty
 
-    # The new data being returned
-    data = {
-        "name": new_faculty_name,
-        "full-time/adjunct": full_or_part_time,
-        "unique course limit": unique_course_limit,
-        "available days/times": [
-            {"Monday": time_available[0]},
-            {"Tuesday": time_available[1]},
-            {"Wednesday": time_available[2]},
-            {"Thursday": time_available[3]},
-            {"Friday": time_available[4]}
-        ],
-        "course preferences": preferences,
-        "course_weight": course_weight,
-        "course(s) taught": courses_taught
-    }
-    print(data)
-    return data
 
-# Removes a faculty
-# Will add functionality when the JSON file is available, this is just the framework
-def removeFaculty(name_to_remove):
-    temp = existing_data["faculty"]
-    data_length = len(temp)-1
-    delete_option = input("select a number 0-{data_length}")
-    i = 0
-    for entry in temp:
-        if i != int(delete_option):
-            existing_data["faculty"].append(entry)
-            i=i+1
-        else:
-            i=i+1
-            
+def removeFacultyHelper(name_to_remove):
     print("Are you sure you want to delete this faculty? This cannot be undone. (y/n)")
     remove_or_not = input().lower()
 
     if remove_or_not == "yes" or remove_or_not == "y":
         # The code to remove the faculty member will go here
-        print("Faculty has been successfully removed")
-    else:   
-        print("Removal cancelled")
-    return data
 
-# This is the initial prompt asking the user what action they want to take
-#largely for testing purposes, this should be embedded into front end for ease of access from startup.
+        print("Faculty has been successfully removed")
+    
+    # Should find name of faculty in the JSON file and set the data appropriately
+    else:       
+        print("Removal cancelled")
+
 def promptUser():
     print("What would like to do? Your options are: " \
     "\n Add faculty (Type 1 or add), \n Edit faculty (Type 2 or edit), \n Remove faculty (Type 3 or remove)" \
@@ -217,31 +168,28 @@ def promptUser():
     # This stores the string the user inputted from the prompt above
     action = input()
 
-    # Series of if-else statements that check the response the user gave to the prompt
+    # Series of if-else statements that check the response the user gave to the prompt:
     # Adds a faculty
     if action == "1" or action.lower() == "add":
-        new_faculty = createFaculty()
-        #writeFile(new_faculty)
-        print('\033[32mFaculty created successfully.\033[0m')
+        new_faculty = addFacultyHelper()
+        faculty.Faculty.addFaculty(new_faculty)
 
     # Edits a faculty
     elif action == "2" or action.lower() == "edit":
         print("What is the name of the faculty would you like to edit?")
         faculty_to_edit = input()
-        editFaculty(faculty_to_edit)
+        editFacultyHelper(faculty_to_edit)
 
     # Removes a faculty
     elif action == "3" or action.lower() == "remove":
-        #print("What is the name of the faculty you want to remove?")
-        #name_to_remove = input()
-        #removeFaculty(name_to_remove)
-        removeFaculty()
-        
+        print("What is the name of the faculty you want to remove?")
+        name_to_remove = input()
+        removeFacultyHelper(name_to_remove)
 
     # If the user enters an invalid input
     else:
         print("Invalid response, please try again \n")
         promptUser()
 
-# Runs the initial prompting
+# Runs initial prompting
 promptUser()
