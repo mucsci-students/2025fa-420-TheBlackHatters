@@ -9,11 +9,7 @@
 class Room: 
     def __init__(self, rooms = None):
         # Init, the rooms should be a list [], 
-
-        if not rooms:
-            self.rooms = []
-        else:
-            self.rooms = rooms 
+        self.rooms = rooms or []
 
     def __str__(self):
         return f"Rooms in the system: {self.rooms}."
