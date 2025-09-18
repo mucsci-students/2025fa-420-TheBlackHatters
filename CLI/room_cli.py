@@ -7,12 +7,6 @@
 #   make this changes directly to the json file. 
 
 
-# Imports.. 
-
-
-# Need to get a way to pull the file and get the rooms already there? 
-# Is this nessaarray? 
-
 # This will prompt the user to enter the name they want to add
 def addRoomCli(RoomModel):
     print("Please enter the Name of the room you want to add: ")
