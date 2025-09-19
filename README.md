@@ -17,6 +17,9 @@ This is a tool built for the Course Constraint Scheduler that allows you to crea
 First, install the [Course Constraint Scheduler](https://github.com/mucsci/Scheduler)<br>
 or use ```pip install course-constraint-scheduler```
 
+Then clone the repository with ```git clone <repository url>```
+
+To run the companion, open a terminal in the repository, cd into the root with ```cd root``` and run the main.py file with ```python main.py```
 (installation instructions)
 
 ## Operation Instructions
