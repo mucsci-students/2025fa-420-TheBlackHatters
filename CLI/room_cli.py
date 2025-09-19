@@ -7,7 +7,7 @@
 #   make this changes directly to the json file. 
 
 def viewRooms(RoomModel):
-    return print(f"Rooms In System: {RoomModel.toJson()}.")
+    return print(f"Current Rooms In System: {RoomModel.toJson()}.")
 
 # This will prompt the user to enter the name they want to add
 def addRoomCli(RoomModel):
@@ -23,6 +23,7 @@ def removeRoomCli(RoomModel):
     name = input()
 
     RoomModel.remove(name)
+    viewRooms(RoomModel)
 
 
 # This will prompt the user to enter the room name they want to change
@@ -32,6 +33,7 @@ def modifyRoomCli(RoomModel):
     newName = input("Please enter the new room name: ")
 
     RoomModel.modify(oldName, newName)
+    viewRooms(RoomModel)
 
 
 
@@ -39,7 +41,7 @@ def modifyRoomCli(RoomModel):
 def mainRoomControler(RoomModel):
 
     while True:
-        print("\n--- Room Management ---")
+        print("\n--- Room Controler ---")
         print("1. View Rooms")
         print("2. Add Room")
         print("3. Delete Room")
