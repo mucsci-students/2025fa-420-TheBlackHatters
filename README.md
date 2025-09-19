@@ -1,5 +1,4 @@
 # TheBlackHatters
-
 Team Members:
 - Liam Delaney
 - Nicholas DiPace
@@ -9,7 +8,6 @@ Team Members:
 - Basu Subedi
 - Ben Richardson
 
-**ROUGH DRAFT**
 # Course Constraint Scheduler Companion
 This is a tool built for the Course Constraint Scheduler that allows you to create configuration files and run the scheduler completely in the command line.
 
@@ -19,47 +17,52 @@ or use ```pip install course-constraint-scheduler```
 
 Then clone the repository with ```git clone <repository url>```
 
+1) create virtual environment
+2) install everything from requirements.txt 
+python -m venv venv
+venv\Scripts\activate.bat
+3) run our program 
+
 To run the companion, open a terminal in the repository, cd into the root with ```cd root``` and run the main.py file with ```python main.py```
-(installation instructions)
 
 ## Operation Instructions
 
 ### Adding, Editing, and Removing Faculty
+**Adding a faculty member**
 ```add faculty [faculty name] [full-time / adjunct] [unique course limit] [available time range] [available days] [preferences] [courses] [weight]```
- * Faculty name: Must be first and last name separated by a space. Cannot contain title.
- * Full-time/ Adjunct:
- * Unique Course Limit:
- * Available Time Range:
- * Available Days:
- * Preferences:
- * Courses:
- * Weight:
 
-```edit faculty```
+Example:<br>
+`add faculty Prof._Hobbs adjunct 3 9-5 M-W none CMSC_420 3`<br>
+**Editing a faculty member**
+```edit faculty``` will prompt you for the faculty member's name and what criteria to change, then change it.
 
-```delete faculty```
-
+**Deleting a faculty member**
+```delete faculty``` will prompt you for the faculty member's name, then delete it.
+<hr>
 
 ### Adding, Editing, and Removing Courses
-```add course``` 
+**Adding a course**<br>
+```add course [course id] [credits] [room] [lab] [conflicts] [faculty]```<br>
+If any of the required criteria are not present, it will not create the course and ask you to try again with the correct information.
 
+Example: `add course CMSC_420 4 Roddy_140 Mac_Lab none Prof._Hobbs`<br>
+**Editing a course**
+`edit course` will prompt you for the course name and what criteria to change, then change it.
 
+**Deleting a course**
+`delete course` will prompt you for the course name, then delete it.
+<hr>
 
 ### Adding, Editing, and Removing Rooms/Labs
-```add lab```
+**Adding a lab**<br>
+using `add lab` will prompt you for a name. Preferred format is as follows:<br>
+Eg. Mac Lab, Linux Lab, Windows Lab
 
-```enter name for lab```
+Example: `add lab Linux_Lab`<br>
+**Editing a lab**<br>
+typing ```edit lab``` will prompt you for a name of an existing lab. Then enter the new name for the lab.
 
+**Deleting a lab**<br>
+typing ```delete lab``` will prompt you for the name of the lab, and then delete it if the lab exists.
 
-```edit lab```
-
-```which lab?```
-
-```enter new name for lab```
-
-
-```delete lab```
-
-```which lab?```
-
-```are you sure you want to delete this lab?```
+The same is true for `add room`, `edit room`, and `delete room`
