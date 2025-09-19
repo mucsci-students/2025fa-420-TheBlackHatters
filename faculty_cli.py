@@ -4,7 +4,6 @@ import Faculty_model as faculty
 def daysAndTimes():
 
     # This gets available times for every day of the week
-    # Add error checking
     # ".replace(" ", "")" removes any spaces the user may have accidentally added, just as a quality of life thing
     print("When are they available on Monday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
     time_available = [input().lower().replace(" ", "")]
@@ -32,8 +31,12 @@ def addFacultyHelper():
     faculty_name = input()
 
     # Something should be added here to check for invalid inputs
-    print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\")")
-    full_or_part_time = input().lower()
+    print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
+    full_or_part_time = input().lower().replace(" ", "")
+
+    # Checks if the input is valid, defaults to full if invalid
+    if full_or_part_time != "full" and full_or_part_time != "adjunct":
+        full_or_part_time = "full"
 
     # This checks if the faculty is full-time or adjunct, and sets the course limit
     if full_or_part_time == "full":
@@ -58,9 +61,17 @@ def addFacultyHelper():
     i = 0
     course_weight = [None] * len(preferences)
 
+    # Error checks if what they inputted is valid and if not it defaults to 3
     while i < len(preferences):
-        print("Enter the course weight (1-5) for " + preferences[i] + ":")
-        course_weight[i] = input()
+        print("Enter the course weight (1-5) for " + preferences[i] + " (Default is 3):")
+        course_weight[i] = input().replace(" ", "")
+        try:
+            if 1 <= int(course_weight[i]) <= 5:
+                course_weight[i] = int(course_weight[i])
+            else:
+                course_weight[i] = 3
+        except ValueError:
+            course_weight[i] = 3
         i += 1
 
     # Gets the courses the faculty member teaches
@@ -104,9 +115,14 @@ def editFacultyHelper(faculty_to_edit):
 
     # Updates if the faculty is full-time or adjunct
     if "fulltimeoradjunct" in things_to_edit:
-        print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\")")
-        full_or_part_time = input().lower()
+        print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
+        full_or_part_time = input().lower().replace(" ", "")
 
+        # Checks if the input is valid, defaults to full if invalid
+        if full_or_part_time != "full" and full_or_part_time != "adjunct":
+            full_or_part_time = "full"
+
+        # This checks if the faculty is full-time or adjunct, and sets the course limit
         if full_or_part_time == "full":
             unique_course_limit = 2
         else:
@@ -125,13 +141,22 @@ def editFacultyHelper(faculty_to_edit):
         if len(preferences) == 0:
             preferences = ["N/A"]
 
-        # Loop for getting course weight
-        course_weight = [None] * len(preferences)
-        i = 0
-        while i < len(preferences):
-            print("Enter the course weight (1-5) for " + preferences[i] + ":")
-            course_weight[i] = input()
-            i += 1
+    # Loop for getting course weight
+    i = 0
+    course_weight = [None] * len(preferences)
+
+    # Error checks if what they inputted is valid and if not it defaults to 3
+    while i < len(preferences):
+        print("Enter the course weight (1-5) for " + preferences[i] + " (Default is 3):")
+        course_weight[i] = input().replace(" ", "")
+        try:
+            if 1 <= int(course_weight[i]) <= 5:
+                course_weight[i] = int(course_weight[i])
+            else:
+                course_weight[i] = 3
+        except ValueError:
+            course_weight[i] = 3
+        i += 1
 
     # Updates the courses taught
     if "coursestaught" in things_to_edit:
