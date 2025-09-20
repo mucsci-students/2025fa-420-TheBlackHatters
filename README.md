@@ -12,57 +12,78 @@ Team Members:
 This is a tool built for the Course Constraint Scheduler that allows you to create configuration files and run the scheduler completely in the command line.
 
 ## Installation Instructions
-First, install the [Course Constraint Scheduler](https://github.com/mucsci/Scheduler)<br>
-or use ```pip install course-constraint-scheduler```
+Must be running at least Python version 3.12
 
-Then clone the repository with ```git clone <repository url>```
-
-1) create virtual environment
-2) install everything from requirements.txt 
-python -m venv venv
-venv\Scripts\activate.bat
-3) run our program 
-
-To run the companion, open a terminal in the repository, cd into the root with ```cd root``` and run the main.py file with ```python main.py```
+**Installation**
+1. Clone the repository with `git clone <url>` to download the project. This will be your working directory.
+2. Link the folder in Visual Studio Code and open terminal or just open a terminal in the directory. (Powershell if using Windows)<br>
+PS. Powershell script execution will not work unless you either set the execution policy to bypass with `Set-ExecutionPolicy Bypass` or within your working terminal (must be run in admin) run `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` to temporarily allow scripts. The latter is recommended for security reasons.
+3. Run `python3 -m venv venv` to create a virtual environment.
+4. Run `venv/Scripts/Activate.ps1` to enter the virtual environment. (you can use `deactivate` to exit the virtual environment).<br> **For Mac users**, run `source venv/bin/activate`
+5. Use `pip install course-constraint-scheduler` to install the [Scheduler project](https://github.com/mucsci/Scheduler).
+6. Finally, run `python -m CLI.main` to start the Scheduler Companion.
 
 ## Operation Instructions
 
+### Viewing Current Config<br>
+Typing 1 will show you the current state of the configuration file that is given to the scheduler.
+
 ### Adding, Editing, and Removing Faculty
-**Adding a faculty member**
+**Adding a faculty member**<br>
+Typing 2 will bring you to the faculty portion.
+
+1. View <br>
+   See which labs are in the current working configuration file.
+2. Add <br>
+   Add a lab to the configuration file. Eg. 'Mac Lab'
+3. Delete <br>
+    Delete a lab from the configuration. Enter the name you wish to delete.
+4. Modify <br>
+   Change the name of a lab.
+
 ```add faculty [faculty name] [full-time / adjunct] [unique course limit] [available time range] [available days] [preferences] [courses] [weight]```
 
-Example:<br>
-`add faculty Prof._Hobbs adjunct 3 9-5 M-W none CMSC_420 3`<br>
-**Editing a faculty member**
-```edit faculty``` will prompt you for the faculty member's name and what criteria to change, then change it.
+<hr>
 
-**Deleting a faculty member**
-```delete faculty``` will prompt you for the faculty member's name, then delete it.
+### Adding, Editing, and Removing Rooms/Labs<br>
+Typing 3 will bring you into the lab portion, and 4 for rooms.
+
+1. View Labs<br>
+   See which labs are in the current working configuration file.
+2. Add lab<br>
+   Add a lab to the configuration file. Eg. 'Mac Lab'
+3. Delete lab<br>
+    Delete a lab from the configuration. Enter the name you wish to delete.
+4. Modify lab<br>
+   Change the name of a lab.
+
+The same is true for all room commands.
+
+
 <hr>
 
 ### Adding, Editing, and Removing Courses
 **Adding a course**<br>
-```add course [course id] [credits] [room] [lab] [conflicts] [faculty]```<br>
-If any of the required criteria are not present, it will not create the course and ask you to try again with the correct information.
+Typing 5 will bring you into the Course portion. <br>
+1. Add course<br>
+   Starts with inputting a course ID, then name, credits, room. These are required criteria, use the other functions to add conflicts.
+2. Modify course<br>
+   Here you can modify a course by its course ID. You can change name, credits, and room data.
+3. Delete course<br>
+   Delete a course by its course ID.
+4. Add conflict<br>
+   Add conflicts by ID.
+5. Modify conflict<br>
+   Change conflicts by ID.
+6. Delete conflict<br>
+   Delete conflicts by ID.
+7. Show all courses<br>
+   Shows all courses currently in configuration file.
+8. Show all conflicts<br>
+   Shows all conflicts currently in configuration file.
 
-Example: `add course CMSC_420 4 Roddy_140 Mac_Lab none Prof._Hobbs`<br>
-**Editing a course**
-`edit course` will prompt you for the course name and what criteria to change, then change it.
-
-**Deleting a course**
-`delete course` will prompt you for the course name, then delete it.
 <hr>
 
-### Adding, Editing, and Removing Rooms/Labs
-**Adding a lab**<br>
-using `add lab` will prompt you for a name. Preferred format is as follows:<br>
-Eg. Mac Lab, Linux Lab, Windows Lab
-
-Example: `add lab Linux_Lab`<br>
-**Editing a lab**<br>
-typing ```edit lab``` will prompt you for a name of an existing lab. Then enter the new name for the lab.
-
-**Deleting a lab**<br>
-typing ```delete lab``` will prompt you for the name of the lab, and then delete it if the lab exists.
-
-The same is true for `add room`, `edit room`, and `delete room`
+### Run The Scheduler
+Typing 6 will run the Scheduler with the current configuration file.
+   
