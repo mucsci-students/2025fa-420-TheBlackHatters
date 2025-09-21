@@ -22,8 +22,3 @@ PS. Powershell script execution will not work unless you either set the executio
 4. Run `venv/Scripts/Activate.ps1` to enter the virtual environment. (you can use `deactivate` to exit the virtual environment).<br> **For Mac users**, run `source venv/bin/activate`
 5. Use `pip install course-constraint-scheduler` to install the [Scheduler project](https://github.com/mucsci/Scheduler).
 6. Finally, run `python -m CLI.main` to start the Scheduler Companion.
-<hr>
-
-### Run The Scheduler
-Typing 6 will run the Scheduler with the current configuration file.
-   
