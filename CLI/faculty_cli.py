@@ -1,3 +1,4 @@
+
 import Models.Faculty_model as FacultyModel
 
 # Gets the days and times the faculty is available
