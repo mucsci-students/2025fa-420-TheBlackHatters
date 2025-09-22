@@ -150,26 +150,25 @@ def editFacultyCLI(Faculty):
                 preferences = preferences[:3]
             if len(preferences) == 0:
                 preferences = {"course preferences":["N/A"]}
-        else:
-            preferences = {'course preferences': previous_faculty.get('course preferences')}
- 
-        #TODO check this <----
-        # Loop for getting course weight
-        i = 0
-        course_weight = [None] * len(preferences)
+            
+            # Loop for getting course weight
+            i = 0
+            course_weight = [None] * len(preferences)
 
-        # Error checks if what they inputted is valid and if not it defaults to 3
-        while i < len(preferences):
-            print("Enter the course weight (1-5) for " + preferences[i] + " (Default is 3):")
-            course_weight[i] = input().replace(" ", "")
-            try:
-                if 1 <= int(course_weight[i]) <= 5:
-                    course_weight[i] = int(course_weight[i])
-                else:
+            # Error checks if what they inputted is valid and if not it defaults to 3
+            while i < len(preferences):
+                print("Enter the course weight (1-5) for " + preferences[i] + " (Default is 3):")
+                course_weight[i] = input().replace(" ", "")
+                try:
+                    if 1 <= int(course_weight[i]) <= 5:
+                        course_weight[i] = int(course_weight[i])
+                    else:
+                        course_weight[i] = 3
+                except ValueError:
                     course_weight[i] = 3
-            except ValueError:
-                course_weight[i] = 3
-            i += 1
+                i=i+1
+        else:
+            course_weight = {'course weight': previous_faculty.get('course weight')}
 
         # Updates the courses taught
         if "coursestaught" in things_to_edit:
@@ -181,7 +180,7 @@ def editFacultyCLI(Faculty):
             if len(courses_taught) == 0:
                 courses_taught = ["N/A"]
         else:
-            courses_taught = previous_faculty.get('courses_taught')
+            courses_taught = {'course(s) taught': previous_faculty.get('course(s) taught')}
 
 
         edited_faculty = {faculty_name, full_or_part_time, unique_course_limit, time_available, preferences, course_weight, courses_taught}
@@ -229,10 +228,12 @@ def mainFacultyController(Faculty):
         # Edits a faculty
         elif action == "2" or action.lower() == "edit":
             editFacultyCLI(Faculty)
+            print("Faculty updated")
 
         # Removes a faculty
         elif action == "3" or action.lower() == "remove":
             removeFacultyCLI(Faculty)
+            print("Faculty removed.")
 
         # Exits while loop and returns to where call originated.
         elif action == "4" or action.lower() == "back":
