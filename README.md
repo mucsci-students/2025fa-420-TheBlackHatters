@@ -66,3 +66,30 @@ typing ```edit lab``` will prompt you for a name of an existing lab. Then enter 
 typing ```delete lab``` will prompt you for the name of the lab, and then delete it if the lab exists.
 
 The same is true for `add room`, `edit room`, and `delete room`
+
+### Displaying Saved Schedules
+To view previously generated schedules saved as CSV files, choose option 7 from the main menu.
+
+You will see a numbered list of all available schedule CSV files in the output/ folder. 
+
+Example:
+
+Which Schedule?
+1. test_schedule.csv
+
+Enter either the number or the file name to display the contents in a readable format:
+
+--- Schedule Contents ---
+Course   | Day      | Time        | Room      | Lab   | Faculty
+CMSC140  | Monday   | 09:00-10:30 | Roddy 136 |       | Prof.Zoppetti
+CMSC152  | Tuesday  | 10:00-11:30 | Roddy 147 | Mac   | Prof.Hogg
+CMSC161  | Monday   | 11:00-12:30 | Roddy 136 | Linux | Prof.Rogers
+...
+-------------------------
+
+Notes:
+
+Both numeric input and exact file names are accepted.
+
+If no schedules exist, the program displays: No saved schedules found.
+

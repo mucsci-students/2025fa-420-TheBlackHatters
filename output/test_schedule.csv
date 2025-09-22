@@ -1,0 +1,17 @@
+Course,Day,Time,Room,Lab,Faculty
+CMSC140,Monday,09:00-10:30,Roddy 136,,Prof.Zoppetti
+CMSC140,Wednesday,09:00-10:30,Roddy 140,,Prof.Hardy
+CMSC152,Tuesday,10:00-11:30,Roddy 147,Mac,Prof.Hogg
+CMSC152,Thursday,10:00-11:30,Roddy 147,Linux,Prof.Xie
+CMSC161,Monday,11:00-12:30,Roddy 136,Linux,Prof.Rogers
+CMSC161,Wednesday,11:00-12:30,Roddy 140,Linux,Prof.Wertz
+CMSC162,Tuesday,13:00-14:30,Roddy 140,Linux,Prof.Hobbs
+CMSC330,Monday,14:00-15:30,Roddy 136,Mac,Prof.Yang
+CMSC330,Wednesday,14:00-15:30,Roddy 140,Linux,Prof.Schwartz
+CMSC340,Thursday,15:00-16:30,Roddy 147,Mac,Prof.Zoppetti
+CMSC362,Monday,16:00-17:30,Roddy 136,Linux,Prof.Hardy
+CMSC366,Tuesday,09:00-10:30,Roddy 136,Linux,Prof.Hogg
+CMSC380,Friday,10:00-11:30,Roddy 140,Mac,Prof.Xie
+CMSC420,Thursday,13:00-14:30,Roddy 140,Mac,Prof.Rogers
+CMSC453,Wednesday,14:00-15:30,Roddy 136,Linux,Prof.Wertz
+CMSC476,Friday,15:00-16:30,Roddy 136,Linux,Prof.Hobbs
