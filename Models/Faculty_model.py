@@ -50,7 +50,7 @@ class Faculty:
     # Faculty is a list of faculty, so we iterate through to find the index for deletion.
     def removeFaculty(self, faculty_name):
         i=0
-        for entry in Faculty:
+        for entry in self:
             # Specifically stores the 'name' section of the faculty list entry.
             subFaculty = self[i].get('name')
             # Checks if the name to be deleted is in that entry.
