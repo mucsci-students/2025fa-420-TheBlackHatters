@@ -287,6 +287,7 @@ def main():
 
         if choice == "1":
             # Display the current file: 
+            displayConfig(rooms, labs, courses, faculty)
             input("Press Enter to continue...")
         elif choice == "2":
             ##Faculty
