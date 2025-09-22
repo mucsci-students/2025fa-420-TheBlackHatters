@@ -112,7 +112,7 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
 ## This is a function to run the scheduler from our program!
 def runScheduler():
     while True:
-        print("\n--- Scheduler Controler ---")
+        print("\n--- Scheduler Controller ---")
         print("1. Run Scheduler")
         print("0. Back")
         choice = input("Select: ")
