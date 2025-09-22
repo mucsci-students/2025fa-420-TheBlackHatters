@@ -25,6 +25,8 @@ from scheduler import (
     load_config_from_file,
 )
 from scheduler.config import CombinedConfig
+from CLI.display_schedule import display_schedule
+
 
 
 
@@ -89,6 +91,7 @@ def welcomeMessage():
     print("4. Add, Modify, Delete Labs")
     print("5. Add, Modify, Delete Courses")
     print("6. Run Scheduler")
+    print("7. Display Saved Schedules")
     print("0. Exit")
 
 
@@ -112,11 +115,10 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
     print("Changes have been saved! \n")
 
 
-
 ## This is a function to run the scheduler from our program! 
 def runScheduler():
     while True:
-        print("\n--- Scheduler Controler ---")
+        print("\n--- Scheduler Controller ---")
         print("1. Run Scheduler")
         print("0. Back")
         choice = input("Select: ")
@@ -152,7 +154,7 @@ def runScheduler():
                     print("Please enter a valid format (csv or json): ")
             
             
-            outputFile = input("Enter the name of the output file (default: config): ").lower()
+            outputFile = input("Enter the name of the output file: ").lower()
 
             while True: 
                 optimize = input("Do you want to optimize the schedules (y/n, Default: n): ").lower()
@@ -199,8 +201,6 @@ def runScheduler():
 
     # return
 
-
-
 # main function where everything will start form. 
 def main():
     rooms, labs, courses, faculty, other = parseJson(inputPath)
@@ -235,6 +235,10 @@ def main():
             # Run Scheduler
             runScheduler()
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
+            input("Press Enter to continue...")
+        elif choice == "7":
+            # Display saved schedules
+            display_schedule()
             input("Press Enter to continue...")
         elif choice == "0":
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
