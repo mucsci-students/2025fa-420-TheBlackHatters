@@ -1,4 +1,3 @@
-
 import Models.Faculty_model as FacultyModel
 
 # Gets the days and times the faculty is available
@@ -24,18 +23,7 @@ def daysAndTimes():
             time_available[i] = "9:00-5:00"
         i += 1
     return time_available
-
-#TODO
-# This adds the faculty, just here to make things cleaner in the promptUser method
-def addFacultyCLI(Faculty):
-    # Gets faculty name
-    print("Enter the faculty's name: ")
-    faculty_name = input()
-    #Checks if faculty is already in system.
-    if FacultyModel.facCheck(Faculty, faculty_name)==True:
-        print("Faculty is already in system!")
-        return
-    
+  
     print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
     full_or_part_time = input().lower().replace(" ", "")
 
@@ -180,9 +168,7 @@ def editFacultyCLI(Faculty):
                     course_weight[i] = 3
                 i=i+1
         else:
-            preferences = {'course preferences': previous_faculty.get('course preferences')}
             course_weight = {'course weight': previous_faculty.get('course weight')}
-
 
         # Updates the courses taught
         if "coursestaught" in things_to_edit:

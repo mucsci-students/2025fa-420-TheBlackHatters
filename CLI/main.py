@@ -1,17 +1,16 @@
 # File Name: main.py
-# Author: Bhagi Dhakal
-# Last Modified: September 15, 2025 (10:00 PM) By Bhagi Dhakal
+# Author: Bhagi Dhakal, Fletcher Burton
+# Last Modified: September 21, 2025
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
 # This is the main file that will intergrate all out models, 
 #       CLIs together. 
-#      (TODO: Expalin what needs to happen in the file. )
-#   
+#
 
 
 # Imports
 import os #very dangerous
-import json
+import json, csv
 import scheduler
 
 from CLI.course_cli import mainCourseController
@@ -26,10 +25,9 @@ from scheduler import (
 from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
 
-
 # output/input Path
 outputPath = "output/example1.json"
-inputPath = "output/example.json"
+inputPath = "output/mainConfig.json"
 
 
 fileData = None
@@ -45,7 +43,7 @@ def parseJson(path):
 
     config = fileData.get("config", {})
 
-    # everythign inside config (bottom 4 eveything we need, I belive)
+    # everything inside config (bottom 4 everything we need, I believe)
     Rooms = Room(config.get('rooms'))
     Labs = Lab(config.get('labs'))
     Courses = config.get('courses')
@@ -111,24 +109,93 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
 
     print("Changes have been saved! \n")
 
-## This is a function to run the scheduler from our program! 
-# TODO: Need to specify: config file, time slot, limit, format, outputfile, optimize? 
-# TODO: display schedules in CSV
+## This is a function to run the scheduler from our program!
 def runScheduler():
+    while True:
+        print("\n--- Scheduler Controler ---")
+        print("1. Run Scheduler")
+        print("0. Back")
+        choice = input("Select: ")
 
-    # Load configuration
-    config = load_config_from_file(CombinedConfig, "output/example.json")
 
-    # Create scheduler
-    scheduler = Scheduler(config)
+        if choice == "0":
+            return
+        elif choice == "1":
+            configInput = input("Enter config file path (default: output/mainConfig.json): ")
+            if not configInput:
+                configInput = "output/mainConfig.json"
 
-    # Generate schedules
-    for schedule in scheduler.get_models():
-        print("Schedule:")
-        for course in schedule:
-            print(f"{course.as_csv()}")
+            while True:
+                limit = input("Enter numbers of schedules to generate (default: 10): ")
+                if not limit:
+                    limit = 10
+                    break
+                if limit.isdigit():
+                    limit = int(limit)
+                    break
+                else:
+                    print("Please enter a valid integer.")
 
-    return
+            while True:
+                format = input("Enter a format file csv or json (default: json): ").lower()
+
+                if not format:
+                    format = 'json'
+                    break
+                if format  == "json" or format == "csv":
+                    break
+                else:
+                    print("Please enter a valid format (csv or json): ")
+
+
+            outputFile = input("Enter the name of the output file (default: config): ").lower()
+
+            while True:
+                optimize = input("Do you want to optimize the schedules (y/n, Default: n): ").lower()
+
+                if not optimize :
+                    optimize = 'n'
+                    break
+                if optimize == 'n' or optimize == 'y':
+                    break
+                else:
+                    print("Please enter (y or n): ")
+
+            print("Running the schedule: \n")
+
+            config = load_config_from_file(CombinedConfig, f"{configInput}")
+
+            # # Create scheduler
+            scheduler = Scheduler(config)
+
+            all_schedules = []
+
+            print("Generating Schedules please wait! \n")
+            for schedule in scheduler.get_models():
+                schedule_list = []
+                for course in schedule:
+                    csv_line = course.as_csv()
+                    print(csv_line)
+
+                    schedule_list.append(csv_line.split(','))
+                all_schedules.append(schedule_list)
+
+
+            if format == "json":
+                with open(f"output/{outputFile}.json", "w") as f:
+                    json.dump(all_schedules, f, indent=4)
+                print(f"\nSchedules saved to output/{outputFile}.json")
+            elif format == "csv":
+                with open(f"output/{outputFile}.csv", "w", newline="") as f:
+                    writer = csv.writer(f)
+                    for schedule_list in all_schedules:
+                        writer.writerow([])
+                        writer.writerows(schedule_list)
+                print(f"\nSchedules saved to output/{outputFile}.csv")
+
+    # return
+
+
 
 # main function where everything will start form. 
 def main():
