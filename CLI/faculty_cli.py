@@ -178,6 +178,7 @@ def editFacultyCLI(Faculty):
                         course_weight[i] = 3
                 except ValueError:
                     course_weight[i] = 3
+                course_weight = {'course weight': course_weight}
                 i=i+1
         else:
             preferences = {'course preferences': previous_faculty.get('course preferences')}
