@@ -157,30 +157,53 @@ def displayConfig(rooms, labs, courses, faculty):
     for idx, c in enumerate(courses, start=1):
         course_id = c.get("course_id", "N/A")
         credits = c.get("credits", "N/A")
-        rooms = ", ".join(c.get("room", [])) or "(none)"
-        labs_list = ", ".join(c.get("lab", [])) or "(none)"
-        conflicts = ", ".join(c.get("conflicts", [])) or "(none)"
-        faculty_list = ", ".join(c.get("faculty", [])) or "(none)"
-
+        rooms_str = ", ".join(c.get("room", []) or []) or "(none)"
+        labs_str = ", ".join(c.get("lab", []) or []) or "(none)"
+        conflicts_str = ", ".join(c.get("conflicts", []) or []) or "(none)"
+        faculty_str = ", ".join(c.get("faculty", []) or []) or "(none)"
         print(f"  {idx}. {course_id} ({credits} credits)")
-        print(f"     Rooms: {rooms}")
-        print(f"     Labs: {labs_list}")
-        print(f"     Conflicts: {conflicts}")
-        print(f"     Faculty: {faculty_list}")
+        print(f"     Rooms: {rooms_str}")
+        print(f"     Labs: {labs_str}")
+        print(f"     Conflicts: {conflicts_str}")
+        print(f"     Faculty: {faculty_str}\n")
 
-    # Faculty
+    def _print_prefs(title, dct):
+        items = list((dct or {}).items())
+        items.sort(key=lambda x: (-x[1], x[0]))
+        if items:
+            print(f"    {title}:")
+            for k, v in items:
+                print(f"      - {k}: {v}")
+        else:
+            print(f"    {title}: (none)")
+
+    def _print_times(times_obj):
+        days = ["MON", "TUE", "WED", "THU", "FRI"]
+        any_slot = False
+        for d in days:
+            slots = times_obj.get(d, []) if isinstance(times_obj, dict) else []
+            if slots:
+                any_slot = True
+                print(f"      - {d}: {', '.join(slots)}")
+        if not any_slot:
+            print("      (none)")
+
     print("\nFaculty:")
-    for f in faculty:
+    for idx, f in enumerate(faculty, start=1):
         name = f.get("name", "N/A")
         max_c = f.get("maximum_credits", "N/A")
         min_c = f.get("minimum_credits", "N/A")
         unique_limit = f.get("unique_course_limit", "N/A")
-        print(f"  - {name} (Credits: {min_c}-{max_c}, Unique Course Limit: {unique_limit})")
-
+        print(f"  {idx}. {name}")
+        print(f"    Credits Range: {min_c}-{max_c}")
+        print(f"    Unique Course Limit: {unique_limit}")
+        print(f"    Times:")
+        _print_times(f.get("times", {}))
+        _print_prefs("Course Preferences", f.get("course_preferences", {}))
+        _print_prefs("Room Preferences", f.get("room_preferences", {}))
+        _print_prefs("Lab Preferences", f.get("lab_preferences", {}))
+        print()
     print("\n=============================\n")
-
-
-
 
 # main function where everything will start form. 
 def main():
