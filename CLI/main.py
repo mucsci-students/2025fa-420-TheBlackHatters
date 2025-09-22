@@ -24,6 +24,8 @@ from scheduler import (
     load_config_from_file,
 )
 from scheduler.config import CombinedConfig
+from CLI.display_schedule import display_schedule
+
 
 # output/input Path
 outputPath = "output/example1.json"
@@ -86,6 +88,7 @@ def welcomeMessage():
     print("4. Add, Modify, Delete Labs")
     print("5. Add, Modify, Delete Courses")
     print("6. Run Scheduler")
+    print("7. Display Saved Schedules")
     print("0. Exit")
 
 
@@ -214,6 +217,10 @@ def main():
             # Run Scheduler
             runScheduler()
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
+            input("Press Enter to continue...")
+        elif choice == "7":
+            # Display saved schedules
+            display_schedule()
             input("Press Enter to continue...")
         elif choice == "0":
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
