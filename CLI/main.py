@@ -7,17 +7,16 @@
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
 # This is the main file that will intergrate all out models, 
 #       CLIs together. 
-#      (TODO: Expalin what needs to happen in the file. )
-#   
+#
 
 
 # Imports
 import os #very dangerous
 import json, csv
-import json
 import scheduler
 
 from CLI.course_cli import mainCourseController
+from CLI.faculty_cli import mainFacultyController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
 from CLI.room_cli import *
@@ -28,9 +27,6 @@ from scheduler import (
 )
 from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
-
-
-
 
 # output/input Path
 outputPath = "output/example1.json"
@@ -50,7 +46,7 @@ def parseJson(path):
 
     config = fileData.get("config", {})
 
-    # everythign inside config (bottom 4 eveything we need, I belive)
+    # everything inside config (bottom 4 everything we need, I believe)
     Rooms = Room(config.get('rooms'))
     Labs = Lab(config.get('labs'))
     Courses = config.get('courses')
@@ -116,8 +112,6 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
 
     print("Changes have been saved! \n")
 
-
-## This is a function to run the scheduler from our program! 
 def runScheduler():
     while True:
         print("\n--- Scheduler Controller ---")
@@ -128,14 +122,15 @@ def runScheduler():
 
         if choice == "0":
             return
-        elif choice == "1": 
+
+        elif choice == "1":
             configInput = input("Enter config file path (default: output/mainConfig.json): ")
             if not configInput:
                 configInput = "output/mainConfig.json"
-            
+
             while True:
                 limit = input("Enter numbers of schedules to generate (default: 10): ")
-                if not limit: 
+                if not limit:
                     limit = 10
                     break
                 if limit.isdigit():
@@ -159,6 +154,7 @@ def runScheduler():
             outputFile = input("Enter the name of the output file: ").lower()
 
             while True: 
+
                 optimize = input("Do you want to optimize the schedules (y/n, Default: n): ").lower()
 
                 if not optimize :
@@ -183,9 +179,10 @@ def runScheduler():
                 schedule_list = []
                 for course in schedule:
                     csv_line = course.as_csv()
-                    print(csv_line)  
+                    print(csv_line)
+
+                    schedule_list.append(csv_line.split(','))
                     
-                    schedule_list.append(csv_line.split(',')) 
                 all_schedules.append(schedule_list)
 
 
@@ -197,7 +194,8 @@ def runScheduler():
                 with open(f"output/{outputFile}.csv", "w", newline="") as f:
                     writer = csv.writer(f)
                     for schedule_list in all_schedules:
-                        writer.writerow([]) 
+
+                        writer.writerow([])
                         writer.writerows(schedule_list)
                 print(f"\nSchedules saved to output/{outputFile}.csv")
 
@@ -278,6 +276,7 @@ def displayConfig(rooms, labs, courses, faculty):
         print()
     print("\n=============================\n")
 
+
 # main function where everything will start form. 
 def main():
     rooms, labs, courses, faculty, other = parseJson(inputPath)
@@ -287,8 +286,7 @@ def main():
         choice = input("Enter choice: ")
 
         if choice == "1":
-            # Display the current file:
-            displayConfig(rooms, labs, courses, faculty)
+            # Display the current file: 
             input("Press Enter to continue...")
         elif choice == "2":
             ##Faculty
@@ -307,7 +305,7 @@ def main():
             input("Press Enter to continue...")
         elif choice == "5":
             # courses
-            mainCourseController(courses, rooms, labs, faculty, inputPath)
+            mainCourseController(courses, inputPath)
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "6":
@@ -343,3 +341,4 @@ if __name__ == "__main__" :
 
 
 # scheduler output/example.json --limit 3 --format json --output output/schedules
+
