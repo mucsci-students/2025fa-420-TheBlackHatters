@@ -12,6 +12,10 @@
 # Imports
 import os #very dangerous
 import json, csv
+import json
+import scheduler
+
+from CLI.course_cli import mainCourseController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
 from CLI.room_cli import *
@@ -79,7 +83,7 @@ def welcomeMessage():
     # should be in its own function 
     print("\n")
     print("Please select one option: ")
-    print("1. View Current Congfi File")
+    print("1. View Current Config File")
     print("2. Add, Modify, Delete Faculty")
     print("3. Add, Modify, Delete Rooms")
     print("4. Add, Modify, Delete Labs")
@@ -223,7 +227,8 @@ def main():
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "5":
-            # courses 
+            # courses
+            mainCourseController(courses, inputPath)
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "6":
