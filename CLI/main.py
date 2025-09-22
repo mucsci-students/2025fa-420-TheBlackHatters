@@ -1,6 +1,6 @@
 # File Name: main.py
-# Author: Bhagi Dhakal
-# Last Modified: September 15, 2025 (10:00 PM) By Bhagi Dhakal
+# Author: Bhagi Dhakal, Fletcher Burton
+# Last Modified: September 21, 2025
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
 # This is the main file that will intergrate all out models, 
@@ -128,6 +128,55 @@ def runScheduler():
     return
 
 
+def displayConfig(rooms, labs, courses, faculty):
+    print("\n=== Current Configuration ===\n")
+
+    # Rooms
+    print("Rooms:")
+    if hasattr(rooms, "rooms"):
+        for r in rooms.rooms:
+            print(f"  - {r}")
+    else:
+        for r in rooms:
+            print(f"  - {r}")
+
+    # Labs
+    print("\nLabs:")
+    if hasattr(labs, "labs"):
+        for l in labs.labs:
+            print(f"  - {l}")
+    else:
+        for l in labs:
+            print(f"  - {l}")
+
+    # Courses
+    print("\nCourses:")
+    for idx, c in enumerate(courses, start=1):
+        course_id = c.get("course_id", "N/A")
+        credits = c.get("credits", "N/A")
+        rooms = ", ".join(c.get("room", [])) or "(none)"
+        labs_list = ", ".join(c.get("lab", [])) or "(none)"
+        conflicts = ", ".join(c.get("conflicts", [])) or "(none)"
+        faculty_list = ", ".join(c.get("faculty", [])) or "(none)"
+
+        print(f"  {idx}. {course_id} ({credits} credits)")
+        print(f"     Rooms: {rooms}")
+        print(f"     Labs: {labs_list}")
+        print(f"     Conflicts: {conflicts}")
+        print(f"     Faculty: {faculty_list}")
+
+    # Faculty
+    print("\nFaculty:")
+    for f in faculty:
+        name = f.get("name", "N/A")
+        max_c = f.get("maximum_credits", "N/A")
+        min_c = f.get("minimum_credits", "N/A")
+        unique_limit = f.get("unique_course_limit", "N/A")
+        print(f"  - {name} (Credits: {min_c}-{max_c}, Unique Course Limit: {unique_limit})")
+
+    print("\n=============================\n")
+
+
 
 
 # main function where everything will start form. 
@@ -139,7 +188,8 @@ def main():
         choice = input("Enter choice: ")
 
         if choice == "1":
-            # Display the current file: 
+            # Display the current file:
+            displayConfig(rooms, labs, courses, faculty)
             input("Press Enter to continue...")
         elif choice == "2":
             ##Faculty
