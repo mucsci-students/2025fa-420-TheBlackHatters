@@ -112,7 +112,7 @@ def editFacultyCLI(Faculty):
         return
     else:
         #Removes the previous version of the faculty from the system and stores it in this object.
-        previous_faculty = FacultyModel.Faculty.removeFaculty(Faculty, faculty_name)
+        previous_faculty = FacultyModel.Faculty.removeFaculty(Faculty, faculty_to_edit)
 
         # Prompts the user to edit information and asks what information they want to edit
         print("What would you like to edit? Your options are:")
