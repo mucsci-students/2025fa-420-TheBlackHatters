@@ -23,7 +23,18 @@ def daysAndTimes():
             time_available[i] = "9:00-5:00"
         i += 1
     return time_available
-  
+
+
+# This adds the faculty, just here to make things cleaner in the promptUser method
+def addFacultyCLI(Faculty):
+    # Gets faculty name
+    print("Enter the faculty's name: ")
+    faculty_name = input()
+    #Checks if faculty is already in system.
+    if FacultyModel.Faculty.facCheck(Faculty, faculty_name)==True:
+        print("Faculty is already in system!")
+        return
+    
     print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
     full_or_part_time = input().lower().replace(" ", "")
 
@@ -79,7 +90,7 @@ def daysAndTimes():
     # This creates the new faculty with the info gotten from above
     new_faculty = {"name":faculty_name, "full-time/adjunct":full_or_part_time, "unique_course_limit":unique_course_limit, "available days/times":time_available, "course preferences":preferences, "course weight":course_weight, "course(s) taught":courses_taught}
     #Checks if the faculty being added already exists in the Config, proceed if not found, stop otherwise.
-    FacultyModel.addFaculty(Faculty, faculty_name, new_faculty)
+    FacultyModel.Faculty.addFaculty(Faculty, new_faculty)
     
 
 # This edits a faculty, just here to make things cleaner in the promptUser method
@@ -96,12 +107,12 @@ def editFacultyCLI(Faculty):
     print("What is the name of the faculty would you like to edit?")
     faculty_to_edit = input()
     # Checks if the faculty is in the system.
-    if FacultyModel.facCheck(Faculty, faculty_to_edit)==False:
+    if FacultyModel.Faculty.facCheck(Faculty, faculty_to_edit)==False:
         print("Faculty does not exist!")
         return
     else:
         #Removes the previous version of the faculty from the system and stores it in this object.
-        previous_faculty = FacultyModel.removeFaculty(Faculty, faculty_name)
+        previous_faculty = FacultyModel.Faculty.removeFaculty(Faculty, faculty_name)
 
         # Prompts the user to edit information and asks what information they want to edit
         print("What would you like to edit? Your options are:")
@@ -184,7 +195,7 @@ def editFacultyCLI(Faculty):
 
 
         edited_faculty = {faculty_name, full_or_part_time, unique_course_limit, time_available, preferences, course_weight, courses_taught}
-        FacultyModel.addFaculty(Faculty, edited_faculty)
+        FacultyModel.Faculty.addFaculty(Faculty, edited_faculty)
 
 
 # Determines which Faculty to remove and calls the Model to remove them.
@@ -192,7 +203,7 @@ def removeFacultyCLI(Faculty):
     print("What is the name of the faculty you want to remove?")
     name_to_remove = input()
     
-    if FacultyModel.facCheck(Faculty, name_to_remove)==False:
+    if FacultyModel.Faculty.facCheck(Faculty, name_to_remove)==False:
         print("Faculty does not exist!")
         return
     else:
@@ -200,7 +211,7 @@ def removeFacultyCLI(Faculty):
         remove_or_not = input().lower()
 
         if remove_or_not == "yes" or remove_or_not == "y":
-            FacultyModel.removeFaculty(Faculty, name_to_remove)
+            FacultyModel.Faculty.removeFaculty(Faculty, name_to_remove)
             print("Faculty has been successfully removed")
     
         # Should find name of faculty in the JSON file and set the data appropriately
