@@ -306,7 +306,7 @@ def main():
             input("Press Enter to continue...")
         elif choice == "5":
             # courses
-            mainCourseController(courses, inputPath)
+            mainCourseController(courses, rooms, labs, faculty, inputPath)
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "6":
