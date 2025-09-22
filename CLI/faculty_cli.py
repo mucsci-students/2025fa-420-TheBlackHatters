@@ -1,4 +1,3 @@
-
 import Models.Faculty_model as FacultyModel
 
 # Gets the days and times the faculty is available
@@ -180,9 +179,7 @@ def editFacultyCLI(Faculty):
                     course_weight[i] = 3
                 i=i+1
         else:
-            preferences = {'course preferences': previous_faculty.get('course preferences')}
             course_weight = {'course weight': previous_faculty.get('course weight')}
-
 
         # Updates the courses taught
         if "coursestaught" in things_to_edit:

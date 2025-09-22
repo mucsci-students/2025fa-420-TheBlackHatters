@@ -32,7 +32,7 @@ class Room:
         if roomName in self.rooms:
             self.rooms.remove(roomName)
         else: 
-            raise ValueError(f"The room with name {roomName} is not in the system!")
+            print(f"The room with name {roomName} is not in the system!")
         
     #TODO Might need to change a way to modify multiple rooms at the same time
     def modify(self, oldName, newName): 
@@ -44,7 +44,7 @@ class Room:
             index = self.rooms.index(oldName)
             self.rooms[index] = newName
         else: 
-            raise ValueError(f"The room with name {oldName} is not in the system! Cannot change {oldName} to {newName}.")
+            print(f"The room with name {oldName} is not in the system! Cannot change {oldName} to {newName}.")
         
     
     def toJson(self):
