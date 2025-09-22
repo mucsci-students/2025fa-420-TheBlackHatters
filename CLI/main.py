@@ -1,6 +1,8 @@
 # File Name: main.py
-# Author: Bhagi Dhakal
-# Last Modified: September 20, 2025 (10:00 AM) By Bhagi Dhakal
+
+# Author: Bhagi Dhakal, Fletcher Burton
+# Last Modified: September 21, 2025
+
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
 # This is the main file that will intergrate all out models, 
@@ -201,6 +203,81 @@ def runScheduler():
 
     # return
 
+
+def displayConfig(rooms, labs, courses, faculty):
+    print("\n=== Current Configuration ===\n")
+
+    # Rooms
+    print("Rooms:")
+    if hasattr(rooms, "rooms"):
+        for r in rooms.rooms:
+            print(f"  - {r}")
+    else:
+        for r in rooms:
+            print(f"  - {r}")
+
+    # Labs
+    print("\nLabs:")
+    if hasattr(labs, "labs"):
+        for l in labs.labs:
+            print(f"  - {l}")
+    else:
+        for l in labs:
+            print(f"  - {l}")
+
+    # Courses
+    print("\nCourses:")
+    for idx, c in enumerate(courses, start=1):
+        course_id = c.get("course_id", "N/A")
+        credits = c.get("credits", "N/A")
+        rooms_str = ", ".join(c.get("room", []) or []) or "(none)"
+        labs_str = ", ".join(c.get("lab", []) or []) or "(none)"
+        conflicts_str = ", ".join(c.get("conflicts", []) or []) or "(none)"
+        faculty_str = ", ".join(c.get("faculty", []) or []) or "(none)"
+        print(f"  {idx}. {course_id} ({credits} credits)")
+        print(f"     Rooms: {rooms_str}")
+        print(f"     Labs: {labs_str}")
+        print(f"     Conflicts: {conflicts_str}")
+        print(f"     Faculty: {faculty_str}\n")
+
+    def _print_prefs(title, dct):
+        items = list((dct or {}).items())
+        items.sort(key=lambda x: (-x[1], x[0]))
+        if items:
+            print(f"    {title}:")
+            for k, v in items:
+                print(f"      - {k}: {v}")
+        else:
+            print(f"    {title}: (none)")
+
+    def _print_times(times_obj):
+        days = ["MON", "TUE", "WED", "THU", "FRI"]
+        any_slot = False
+        for d in days:
+            slots = times_obj.get(d, []) if isinstance(times_obj, dict) else []
+            if slots:
+                any_slot = True
+                print(f"      - {d}: {', '.join(slots)}")
+        if not any_slot:
+            print("      (none)")
+
+    print("\nFaculty:")
+    for idx, f in enumerate(faculty, start=1):
+        name = f.get("name", "N/A")
+        max_c = f.get("maximum_credits", "N/A")
+        min_c = f.get("minimum_credits", "N/A")
+        unique_limit = f.get("unique_course_limit", "N/A")
+        print(f"  {idx}. {name}")
+        print(f"    Credits Range: {min_c}-{max_c}")
+        print(f"    Unique Course Limit: {unique_limit}")
+        print(f"    Times:")
+        _print_times(f.get("times", {}))
+        _print_prefs("Course Preferences", f.get("course_preferences", {}))
+        _print_prefs("Room Preferences", f.get("room_preferences", {}))
+        _print_prefs("Lab Preferences", f.get("lab_preferences", {}))
+        print()
+    print("\n=============================\n")
+
 # main function where everything will start form. 
 def main():
     rooms, labs, courses, faculty, other = parseJson(inputPath)
@@ -210,10 +287,12 @@ def main():
         choice = input("Enter choice: ")
 
         if choice == "1":
-            # Display the current file: 
+            # Display the current file:
+            displayConfig(rooms, labs, courses, faculty)
             input("Press Enter to continue...")
         elif choice == "2":
             ##Faculty
+            mainFacultyController(faculty)
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "3":
@@ -228,7 +307,7 @@ def main():
             input("Press Enter to continue...")
         elif choice == "5":
             # courses
-            mainCourseController(courses, inputPath)
+            mainCourseController(courses, rooms, labs, faculty, inputPath)
             saveConfig(outputPath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "6":
