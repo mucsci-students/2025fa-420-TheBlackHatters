@@ -32,7 +32,7 @@ class Lab:
         if labName in self.labs:
             self.labs.remove(labName)
         else: 
-            raise ValueError(f"The lab with name {labName} is not in the system!")
+            print(f"The lab with name {labName} is not in the system!")
         
     #TODO Might need to change a way to modify multiple labs at the same time
     def modify(self, oldName, newName): 
@@ -44,7 +44,7 @@ class Lab:
             index = self.labs.index(oldName)
             self.labs[index] = newName
         else: 
-            raise ValueError(f"The lab with name {oldName} is not in the system! Cannot change {oldName} to {newName}.")
+            print(f"The lab with name {oldName} is not in the system! Cannot change {oldName} to {newName}.")
         
     
     def toJson(self):

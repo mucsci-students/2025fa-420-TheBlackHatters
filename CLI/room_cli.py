@@ -11,17 +11,13 @@ def viewRooms(RoomModel):
 
 # This will prompt the user to enter the name they want to add
 def addRoomCli(RoomModel):
-    print("Please enter the Name of the room you want to add: ")
-    name = input()
-
+    name = input("Enter Room name to Add:  ")
     RoomModel.add(name)
     viewRooms(RoomModel)
 
 # This will prompt the user to enther the name they want to remove
 def removeRoomCli(RoomModel):
-    print("Please enter the Name of the room you want to remove: ")
-    name = input()
-
+    name = input("Enter Room name to remove: ")
     RoomModel.remove(name)
     viewRooms(RoomModel)
 
@@ -29,8 +25,8 @@ def removeRoomCli(RoomModel):
 # This will prompt the user to enter the room name they want to change
 # and the name they want to change to 
 def modifyRoomCli(RoomModel):
-    oldName = input("Please enter the name of the room you want to modify: ")
-    newName = input("Please enter the new room name: ")
+    oldName = input("Enter Room name to modify: ")
+    newName = input("Enter new Room name: ")
 
     RoomModel.modify(oldName, newName)
     viewRooms(RoomModel)

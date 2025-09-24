@@ -1,6 +1,6 @@
 # File Name: lab_cli.py
 # Author: Bhagi Dhakal
-# Last Modified: September 16, 2025 (10:10 PM)
+# Last Modified: September 20, 2025 (10:10 PM)
 #
 # This is a CLI for the labs.
 #   With this we can add, modify, and remove labs,
@@ -12,7 +12,7 @@ def viewLabs(LabModel):
 
 # This will prompt the user to enter the name they want to add
 def addLabCli(LabModel):
-    print("Please enter the Name of the lab you want to add: ")
+    print("Lab name to Add: ")
     name = input()
 
     LabModel.add(name)
@@ -20,7 +20,7 @@ def addLabCli(LabModel):
 
 # This will prompt the user to enther the name they want to remove
 def removeLabCli(LabModel):
-    print("Please enter the Name of the lab you want to remove: ")
+    print("Enter Lab name to remove: ")
     name = input()
 
     LabModel.remove(name)
@@ -30,8 +30,8 @@ def removeLabCli(LabModel):
 # This will prompt the user to enter the lab name they want to change
 # and the name they want to change to 
 def modifyLabCli(LabModel):
-    oldName = input("Please enter the name of the lab you want to modify: ")
-    newName = input("Please enter the new lab name: ")
+    oldName = input("Lab name to modify: ")
+    newName = input("Enter new Lab name: ")
 
     LabModel.modify(oldName, newName)
     viewLabs(LabModel)
