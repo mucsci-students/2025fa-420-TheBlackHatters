@@ -116,7 +116,7 @@ def addFacultyCLI(Faculty):
     # Gets the courses the faculty member teaches
     # Checks if faculty is adjunct or not, if so remove everything after first entry
     # If courses_taught is empty then it replaces the list with "N/A"
-    print("How many courses can they teach? (Maximum of 2 for full-time, 1 for adjunct)")
+    print("What courses do they teach? (Maximum of 2 for full-time, 1 for adjunct)")
     courses_taught = input().lower().replace(" ", "").split(',')
     if full_or_part_time != "full":
         courses_taught = courses_taught[:1]
@@ -310,3 +310,4 @@ def mainFacultyController(Faculty):
         # If the user enters an invalid input
         else:
             print("Invalid response!")
+
