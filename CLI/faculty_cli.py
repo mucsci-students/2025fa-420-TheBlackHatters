@@ -27,6 +27,9 @@ def daysAndTimes():
         i += 1
     return time_available
 
+# Prints a list of all current faculty entries.
+def viewFacultyCLI(Faculty):
+    FacultyModel.Faculty.viewFaculty(Faculty)
 
 # This adds the faculty, just here to make things cleaner in the promptUser method
 def addFacultyCLI(Faculty):
@@ -281,9 +284,13 @@ def removeFacultyCLI(Faculty):
 def mainFacultyController(Faculty):
      # Repeats until 0/back is entered to return to call location (main).
      while True:
-        print("What would like to do? Your options are: " \
-        "\n 1. Add faculty (Type 1 or add), \n 2. Edit faculty (Type 2 or edit), \n 3. Remove faculty (Type 3 or remove), \n 4. Go back (Type 4 or back)" \
-        "\n Enter your choice here (Case Insensitive): ")
+        print("What would like to do? Your options are:")
+        print("1. Add faculty (Type 1 or add),")
+        print("2. Edit faculty (Type 2 or edit),")
+        print("3. Remove faculty (Type 3 or remove),")
+        print("4. View Faculty in System (Type 4 or view)")
+        print("5. Go back (Type 5 or back)")
+        print(" Enter your choice here (Case Insensitive): ")
 
         # This stores the string the user inputted from the prompt above
         action = input()
@@ -303,8 +310,12 @@ def mainFacultyController(Faculty):
             removeFacultyCLI(Faculty)
             print("Faculty removed.")
 
+        # Prints a list of all current faculty entries.
+        elif action == "4" or action.lower() == "view":
+            viewFacultyCLI(Faculty)
+        
         # Exits while loop and returns to where call originated.
-        elif action == "4" or action.lower() == "back":
+        elif action == "5" or action.lower() == "back":
             return
 
         # If the user enters an invalid input
