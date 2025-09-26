@@ -27,6 +27,7 @@ def daysAndTimes():
         i += 1
     return time_available
 
+# Prints a list of all current faculty entries.
 def viewFacultyCLI(Faculty):
     FacultyModel.Faculty.viewFaculty(Faculty)
 
@@ -309,7 +310,7 @@ def mainFacultyController(Faculty):
             removeFacultyCLI(Faculty)
             print("Faculty removed.")
 
-        # Exits while loop and returns to where call originated.
+        # Prints a list of all current faculty entries.
         elif action == "4" or action.lower() == "view":
             viewFacultyCLI(Faculty)
         

@@ -35,7 +35,7 @@ class Faculty:
         return False
 
 
-    # Adds the faculty to the JSON file by taking in the data of a faculty member
+    # Prints a list of all current faculty entries.
     def viewFaculty(self):
         for entry in self:
             print(entry,"\n")
