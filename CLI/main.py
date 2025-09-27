@@ -205,6 +205,9 @@ def runScheduler():
 
 
 def displayConfig(rooms, labs, courses, faculty):
+    #this Function will display the config File,
+    # in a human readable way. 
+
     print("\n=== Current Configuration ===\n")
 
     # Rooms
@@ -283,9 +286,9 @@ def displayConfig(rooms, labs, courses, faculty):
 def main():
 
     # just for testing purpuses... Rn 
-    app = SchedulerApp()
-    app.mainloop()
-    quit()
+    # app = SchedulerApp()
+    # app.mainloop()
+    # quit()
 
     rooms, labs, courses, faculty, other = parseJson(inputPath)
     

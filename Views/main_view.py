@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import Canvas, StringVar
 
 
-# Dummy Data to just put something here:
+# Dummy Data to just put something in the forms i will create:
 Rooms = ["Roddy 136","Roddy 140","Roddy 147"]
 Labs = ["Linux","Mac"]
 Courses = [
@@ -83,7 +83,116 @@ def dataFacultyLeft(frame):
         ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda f=faculty: print(f"Edit Button conteoller")).pack(side="left", padx=5)
 
 def dataFacultyRight(frame, data=None):
-    pass
+
+    # name 
+    rowName = ctk.CTkFrame(frame, fg_color="transparent")
+    rowName.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(rowName, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")).grid(row=0, column=0, padx=10, pady=2)
+    nameEntry = ctk.CTkEntry(rowName, placeholder_text="Faculty Name",font=("Arial", 30, "bold") )
+    nameEntry.grid(row=0, column=1, sticky="ew", padx=5)
+    rowName.grid_columnconfigure(1, weight=1)
+    if data:
+        nameEntry.insert(0, data.get("name", ""))
+
+
+    # Creadits 
+    rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
+    rowCredits.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(rowCredits, text="Minimum Credits:", font=("Arial", 30, "bold")).grid(row=0, column=0, padx=10, pady=2, sticky="w")
+    minEntry = ctk.CTkEntry(rowCredits, placeholder_text="Min Credits", font=("Arial", 30, "bold"))
+    minEntry.grid(row=0, column=1, sticky="ew", padx=5)
+
+    ctk.CTkLabel(rowCredits, text="Maximum Credits:", font=("Arial", 30, "bold")).grid(row=1, column=0, padx=10, pady=2, sticky="w")
+    maxEntry = ctk.CTkEntry(rowCredits, placeholder_text="Max Credits", font=("Arial", 30, "bold"))
+    maxEntry.grid(row=1, column=1, sticky="ew", padx=5)
+
+    ctk.CTkLabel(rowCredits, text="Unique Course Limit:", font=("Arial", 30, "bold")).grid(row=2, column=0, padx=10, pady=2, sticky="w")
+    uniqueEntry = ctk.CTkEntry(rowCredits, placeholder_text="Unique Course Limit", font=("Arial", 30, "bold"))
+    uniqueEntry.grid(row=2, column=1, sticky="ew", padx=5)
+
+    rowCredits.grid_columnconfigure(1, weight=1)
+
+    if data:
+        minEntry.insert(0, data.get("minimum_credits", ""))
+        maxEntry.insert(0, data.get("maximum_credits", ""))
+        uniqueEntry.insert(0, data.get("unique_course_limit", ""))
+
+
+    # time avavlity
+    rowAvailability = ctk.CTkFrame(frame, fg_color="transparent")
+    rowAvailability.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(rowAvailability, text="Availability (MON-FRI):", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2,0))
+
+    availabilityEntries = {}
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+    for day in days:
+        dayFrame = ctk.CTkFrame(rowAvailability, fg_color="transparent")
+        dayFrame.pack(fill="x", padx=20, pady=(0,2))
+        ctk.CTkLabel(dayFrame, text=f"{day}:", width=50, anchor="w", font=("Arial", 25, "bold")).pack(side="left")
+        dayEntry = ctk.CTkEntry(dayFrame, placeholder_text="HH:MM-HH:MM, HH:MM-HH:MM", font=("Arial", 30, "bold"))
+        dayEntry.pack(side="left", fill="x", expand=True)
+        if data and "times" in data:
+            dayEntry.insert(0, ', '.join(data["times"].get(day, [])))
+        availabilityEntries[day] = dayEntry
+
+    # course Prefrence
+    rowCourse = ctk.CTkFrame(frame, fg_color="transparent")
+    rowCourse.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(rowCourse, text="Course Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
+
+    if data and "course_preferences" in data:
+        for course, weight in data["course_preferences"].items():
+            courseRow = ctk.CTkFrame(rowCourse, fg_color="transparent")
+            courseRow.pack(fill="x", padx=20, pady=2)
+
+            ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).grid(row=0, column=0, sticky="w")
+
+            weightEntry = ctk.CTkEntry(courseRow, width=80, justify="center", font=("Arial", 25, "bold"))
+            weightEntry.grid(row=0, column=1, sticky="w", padx=5)
+
+            weightEntry.insert(0, str(weight))
+
+    # room Prefrence
+    rowRoom = ctk.CTkFrame(frame, fg_color="transparent")
+    rowRoom.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(rowRoom, text="Room Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
+
+    if data and "room_preferences" in data:
+        for room, weight in data["room_preferences"].items():
+            roomRow = ctk.CTkFrame(rowRoom, fg_color="transparent")
+            roomRow.pack(fill="x", padx=20, pady=2)
+
+            ctk.CTkLabel(roomRow, text=room, anchor="w", width=150,  font=("Arial", 25, "bold")).grid(row=0, column=0, sticky="w")
+
+            weightEntry = ctk.CTkEntry(roomRow, width=80, justify="center",  font=("Arial", 25, "bold"))
+            weightEntry.grid(row=0, column=1, sticky="w", padx=5)
+
+            weightEntry.insert(0, str(weight))
+
+    # Lab Prefrence
+    rowLab = ctk.CTkFrame(frame, fg_color="transparent")
+    rowLab.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(rowLab, text="Lab Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
+
+    if data and "lab_preferences" in data:
+        for lab, weight in data["lab_preferences"].items():
+            labRow = ctk.CTkFrame(rowLab, fg_color="transparent")
+            labRow.pack(fill="x", padx=20, pady=2)
+
+            ctk.CTkLabel(labRow, text=lab, anchor="w", width=150,  font=("Arial", 25, "bold")).grid(row=0, column=0, sticky="w")
+
+            weightEntry = ctk.CTkEntry(labRow, width=80, justify="center",  font=("Arial", 25, "bold"))
+            weightEntry.grid(row=0, column=1, sticky="w", padx=5)
+
+            weightEntry.insert(0, str(weight))
+
+
+
+
 
 class SchedulerApp(ctk.CTk):
     def __init__(self):
@@ -146,7 +255,7 @@ class SchedulerApp(ctk.CTk):
 
         tabview.add("Faculty")
         # we don't know the frame so it kind of like a place holder until later on in the program
-        self.createTwoColumn(tabview.tab("Faculty"), dataFacultyLeft, lambda frame: dataFacultyRight(frame, data=Faculty[0]))
+        self.createTwoColumn(tabview.tab("Faculty"), dataFacultyLeft, lambda frame: dataFacultyRight(frame))
 
         tabview.add("Courses")
         self.createTwoColumn(tabview.tab("Courses"))
@@ -172,6 +281,8 @@ class SchedulerApp(ctk.CTk):
     
     def createTwoColumn(self, parent, popluateLeftData = None, popluateRightData = None):
 
+        # CTkScrollableFrame exists, just using it
+
         # Container frame for left and right
         container = ctk.CTkFrame(parent)
         container.pack(expand=True, fill="both", padx=10, pady=10)
@@ -181,55 +292,20 @@ class SchedulerApp(ctk.CTk):
         leftFrame.pack(side="left", fill="y", padx=(0,5), pady=5)
         leftFrame.pack_propagate(False)
 
-        # Right frame 
-        rightFrame = ctk.CTkFrame(container, fg_color =  "transparent")
-        rightFrame.pack(side="left", expand=True, fill="both", padx=(5,0), pady=5)
-
-        # Scrollable Left Frame, might not need it if not enought items
-        leftCanvas = Canvas(leftFrame, bg="#2b2b2b")
-        leftScroll = ctk.CTkScrollbar(leftFrame, command=leftCanvas.yview, fg_color =  "transparent")
-        leftScroll.pack(side="right", fill="y")
-        leftCanvas.pack(side="left", fill="both", expand=True)
-        leftCanvas.configure(yscrollcommand=leftScroll.set)
-
-        leftInner = ctk.CTkFrame(leftCanvas, fg_color =  "transparent")
-        leftCanvas.create_window((0,0), window=leftInner, anchor="nw")
-
-        # Placeholder iterms for the left side. needs to get info from file then read
+        leftInner = ctk.CTkScrollableFrame(leftFrame, fg_color="transparent")
+        leftInner.pack(expand=True, fill="both")
         if popluateLeftData:
             popluateLeftData(leftInner)
 
-        leftInner.update_idletasks()
-        leftCanvas.config(scrollregion=leftCanvas.bbox("all"))
-        self.scrollbarVisibility(leftCanvas, leftScroll)
+        # right Frame
+        rightFrameC = ctk.CTkFrame(container,fg_color =  "transparent")
+        rightFrameC.pack(side="left", expand=True, fill="both", padx=(0,5), pady=5)
 
-        # Scrollable Right Frame, might not need again
-        rightCanvas = Canvas(rightFrame, bg="#1f1f1f")
-        rightScroll = ctk.CTkScrollbar(rightFrame, command=rightCanvas.yview)
-        rightScroll.pack(side="right", fill="y")
-        rightCanvas.pack(side="left", fill="both", expand=True)
-        rightCanvas.configure(yscrollcommand=rightScroll.set)
+        rightInner = ctk.CTkScrollableFrame(rightFrameC, fg_color="transparent")
+        rightInner.pack(expand=True, fill="both")
 
-        rightInner = ctk.CTkFrame(rightCanvas, fg_color =  "transparent")
-        rightCanvas.create_window((0,0), window=rightInner, anchor="nw")
-
-        # Placeholder iterms on the right side.
         if popluateRightData:
             popluateRightData(rightInner)
-
-        rightInner.update_idletasks()
-        rightCanvas.config(scrollregion=rightCanvas.bbox("all"))
-        self.scrollbarVisibility(rightCanvas, rightScroll)
-
-
-
-    def scrollbarVisibility(self, canvas, scrollbar):
-        canvas.update_idletasks() 
-        if canvas.bbox("all")[3] <= canvas.winfo_height():
-            scrollbar.pack_forget()  # hide scrollbar
-        else:
-            scrollbar.pack(side="right", fill="y")  # show scrollbar
-
 
     def show_view(self, view_name):
         # Hide all views
