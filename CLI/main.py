@@ -28,6 +28,8 @@ from scheduler import (
 from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
 
+from Views.main_view import SchedulerApp
+
 # output/input Path
 outputPath = "output/example1.json"
 inputPath = "output/mainConfig.json"
@@ -203,6 +205,9 @@ def runScheduler():
 
 
 def displayConfig(rooms, labs, courses, faculty):
+    #this Function will display the config File,
+    # in a human readable way. 
+
     print("\n=== Current Configuration ===\n")
 
     # Rooms
@@ -279,6 +284,12 @@ def displayConfig(rooms, labs, courses, faculty):
 
 # main function where everything will start form. 
 def main():
+
+    # just for testing purpuses... Rn 
+    # app = SchedulerApp()
+    # app.mainloop()
+    # quit()
+
     rooms, labs, courses, faculty, other = parseJson(inputPath)
     
     while True:
@@ -341,5 +352,4 @@ if __name__ == "__main__" :
 
 
 
-# scheduler output/example.json --limit 3 --format json --output output/schedules
 
