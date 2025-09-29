@@ -1,3 +1,8 @@
+# File Name: faculty_cli.py
+
+# Author: Liam Delaney, Nicholas DiPace
+# Last Modified: September 29, 2025
+
 import Models.Faculty_model as FacultyModel
 
 # Gets the days and times the faculty is available
@@ -8,24 +13,23 @@ def daysAndTimes():
     print("\033[31mNOTE: For the following prompts, if a faculty is available two or more different times in one day,\033[0m")
     print("\033[31mseparate the times by commas:\033[0m")
     #print("")
-    print("When are they available on Monday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = [input().lower().replace(" ", "")]
-    print("When are they available on Tuesday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
-    print("When are they available on Wednesday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
-    print("When are they available on Thursday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
-    print("When are they available on Friday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
 
-    # Checks if there are any blank entries in the time_available list
-    i = 0
-    while i < len(time_available):
-        if time_available[i] == "":
-            time_available[i] = "9:00-5:00"
-        i += 1
-    return time_available
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+    availability = {}
+
+    for day in days:
+        print(f"When are they available on {day}? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
+        time_input = input().lower().replace(" ", "")
+        
+        if time_input == "":
+            time_input = "9:00-5:00"
+            availability[day] = [time_input]
+        else:
+            time_input = time_input.split(",")  
+
+            availability[day] = time_input
+
+    return availability
 
 # Prints a list of all current faculty entries.
 def viewFacultyCLI(Faculty):
@@ -41,6 +45,8 @@ def addFacultyCLI(Faculty):
     if faculty_name.replace(" ", "") == "":
         print("You entered a blank name!")
         return
+    if faculty_name.replace(" ", "").lower() == "killian":
+        print("Hello Client!")
 
     #Checks if faculty is already in system.
     if FacultyModel.Faculty.facCheck(Faculty, faculty_name)==True:
@@ -84,7 +90,7 @@ def addFacultyCLI(Faculty):
     except ValueError:
         max_credits = max_teachable_credits
 
-    credit_range = str(min_credits) + "-" + str(max_credits)
+    #credit_range = str(min_credits) + "-" + str(max_credits)
 
     # Calls the function that gets days and times
     time_available = daysAndTimes()
@@ -92,20 +98,21 @@ def addFacultyCLI(Faculty):
     # Gets the course preferences for faculty, removes anything after the third entry
     # If preferences is empty then it replaces the list with "N/A"
     print("What are their course preferences? (Separate courses with commas, maximum of 3)")
-    preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
-    if len(preferences) > 2:
-        preferences = preferences[:3]
-    if len(preferences) == 0:
+    course_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
+    if len(course_preferences) > 2:
+        course_preferences = course_preferences[:3]
+    if len(course_preferences) == 0:
         course_weight = "N/A"
 
-    if len(preferences) > 0:
+    if len(course_preferences) > 0:
         # Loop for getting course weight
         i = 0
-        course_weight = [None] * len(preferences)
+        course_weight = [None] * len(course_preferences)
+        course_result = []
 
-        # Error checks if what they inputted is valid and if not it defaults to 3
-        while i < len(preferences):
-            print("Enter the course weight (0-10) for " + str(preferences[i]) + " (Default is 5, 0 means no preference):")
+        # Error checks if what they inputted is valid and if not it defaults to 5
+        while i < len(course_preferences):
+            print("Enter the course weight (0-10) for " + str(course_preferences[i]) + " (Default is 5, 0 means no preference):")
             course_weight[i] = input().replace(" ", "")
             try:
                 if 0 <= int(course_weight[i]) <= 10:
@@ -114,8 +121,72 @@ def addFacultyCLI(Faculty):
                     course_weight[i] = 5
             except ValueError:
                 course_weight[i] = 5
-            i += 1
 
+            course_result.extend([course_preferences[i], course_weight[i]])
+            i += 1
+        course_preferences = {course_result[i]: course_result[i + 1] for i in range(0, len(course_result), 2)}
+
+        
+
+    # Gets the faculty room preferences
+    print("What are their room preferences? (Separate courses with commas, maximum of 3)")
+    room_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
+    if len(room_preferences) > 2:
+        room_preferences = room_preferences[:3]
+    if len(room_preferences) == 0:
+        room_weight = "N/A"
+
+    if len(room_preferences) > 0:
+        # Loop for getting room weight
+        i = 0
+        room_weight = [None] * len(room_preferences)
+        room_result = []
+
+        # Error checks if what they inputted is valid and if not it defaults to 5
+        while i < len(room_preferences):
+            print("Enter the room weight (0-10) for " + str(room_preferences[i]) + " (Default is 5, 0 means no preference):")
+            room_weight[i] = input().replace(" ", "")
+            try:
+                if 0 <= int(room_weight[i]) <= 10:
+                    room_weight[i] = int(room_weight[i])
+                else:
+                    room_weight[i] = 5
+            except ValueError:
+                room_weight[i] = 5
+
+            room_result.extend([room_preferences[i], room_weight[i]])
+            i += 1
+        room_preferences = {room_result[i]: room_result[i + 1] for i in range(0, len(room_result), 2)}
+
+    # Gets the faculty lab preferences
+    print("What are their lab preferences? (Separate courses with commas, maximum of 3)")
+    lab_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
+    if len(lab_preferences) > 2:
+        lab_preferences = lab_preferences[:3]
+    if len(lab_preferences) == 0:
+        lab_weight = "N/A"
+
+    if len(lab_preferences) > 0:
+        # Loop for getting lab weight
+        i = 0
+        lab_weight = [None] * len(lab_preferences)
+        lab_result = []
+
+        # Error checks if what they inputted is valid and if not it defaults to 5
+        while i < len(lab_preferences):
+            print("Enter the lab weight (0-10) for " + str(lab_preferences[i]) + " (Default is 5, 0 means no preference):")
+            lab_weight[i] = input().replace(" ", "")
+            try:
+                if 0 <= int(lab_weight[i]) <= 10:
+                    lab_weight[i] = int(lab_weight[i])
+                else:
+                    lab_weight[i] = 5
+            except ValueError:
+                lab_weight[i] = 5
+
+            lab_result.extend([lab_preferences[i], lab_weight[i]])
+            i += 1
+        lab_preferences = {lab_result[i]: lab_result[i + 1] for i in range(0, len(lab_result), 2)}
     # Gets the courses the faculty member teaches
     # Checks if faculty is adjunct or not, if so remove everything after first entry
     # If courses_taught is empty then it replaces the list with "N/A"
@@ -127,7 +198,7 @@ def addFacultyCLI(Faculty):
         courses_taught = ["N/A"]
 
     # This creates the new faculty with the info gotten from above
-    new_faculty = {"name":faculty_name, "full-time/adjunct":full_or_part_time, "unique_course_limit":unique_course_limit, "available days/times":time_available, "course preferences":preferences, "course weight":course_weight, "course(s) taught":courses_taught, "credit range": credit_range}
+    new_faculty = {"name":faculty_name, "maximum_credits":max_credits, "minimum_credits":min_credits, "unique_course_limit":unique_course_limit, "times":time_available, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
     #Checks if the faculty being added already exists in the Config, proceed if not found, stop otherwise.
     # print(new_faculty)
     FacultyModel.Faculty.addFaculty(Faculty, new_faculty)
@@ -153,17 +224,17 @@ def editFacultyCLI(Faculty):
         # Creating the variables used in returned data
         # Get information from the previous faculty
         faculty_name = previous_faculty.get('name')
-        full_or_part_time = previous_faculty.get('available days/times')
         unique_course_limit = previous_faculty.get('unique course limit')
+        max_credits = previous_faculty.get('max_credits')
+        min_credits = previous_faculty.get('min_credits')
         time_available = previous_faculty.get('available days/times')
-        preferences = previous_faculty.get('preferences')
-        courses_taught = previous_faculty.get('courses_taught')
-        credit_range = previous_faculty.get('credit_range')
-        course_weight = previous_faculty.get('course weight')
+        course_preferences = previous_faculty.get('course_preferences')
+        room_preferences = previous_faculty.get('room_preferences')
+        lab_preferences = previous_faculty.get('lab_preferences')
 
         # Prompts the user to edit information and asks what information they want to edit
         print("What would you like to edit? Your options are:")
-        print("name, full time or adjunct, availability, course preferences, courses taught, credit range (separate choices with commas)")
+        print("name, availability, course preferences, credits, \nroom preferences, lab preferences (separate choices with commas)")
         things_to_edit = input().lower().replace(" ", "").split(',')
         #print(things_to_edit)
 
@@ -173,69 +244,77 @@ def editFacultyCLI(Faculty):
             print("Enter the new name for this faculty:")
             faculty_name = input()
 
-        # Updates if the faculty is full-time or adjunct
-        if "fulltimeoradjunct" in things_to_edit:
-            print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
-            response = input().lower().replace(" ", "")
+        # # Updates if the faculty is full-time or adjunct
+        # if "fulltimeoradjunct" in things_to_edit:
+        #     print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
+        #     response = input().lower().replace(" ", "")
 
-            # Checks if the input is valid, defaults to full if invalid
-            if response != "full" and full_or_part_time != "adjunct":
-                full_or_part_time = "full"
+        #     # Checks if the input is valid, defaults to full if invalid
+        #     if response != "full" and full_or_part_time != "adjunct":
+        #         full_or_part_time = "full"
 
-            # This checks if the faculty is full-time or adjunct, and sets the course limit
-            if full_or_part_time == "full":
-                unique_course_limit = 2
-            else:
-                unique_course_limit = 1
+        #     # This checks if the faculty is full-time or adjunct, and sets the course limit
+        #     if full_or_part_time == "full":
+        #         unique_course_limit = 2
+        #     else:
+        #         unique_course_limit = 1
 
         # Calls the daysAndTimes method to update the faculty's availability
         if "availability" in things_to_edit:
             time_available = daysAndTimes()
 
-        if "credit range" in things_to_edit:
-            if full_or_part_time == "full":
+        if "credits" in things_to_edit:
+            print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
+            response = input().lower().replace(" ", "")
+            if response == "full" or response == "":
                 max_teachable_credits = 12
             else:
                 max_teachable_credits = 4
 
+            if max_teachable_credits == 12:
+                unique_course_limit = 2
+            else:
+                unique_course_limit = 1
             # Gets the minimum credits the faculty can teach
             print("Enter the minimum credits a faculty can teach per semester (default is 0):")
-            min_credits = input()
+            minimum_credits = input()
             try:
-                if int(min_credits) < 0 or int(min_credits) > int(max_teachable_credits):
-                    min_credits = 0
+                if int(minimum_credits) < 0 or int(minimum_credits) > int(max_teachable_credits):
+                    minimum_credits = 0
             except ValueError:
-                min_credits = 0
+                minimum_credits = 0
     
             # Gets the maximum credits the faculty can teach
             print("Enter the maximum credits a faculty can teach per semester (default is " + str(max_teachable_credits) + "):")
-            max_credits = input()
+            maximum_credits = input()
             try:
-                if int(max_credits) > max_teachable_credits or int(max_credits) < int(min_credits):
-                    max_credits = max_teachable_credits
+                if int(maximum_credits) > max_teachable_credits or int(maximum_credits) < int(maximum_credits):
+                    maximum_credits = max_teachable_credits
             except ValueError:
-                max_credits = max_teachable_credits
+                maximum_credits = max_teachable_credits
             
-            credit_range = str(min_credits) + "-" + str(max_credits)
+            #credit_range = str(min_credits) + "-" + str(max_credits)
 
         # Updates the course preferences
         # NOTE: temp_preferences is a temporary variable to store the actual list of preferences for conditional checking, 
         # and is not returned
         if "coursepreferences" in things_to_edit:
             print("What are their course preferences? (Separate courses with commas, maximum of 3)")
-            temp_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
-            if len(temp_preferences) > 2:
-                temp_preferences = temp_preferences[:3]
-            if len(temp_preferences) == 0:
-                preferences = {"course preferences":["N/A"]}
-            else: 
+            course_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
+            if len(course_preferences) > 2:
+                course_preferences = course_preferences[:3]
+            if len(course_preferences) == 0:
+                course_preferences = previous_faculty.get('course_preferences')
+
+            elif len(course_preferences) > 0:
                 # Loop for getting course weight
                 i = 0
-                course_weight = [None] * len(temp_preferences)
+                course_weight = [None] * len(course_preferences)
+                course_result = []
 
-                # Error checks if what they inputted is valid and if not it defaults to 3
-                while i < len(temp_preferences):
-                    print("Enter the course weight (0-10) for " + str(temp_preferences[i]) + " (Default is 5, 0 means no preference):")
+                # Error checks if what they inputted is valid and if not it defaults to 5
+                while i < len(course_preferences):
+                    print("Enter the course weight (0-10) for " + str(course_preferences[i]) + " (Default is 5, 0 means no preference):")
                     course_weight[i] = input().replace(" ", "")
                     try:
                         if 0 <= int(course_weight[i]) <= 10:
@@ -244,20 +323,80 @@ def editFacultyCLI(Faculty):
                             course_weight[i] = 5
                     except ValueError:
                         course_weight[i] = 5
-                    i=i+1
 
+                    course_result.extend([course_preferences[i], course_weight[i]])
+                    i += 1
+                course_preferences = {course_result[i]: course_result[i + 1] for i in range(0, len(course_result), 2)}
+        
+        if "roompreferences" in things_to_edit:
+            print("What are their room preferences? (Separate courses with commas, maximum of 3)")
+            room_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
+            if len(room_preferences) > 2:
+                room_preferences = room_preferences[:3]
+            if len(room_preferences) == 0:
+                room_preferences = previous_faculty.get('room_preferences')
+
+            elif len(room_preferences) > 0:
+                # Loop for getting room weight
+                i = 0
+                room_weight = [None] * len(room_preferences)
+                room_result = []
+
+                # Error checks if what they inputted is valid and if not it defaults to 5
+                while i < len(room_preferences):
+                    print("Enter the room weight (0-10) for " + str(room_preferences[i]) + " (Default is 5, 0 means no preference):")
+                    room_weight[i] = input().replace(" ", "")
+                    try:
+                        if 0 <= int(room_weight[i]) <= 10:
+                            room_weight[i] = int(room_weight[i])
+                        else:
+                            room_weight[i] = 5
+                    except ValueError:
+                        room_weight[i] = 5
+
+                    room_result.extend([room_preferences[i], room_weight[i]])
+                    i += 1
+                room_preferences = {room_result[i]: room_result[i + 1] for i in range(0, len(room_result), 2)}
+
+        if "labpreferences" in things_to_edit:
+            print("What are their lab preferences? (Separate courses with commas, maximum of 3)")
+            lab_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
+            if len(lab_preferences) > 2:
+                lab_preferences = lab_preferences[:3]
+            if len(lab_preferences) == 0:
+                lab_preferences = previous_faculty.get('lab_preferences')
+            elif len(lab_preferences) > 0:
+                # Loop for getting lab weight
+                i = 0
+                lab_weight = [None] * len(lab_preferences)
+                lab_result = []
+
+                # Error checks if what they inputted is valid and if not it defaults to 5
+                while i < len(lab_preferences):
+                    print("Enter the lab weight (0-10) for " + str(lab_preferences[i]) + " (Default is 5, 0 means no preference):")
+                    lab_weight[i] = input().replace(" ", "")
+                    try:
+                        if 0 <= int(lab_weight[i]) <= 10:
+                            lab_weight[i] = int(lab_weight[i])
+                        else:
+                            lab_weight[i] = 5
+                    except ValueError:
+                        lab_weight[i] = 5
+
+                    lab_result.extend([lab_preferences[i], lab_weight[i]])
+                    i += 1
+                lab_preferences = {lab_result[i]: lab_result[i + 1] for i in range(0, len(lab_result), 2)}
         # Updates the courses taught
-        if "coursestaught" in things_to_edit:
-            print("What courses do they teach? (Maximum of 2 for full-time, 1 for adjunct)")
-            courses_taught = input().lower().replace(" ", "").split(',')
+        # if "coursestaught" in things_to_edit:
+        #     print("What courses do they teach? (Maximum of 2 for full-time, 1 for adjunct)")
+        #     courses_taught = input().lower().replace(" ", "").split(',')
 
-            if full_or_part_time != "full":
-                courses_taught = courses_taught[:1]
-            if len(courses_taught) == 0:
-                courses_taught = ["N/A"]
+        #     if full_or_part_time != "full":
+        #         courses_taught = courses_taught[:1]
+        #     if len(courses_taught) == 0:
+        #         courses_taught = ["N/A"]
 
-
-        edited_faculty = {"name":faculty_name, "full-time/adjunct":full_or_part_time, "unique_course_limit":unique_course_limit, "available days/times":time_available, "course preferences":preferences, "course weight":course_weight, "course(s) taught":courses_taught, "credit range": credit_range}
+        edited_faculty = {"name":faculty_name, "maximum_credits":maximum_credits, "minimum_credits":minimum_credits, "unique_course_limit":unique_course_limit, "times":time_available, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
         FacultyModel.Faculty.addFaculty(Faculty, edited_faculty)
 
 
@@ -277,13 +416,13 @@ def removeFacultyCLI(Faculty):
             FacultyModel.Faculty.removeFaculty(Faculty, name_to_remove)
     
         else:       
-         print("Removal cancelled")
+            print("Removal cancelled")
 
 
 # Directs the action the user wishes to take to the proper sections of the program.
 def mainFacultyController(Faculty):
      # Repeats until 0/back is entered to return to call location (main).
-     while True:
+    while True:
         print("What would like to do? Your options are:")
         print("1. Add faculty (Type 1 or add),")
         print("2. Edit faculty (Type 2 or edit),")
