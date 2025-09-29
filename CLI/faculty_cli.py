@@ -8,25 +8,27 @@ def daysAndTimes():
     print("\033[31mNOTE: For the following prompts, if a faculty is available two or more different times in one day,\033[0m")
     print("\033[31mseparate the times by commas:\033[0m")
     #print("")
-    print("When are they available on Monday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = [input().lower().replace(" ", "")]
-    print("When are they available on Tuesday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
-    print("When are they available on Wednesday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
-    print("When are they available on Thursday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
-    print("When are they available on Friday? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
-    time_available = time_available + [input().lower().replace(" ", "")]
 
-    # Checks if there are any blank entries in the time_available list
-    i = 0
-    while i < len(time_available):
-        if time_available[i] == "":
-            time_available[i] = "9:00-5:00"
-        i += 1
-    return time_available
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+    availability = {}
 
+    for day in days:
+        print(f"When are they available on {day}? (Leave blank for 9:00-5:00, type \"N/A\" if they are not available)")
+        time_input = input().lower().replace(" ", "")
+        
+        if time_input == "":
+            time_input = "9:00-5:00"
+            availability[day] = [time_input]
+        else:
+            time_input = time_input.split(",")  
+
+            availability[day] = time_input
+
+    return availability
+
+# Prints a list of all current faculty entries.
+def viewFacultyCLI(Faculty):
+    FacultyModel.Faculty.viewFaculty(Faculty)
 
 # This adds the faculty, just here to make things cleaner in the promptUser method
 def addFacultyCLI(Faculty):
@@ -124,7 +126,7 @@ def addFacultyCLI(Faculty):
         courses_taught = ["N/A"]
 
     # This creates the new faculty with the info gotten from above
-    new_faculty = {"name":faculty_name, "full-time/adjunct":full_or_part_time, "unique_course_limit":unique_course_limit, "available days/times":time_available, "course preferences":preferences, "course weight":course_weight, "course(s) taught":courses_taught, "credit range": credit_range}
+    new_faculty = {"name":faculty_name, "full-time/adjunct":full_or_part_time, "unique_course_limit":unique_course_limit, "times":time_available, "course preferences":preferences, "course weight":course_weight, "course(s) taught":courses_taught, "credit range": credit_range}
     #Checks if the faculty being added already exists in the Config, proceed if not found, stop otherwise.
     # print(new_faculty)
     FacultyModel.Faculty.addFaculty(Faculty, new_faculty)
@@ -274,16 +276,20 @@ def removeFacultyCLI(Faculty):
             FacultyModel.Faculty.removeFaculty(Faculty, name_to_remove)
     
         else:       
-         print("Removal cancelled")
+            print("Removal cancelled")
 
 
 # Directs the action the user wishes to take to the proper sections of the program.
 def mainFacultyController(Faculty):
      # Repeats until 0/back is entered to return to call location (main).
-     while True:
-        print("What would like to do? Your options are: " \
-        "\n 1. Add faculty (Type 1 or add), \n 2. Edit faculty (Type 2 or edit), \n 3. Remove faculty (Type 3 or remove), \n 4. Go back (Type 4 or back)" \
-        "\n Enter your choice here (Case Insensitive): ")
+    while True:
+        print("What would like to do? Your options are:")
+        print("1. Add faculty (Type 1 or add),")
+        print("2. Edit faculty (Type 2 or edit),")
+        print("3. Remove faculty (Type 3 or remove),")
+        print("4. View Faculty in System (Type 4 or view)")
+        print("5. Go back (Type 5 or back)")
+        print(" Enter your choice here (Case Insensitive): ")
 
         # This stores the string the user inputted from the prompt above
         action = input()
@@ -303,8 +309,12 @@ def mainFacultyController(Faculty):
             removeFacultyCLI(Faculty)
             print("Faculty removed.")
 
+        # Prints a list of all current faculty entries.
+        elif action == "4" or action.lower() == "view":
+            viewFacultyCLI(Faculty)
+        
         # Exits while loop and returns to where call originated.
-        elif action == "4" or action.lower() == "back":
+        elif action == "5" or action.lower() == "back":
             return
 
         # If the user enters an invalid input
