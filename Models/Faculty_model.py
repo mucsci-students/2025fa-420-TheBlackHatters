@@ -1,23 +1,34 @@
+# File Name: Faculty_model.py
+
+# Author: Liam Delaney, Nicholas DiPace
+# Last Modified: September 29, 2025
+
 class Faculty:
 
     faculty_name = None
-    full_or_part_time = None
+    maximum_credits = None
+    minimum_credits = None
     unique_course_limit = None
     time_available = [None, None, None, None, None]
-    preferences = None
-    courses_taught = None
-    course_weight = []
+    course_preferences = {None}
+    room_preferences = None
+    lab_preferences = None
+    
+    
 
     # Constructor
-    def __init__(self, faculty_name, full_or_part_time, unique_course_limit, time_available, preferences, courses_taught, course_weight):
+    def __init__(self, faculty_name, maximum_credits, minimum_credits, unique_course_limit, time_available, course_preferences, room_preferences, lab_preferences):
         #init, faculty should be a list of faculty objects.
         self.name = faculty_name
-        self.full_or_part_time = full_or_part_time
+        self.maximum_credits = maximum_credits
+        self.minimum_credits = minimum_credits
         self.unique_course_limit = unique_course_limit
         self.times = time_available
-        self.course_preferences = preferences  
-        self.courses = courses_taught
-        self.course_weight = course_weight
+        self.course_preferences = course_preferences
+        self.room_preferences = room_preferences
+        self.lab_preferences = lab_preferences
+        
+        
 
     def __str__(self):
         return f"Faculty in the system: {self.faculty}."
