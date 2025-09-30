@@ -1,7 +1,7 @@
 # File Name: faculty_cli.py
 
 # Author: Liam Delaney, Nicholas DiPace
-# Last Modified: September 29, 2025
+# Last Modified: September 30, 2025
 
 import Models.Faculty_model as FacultyModel
 
@@ -12,7 +12,6 @@ def daysAndTimes():
     # ".replace(" ", "")" removes any spaces the user may have accidentally added, just as a quality of life thing
     print("\033[31mNOTE: For the following prompts, if a faculty is available two or more different times in one day,\033[0m")
     print("\033[31mseparate the times by commas:\033[0m")
-    #print("")
 
     days = ["MON", "TUE", "WED", "THU", "FRI"]
     availability = {}
@@ -225,8 +224,8 @@ def editFacultyCLI(Faculty):
         # Get information from the previous faculty
         faculty_name = previous_faculty.get('name')
         unique_course_limit = previous_faculty.get('unique course limit')
-        max_credits = previous_faculty.get('max_credits')
-        min_credits = previous_faculty.get('min_credits')
+        maximum_credits = previous_faculty.get('max_credits')
+        minimum_credits = previous_faculty.get('min_credits')
         time_available = previous_faculty.get('available days/times')
         course_preferences = previous_faculty.get('course_preferences')
         room_preferences = previous_faculty.get('room_preferences')
@@ -243,21 +242,6 @@ def editFacultyCLI(Faculty):
         if "name" in things_to_edit:
             print("Enter the new name for this faculty:")
             faculty_name = input()
-
-        # # Updates if the faculty is full-time or adjunct
-        # if "fulltimeoradjunct" in things_to_edit:
-        #     print("Are they full-time or adjunct? (Enter \"full\" or \"adjunct\") (Default: full)")
-        #     response = input().lower().replace(" ", "")
-
-        #     # Checks if the input is valid, defaults to full if invalid
-        #     if response != "full" and full_or_part_time != "adjunct":
-        #         full_or_part_time = "full"
-
-        #     # This checks if the faculty is full-time or adjunct, and sets the course limit
-        #     if full_or_part_time == "full":
-        #         unique_course_limit = 2
-        #     else:
-        #         unique_course_limit = 1
 
         # Calls the daysAndTimes method to update the faculty's availability
         if "availability" in things_to_edit:
@@ -328,6 +312,7 @@ def editFacultyCLI(Faculty):
                     i += 1
                 course_preferences = {course_result[i]: course_result[i + 1] for i in range(0, len(course_result), 2)}
         
+        # Gets the room preferences
         if "roompreferences" in things_to_edit:
             print("What are their room preferences? (Separate courses with commas, maximum of 3)")
             room_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
@@ -358,6 +343,7 @@ def editFacultyCLI(Faculty):
                     i += 1
                 room_preferences = {room_result[i]: room_result[i + 1] for i in range(0, len(room_result), 2)}
 
+        # Gets the lab preferences
         if "labpreferences" in things_to_edit:
             print("What are their lab preferences? (Separate courses with commas, maximum of 3)")
             lab_preferences = list(filter(None, input().lower().replace(" ", "").split(',')))
@@ -386,15 +372,6 @@ def editFacultyCLI(Faculty):
                     lab_result.extend([lab_preferences[i], lab_weight[i]])
                     i += 1
                 lab_preferences = {lab_result[i]: lab_result[i + 1] for i in range(0, len(lab_result), 2)}
-        # Updates the courses taught
-        # if "coursestaught" in things_to_edit:
-        #     print("What courses do they teach? (Maximum of 2 for full-time, 1 for adjunct)")
-        #     courses_taught = input().lower().replace(" ", "").split(',')
-
-        #     if full_or_part_time != "full":
-        #         courses_taught = courses_taught[:1]
-        #     if len(courses_taught) == 0:
-        #         courses_taught = ["N/A"]
 
         edited_faculty = {"name":faculty_name, "maximum_credits":maximum_credits, "minimum_credits":minimum_credits, "unique_course_limit":unique_course_limit, "times":time_available, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
         FacultyModel.Faculty.addFaculty(Faculty, edited_faculty)
@@ -460,5 +437,4 @@ def mainFacultyController(Faculty):
         # If the user enters an invalid input
         else:
             print("Invalid response!")
-
 
