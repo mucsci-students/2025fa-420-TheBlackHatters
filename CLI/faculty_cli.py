@@ -89,8 +89,6 @@ def addFacultyCLI(Faculty):
     except ValueError:
         max_credits = max_teachable_credits
 
-    #credit_range = str(min_credits) + "-" + str(max_credits)
-
     # Calls the function that gets days and times
     time_available = daysAndTimes()
 
@@ -199,7 +197,6 @@ def addFacultyCLI(Faculty):
     # This creates the new faculty with the info gotten from above
     new_faculty = {"name":faculty_name, "maximum_credits":max_credits, "minimum_credits":min_credits, "unique_course_limit":unique_course_limit, "times":time_available, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
     #Checks if the faculty being added already exists in the Config, proceed if not found, stop otherwise.
-    # print(new_faculty)
     FacultyModel.Faculty.addFaculty(Faculty, new_faculty)
     print("Faculty added.")
     
@@ -235,7 +232,6 @@ def editFacultyCLI(Faculty):
         print("What would you like to edit? Your options are:")
         print("name, availability, course preferences, credits, \nroom preferences, lab preferences (separate choices with commas)")
         things_to_edit = input().lower().replace(" ", "").split(',')
-        #print(things_to_edit)
 
         # List of if statements that checks the list for what to edit
         # As a QOL addition for the user, the strings below have no spaces between them
@@ -277,7 +273,6 @@ def editFacultyCLI(Faculty):
             except ValueError:
                 maximum_credits = max_teachable_credits
             
-            #credit_range = str(min_credits) + "-" + str(max_credits)
 
         # Updates the course preferences
         # NOTE: temp_preferences is a temporary variable to store the actual list of preferences for conditional checking, 
@@ -437,4 +432,5 @@ def mainFacultyController(Faculty):
         # If the user enters an invalid input
         else:
             print("Invalid response!")
+
 
