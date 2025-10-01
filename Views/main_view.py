@@ -3,7 +3,8 @@ import customtkinter as ctk
 from tkinter import Canvas, StringVar
 
 
-# Dummy Data to just put something in the forms i will create:
+# Dummy Data to just put something in the forms i will create
+# This data is just for testing Purpuses! 
 Rooms = ["Roddy 136","Roddy 140","Roddy 147"]
 Labs = ["Linux","Mac"]
 Courses = [
@@ -67,6 +68,28 @@ Faculty = [
             },
 ]
 
+
+scheduleExample =     [[
+        ["CMSC 140.01","Hardy","Roddy 147","None","MON 13:00-13:50","WED 13:00-14:50","FRI 13:00-13:50"],
+        ["CMSC 140.02","Hardy","Roddy 147","None","MON 13:00-13:50","WED 13:00-14:50","FRI 13:00-13:50"],
+        ["CMSC 152.01","Hardy","Roddy 147","Mac","MON 11:00-11:50","TUE 10:00-11:50^","FRI 11:00-11:50"],
+        ["CMSC 161.01","Zoppetti","Roddy 136","Linux","MON 14:00-14:50","THU 13:10-15:00^","FRI 14:00-14:50"],
+        ["CMSC 161.02","Wertz","Roddy 147","Linux","TUE 08:00-09:50","THU 08:00-09:50"]],
+
+        [       
+        ["CMSC 140.01","Hardy2","Roddy 1147","None","MON 13:00-13:50","WED 13:00-14:50","FRI 13:00-13:50"],
+        ["CMSC 140.02","Hardy2","Roddy 1147","None","MON 13:00-13:50","WED 13:00-14:50","FRI 13:00-13:50"],
+        ["CMSC 152.01","Hardy2","Roddy 1147","Mac","MON 11:00-11:50","TUE 10:00-11:50^","FRI 11:00-11:50"],
+        ["CMSC 161.01","Zoppetti2","Roddy 1136","Linux","MON 14:00-14:50","THU 13:10-15:00^","FRI 14:00-14:50"],
+        ["CMSC 161.02","Wertz2","Roddy 1147","Linux","TUE 08:00-09:50","THU 08:00-09:50"]
+        ],
+        [       
+        ["CMSC 140.01","Hardy2","Roddy 1147","None","MON 13:00-13:50","WED 13:00-14:50","FRI 13:00-13:50"],
+        ["CMSC 140.02","Hardy2","Roddy 1147","None","MON 13:00-13:50","WED 13:00-14:50","FRI 13:00-13:50"],
+        ["CMSC 152.01","Hardy2","Roddy 1147","Mac","MON 11:00-11:50","TUE 10:00-11:50^","FRI 11:00-11:50"],
+        ["CMSC 161.01","Zoppetti2","Roddy 1136","Linux","MON 14:00-14:50","THU 13:10-15:00^","FRI 14:00-14:50"],
+        ["CMSC 161.02","Wertz2","Roddy 1147","Linux","TUE 08:00-09:50","THU 08:00-09:50"]
+        ]]
 
 def dataFacultyLeft(frame, data = None):
 
@@ -373,6 +396,7 @@ class SchedulerApp(ctk.CTk):
         frame = ctk.CTkFrame(self, fg_color="transparent")
         self.views["ViewSchedulePage"] = frame
 
+        # This is the header stuff
         backBtn = ctk.CTkButton(frame, text="⬅ Back", width=100, command=lambda: self.show_view("MainPage"))
         backBtn.pack(pady=10, anchor="w", padx=15)
 
@@ -391,6 +415,48 @@ class SchedulerApp(ctk.CTk):
         dropdown = ctk.CTkOptionMenu(dropDownFrame, width=150, values=["Deafult", "Rooms & Labs", "Faculty"],  command= lambda choice: self.orderByChoice(choice))
         dropdown.set("Default")
         dropdown.pack(side="left", padx=(0,10), fill="x")
+
+        # This the actaully for the schedule viewer now. 
+        schedulesFrame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
+        schedulesFrame.pack(expand=True,  fill="both", padx=10, pady=10)
+
+        for idx, schedule in enumerate(scheduleExample, start=1):
+            
+            color = "#1F1E1E"
+            if idx % 2 ==0:
+                color = "transparent"
+
+            schFrame = ctk.CTkFrame(schedulesFrame, fg_color = color)
+            schFrame.pack(padx=(0,10), pady=(0, 30), fill="x", expand=True)
+
+            scheduleHeaderFrame = ctk.CTkFrame(schFrame, fg_color="transparent")
+            scheduleHeaderFrame.pack(side="top", padx=(0,10), fill="x", expand=True)
+
+            schedulesTitle = ctk.CTkLabel(scheduleHeaderFrame, width = 100, text=f"Schedule:{idx}", font=("Arial", 15, "bold"))
+            schedulesTitle.pack(side="left", padx=(0,10), fill="x", expand=True)
+
+            ctk.CTkButton(scheduleHeaderFrame, text="Export CSV", width=100, height=35, command=lambda: print(f"Export CSV {idx}")).pack(side="left", padx=(0,10), pady=(10,0), fill="x", expand=True)
+            ctk.CTkButton(scheduleHeaderFrame, text="Export JSON", width=100, height=35, command=lambda: print(f"Export JSON {idx}")).pack(side="left", padx=(0,10), pady=(10,0),fill="x", expand=True)
+
+            # Create the table frame inside schFrame
+            tableFrame = ctk.CTkFrame(schFrame, fg_color="transparent", height=300)  # scrollable if many rows
+            tableFrame.pack(fill="both", expand=True, padx=10, pady=10)
+
+            # Table header
+            headerFrame = ctk.CTkFrame(tableFrame)
+            headerFrame.pack(fill="x", pady=(0,2))
+            columns = ["Course", "Faculty", "Room", "Lab", "Mon", "Tue", "Wed", "Thu", "Fri"]
+            for col in columns:
+                lbl = ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w")
+                lbl.pack(side="left", padx=5)
+
+            # Table rows
+            for row in schedule:
+                rowFrame = ctk.CTkFrame(tableFrame)
+                rowFrame.pack(fill="x", pady=1)
+                for item in row:
+                    lbl = ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w")
+                    lbl.pack(side="left", padx=5)
 
 
     def createSchedulerPage(self):
