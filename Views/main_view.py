@@ -159,121 +159,159 @@ def dataFacultyRight(frame, data=None):
         nameEntry.insert(0, data.get("name", ""))
 
 
-    # This is to display the credit thigns  
+    # This is to display the credit things   
+    # we need to place, Label and Entry to for each of those we need a frame 
+    # we put those two things in the frame and show it on the screen. 
     rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
-    rowCredits.pack(fill="x", pady=5, padx=5)
+    rowCredits.pack(fill="x", pady=5, padx=5, expand = True)
 
-    ctk.CTkLabel(rowCredits, text="Minimum Credits:", font=("Arial", 30, "bold")).grid(row=0, column=0, padx=10, pady=2, sticky="w")
+    ctk.CTkLabel(rowCredits, text="Min Credits:", font=("Arial", 30, "bold")).pack(side="left", fill = "x",padx=5)
     minEntry = ctk.CTkEntry(rowCredits, placeholder_text="E.g: 4", font=("Arial", 30, "bold"))
-    minEntry.grid(row=0, column=1, sticky="ew", padx=5)
+    minEntry.pack(side="left", fill="x", expand=True, padx=5)
 
-    ctk.CTkLabel(rowCredits, text="Maximum Credits:", font=("Arial", 30, "bold")).grid(row=1, column=0, padx=10, pady=2, sticky="w")
+    rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
+    rowCredits.pack(fill="x", pady=5, padx=5, expand = True)
+
+    # same things for Max Credits 
+    ctk.CTkLabel(rowCredits, text="Max Credits:", font=("Arial", 30, "bold")).pack( side = "left",fill = "x", padx=5)
     maxEntry = ctk.CTkEntry(rowCredits, placeholder_text="E.g: 12", font=("Arial", 30, "bold"))
-    maxEntry.grid(row=1, column=1, sticky="ew", padx=5)
+    maxEntry.pack(side="left", fill="x", expand=True, padx=5)
 
-    ctk.CTkLabel(rowCredits, text="Unique Course Limit:", font=("Arial", 30, "bold")).grid(row=2, column=0, padx=10, pady=2, sticky="w")
+    # same things for Unique Course Limit:
+    rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
+    rowCredits.pack(fill="x", pady=5, padx=5, expand = True)
+
+    ctk.CTkLabel(rowCredits, text="Unique Course Limit:", font=("Arial", 30, "bold")).pack( side = "left", fill = "x", padx=5)
     uniqueEntry = ctk.CTkEntry(rowCredits, placeholder_text="E.g: 3", font=("Arial", 30, "bold"))
-    uniqueEntry.grid(row=2, column=1, sticky="ew", padx=5)
+    uniqueEntry.pack(side="left", fill="x", expand=True, padx=5)
 
-    rowCredits.grid_columnconfigure(1, weight=1)
-
+    # TODO: Actally put the data in the entrys, if there is data given
     if data:
         minEntry.insert(0, data.get("minimum_credits", ""))
         maxEntry.insert(0, data.get("maximum_credits", ""))
         uniqueEntry.insert(0, data.get("unique_course_limit", ""))
 
 
-    # time avavlity
+    # Again we create row frame for the time availability, that will hold eveything for time
+    # Wa also add a label with the text Availability (MON-FRI), and font and put on screen. 
     rowAvailability = ctk.CTkFrame(frame, fg_color="transparent")
     rowAvailability.pack(fill="x", pady=5, padx=5)
     ctk.CTkLabel(rowAvailability, text="Availability (MON-FRI):", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2,0))
 
-    availabilityEntries = {}
+
+    # now this will actally put the times from the data 
+    # we will just loop through the days
     days = ["MON", "TUE", "WED", "THU", "FRI"]
+
+    # in the for loop we create a frame again for each day, with label and engry
     for day in days:
         dayFrame = ctk.CTkFrame(rowAvailability, fg_color="transparent")
         dayFrame.pack(fill="x", padx=20, pady=(0,2))
+
+        # Label for the day
         ctk.CTkLabel(dayFrame, text=f"{day}:", width=50, anchor="w", font=("Arial", 25, "bold")).pack(side="left")
+
+        # entry for each of the day and show it on screen
         dayEntry = ctk.CTkEntry(dayFrame, placeholder_text="E.g: 8:00-10:00, 12:30-5:00", font=("Arial", 30, "bold"))
         dayEntry.pack(side="left", fill="x", expand=True)
+
+        # this will display the given data if we do give it data,
+        # other wise is just empty
         if data and "times" in data:
             dayEntry.insert(0, ', '.join(data["times"].get(day, [])))
-        availabilityEntries[day] = dayEntry
 
-    # course Prefrence
+    # Course Prefrence Frame. We create it and pack in on screen
+    # In side this frame we will write everything for course_preferences
     rowCourse = ctk.CTkFrame(frame, fg_color="transparent")
     rowCourse.pack(fill="x", pady=5, padx=5)
 
+    # this is just creating label with text: Course Preferences
     ctk.CTkLabel(rowCourse, text="Course Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
 
-    if data and "course_preferences" in data:
-        for course, weight in data["course_preferences"].items():
-            courseRow = ctk.CTkFrame(rowCourse, fg_color="transparent")
-            courseRow.pack(fill="x", padx=20, pady=2)
+    # TODO: Need to make sure this works with actual data, not data for testing purposes, Faculty
+    # we seperate with course and weight for each item in data
+    dummyData = Faculty[0].get("course_preferences")
+    for course, weight in dummyData.items():
+        # Again we create a row frame to put the label and weight in. 
+        courseRow = ctk.CTkFrame(rowCourse, fg_color="transparent")
+        courseRow.pack(fill="x", padx=20, pady=2)
 
-            ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).grid(row=0, column=0, sticky="w")
+        # we create the label, with the couse name, and also create entry for user input
+        ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(fill="x", padx=20, pady=2)
+        weightEntry = ctk.CTkEntry(courseRow, width=80, justify="center", font=("Arial", 25, "bold"))
+        weightEntry.pack(side = "left", fill="x", padx=20, pady=2)
 
-            weightEntry = ctk.CTkEntry(courseRow, width=80, justify="center", font=("Arial", 25, "bold"))
-            weightEntry.grid(row=0, column=1, sticky="w", padx=5)
-
+        # we will fill with actual data if possible 
+        if data: 
             weightEntry.insert(0, str(weight))
 
-    # room Prefrence
-    rowRoom = ctk.CTkFrame(frame, fg_color="transparent")
+
+    # room Prefrence EXACT SAME THING AS ABOVE(Course Prefrence)
+    rowRoom= ctk.CTkFrame(frame, fg_color="transparent")
     rowRoom.pack(fill="x", pady=5, padx=5)
 
     ctk.CTkLabel(rowRoom, text="Room Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
+    dummyData = Faculty[0].get("room_preferences")
+    for room, weight in dummyData.items():
+        roomRow = ctk.CTkFrame(rowRoom, fg_color="transparent")
+        roomRow.pack(fill="x", padx=20, pady=2)
 
-    if data and "room_preferences" in data:
-        for room, weight in data["room_preferences"].items():
-            roomRow = ctk.CTkFrame(rowRoom, fg_color="transparent")
-            roomRow.pack(fill="x", padx=20, pady=2)
+        ctk.CTkLabel(roomRow, text=f"{room}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(fill="x", padx=20, pady=2)
+        weightEntry = ctk.CTkEntry(roomRow, width=80, justify="center", font=("Arial", 25, "bold"))
+        weightEntry.pack(side = "left", fill="x", padx=20, pady=2)
 
-            ctk.CTkLabel(roomRow, text=room, anchor="w", width=150,  font=("Arial", 25, "bold")).grid(row=0, column=0, sticky="w")
-
-            weightEntry = ctk.CTkEntry(roomRow, width=80, justify="center",  font=("Arial", 25, "bold"))
-            weightEntry.grid(row=0, column=1, sticky="w", padx=5)
-
+        # we will fill with actual data if possible, and wi will HAVE TO
+        # TODO: Need to make functional
+        if data: 
             weightEntry.insert(0, str(weight))
 
-    # Lab Prefrence
+    # Lab Prefrence EXACT SAME THING AS ABOVE (Course Prefrence and Room Preferences)
     rowLab = ctk.CTkFrame(frame, fg_color="transparent")
     rowLab.pack(fill="x", pady=5, padx=5)
 
     ctk.CTkLabel(rowLab, text="Lab Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
+    dummyData = Faculty[0].get("lab_preferences")
+    print(dummyData)
+    for lab, weight in dummyData.items():
+        labRow = ctk.CTkFrame(rowLab, fg_color="transparent")
+        labRow.pack(fill="x", padx=20, pady=2)
 
-    if data and "lab_preferences" in data:
-        for lab, weight in data["lab_preferences"].items():
-            labRow = ctk.CTkFrame(rowLab, fg_color="transparent")
-            labRow.pack(fill="x", padx=20, pady=2)
+        ctk.CTkLabel(labRow, text=f"{lab}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(fill="x", padx=20, pady=2)
+        weightEntry = ctk.CTkEntry(labRow, width=80, justify="center", font=("Arial", 25, "bold"))
+        weightEntry.pack(side = "left", fill="x", padx=20, pady=2)
 
-            ctk.CTkLabel(labRow, text=lab, anchor="w", width=150,  font=("Arial", 25, "bold")).grid(row=0, column=0, sticky="w")
-
-            weightEntry = ctk.CTkEntry(labRow, width=80, justify="center",  font=("Arial", 25, "bold"))
-            weightEntry.grid(row=0, column=1, sticky="w", padx=5)
-
+        # we will fill with actual data if possible, and wi will HAVE TO
+        # TODO: Need to make functional
+        if data: 
             weightEntry.insert(0, str(weight))
 
+    # this is the save buttion that will save changes when we add a new faculty and when we modify existing
+    # TODO: need to make the button work
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: print(f"Save chagnes conteoller")).pack(side="bottom", padx=5)
 
 
-
+# this function will fill in the data on the right side of the two column 
 def dataRoomRight(frame, data= None):
 
-
+    # we should know what this does by now. 
+    # we make a frame to lay things on top
     container = ctk.CTkFrame(frame, fg_color="transparent")
     container.pack(fill="x", pady=5, padx=5)
 
+    # we put a label, and entry for name. 
     ctk.CTkLabel(container, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")).grid(row=0, column=0, padx=10, pady=2)
     nameEntry = ctk.CTkEntry(container, width=350, placeholder_text="E.g: Roddy 140",font=("Arial", 30, "bold") )
     nameEntry.grid(row=0, column=1, sticky="ew", padx=5)
 
+    # Button to save Changes
+    # TODO: Need to add command properly. 
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: print(f"Save chagnes conteoller for Rooms ")).pack(side="bottom", padx=5)
 
-
+# This function is to popluate the left side of the screen.
+# pretty much same things as above. 
 def dataRoomLeft(frame, data=None):
 
-    # I need two rows, 1 for add buttion, other for the content
+    # frame to put everything in
     container = ctk.CTkFrame(frame, fg_color =  "transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -293,7 +331,7 @@ def dataRoomLeft(frame, data=None):
 
 
 
-
+# same as ROOMS
 def dataLabsRight(frame, data= None):
     # Note that that data here is a specefic one to display, for example a name of a lab
     # we will also treat this as a form to fill out
@@ -307,7 +345,7 @@ def dataLabsRight(frame, data= None):
 
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: print(f"Save chagnes conteoller for labs")).pack(side="bottom", padx=5)
 
-
+# same as ROOMS
 def dataLabsLeft(frame, data=None):
     # Note that that data here is a list of Labs 
 
@@ -332,27 +370,35 @@ def dataLabsLeft(frame, data=None):
 
     
 
-
-
-
+# this is the actual App
 class SchedulerApp(ctk.CTk):
     def __init__(self):
+        # our apps inherates everything form ctk.CTk
         super().__init__()
+        # titel 
         self.title("Scheduler Application")
+
+        # the min size
         self.geometry("1200x700")
         self.minsize(1200,700)
+
+        # allows us to expand left and right and make full screen
         self.resizable(True, True)
+
+        # setting how the app looks, Dark look the best and does not hurt the eye. 
         ctk.set_appearance_mode("dark")   
         ctk.set_default_color_theme("dark-blue") 
 
+        # we will keep our views to dispaly here
         self.views = {}
 
-        # the pages
+        # the pages 
         self.createMainPage()
         self.createSchedulerPage()
         self.createConfigPage()
         self.createViewSchedulePage()
 
+        # shows the main page in the begenning 
         self.show_view("MainPage")
 
         # What we need to order the schedule by
@@ -360,13 +406,20 @@ class SchedulerApp(ctk.CTk):
         # Choices: Default, Room & Labs, Faculty
         self.selectedOrderBy = "Default"
 
+    # this creates the main page
     def createMainPage(self):
+        # we create a frame for this view
         frame = ctk.CTkFrame(self, fg_color="transparent")
+        
+        # save this view so we can get to it later
         self.views["MainPage"] = frame
 
+        # creating the titel and displaying on screem
         title = ctk.CTkLabel(frame, text="Course Constraint Scheduler Companion", font=("Arial", 30, "bold"))
         title.pack(pady=40)
 
+        # we have 3 button one for each page we can get to from miin 
+        # when we click the button we just show the new page 
         btnEditConfig = ctk.CTkButton(frame, text="Edit Config", width=200, height=40, command=lambda: self.show_view("ConfigPage"))
         btnEditConfig.pack(pady=15)
 
@@ -377,36 +430,46 @@ class SchedulerApp(ctk.CTk):
         btnViewScheduler.pack(pady=15)
 
 
+    # this will create the config Page to modify/create new file
     def createConfigPage(self):
         frame = ctk.CTkFrame(self, fg_color="transparent")
         self.views["ConfigPage"] = frame
 
         # For now, but shoud be in controller 
-        self.configPath = StringVar()
+        # ned this for path
+        # self.configPath = StringVar()
 
-        # Back Button (⬅)
+        # Back Button (⬅), goes back to the main page
         backBtn = ctk.CTkButton(frame, text="⬅ Back", width=100,command=lambda: self.show_view("MainPage"))
         backBtn.pack(pady=10, anchor="w", padx=15)
 
-
+        # This frame is for the "header", importBTN, path entry, and Export btn
         importFrame = ctk.CTkFrame(frame, fg_color="transparent")
         importFrame.pack(fill="x", padx=20, pady=5)
+
+        #creates import btn and shows it on screen.
         importBtn = ctk.CTkButton(importFrame, text="Import Config", width=150, command=lambda: self.functionHereIDkRN)
         importBtn.pack(side="left", padx=(0,10))    
 
+        #creates path entry and shows it on screen, note state = readonly so user cant directly change
+        # they must selcet proper file to show there. 
         pathEntry = ctk.CTkEntry(importFrame,  state="readonly", textvariable=self.configPath, width=500)
         pathEntry.pack(side="left", padx=(0,10), fill="x", expand=True)
 
+        #creates export btn and shows it on screen.
         exportBtn = ctk.CTkButton(importFrame, text="Export Config", width=150, command=lambda: self.functionHereIDkRN)
         exportBtn.pack(side="left", padx=(0,10))
 
+        # here we have the tab view with multiple tabs. 
         tabview = ctk.CTkTabview(frame)
         tabview.pack(expand=True, fill="both", pady=20, padx=20)
 
-
+        # we create and add tabs for  Faculty, Courses, Labs, Rooms
+        # NOTE: Frame is importtant here we create the two column system, left and right frame and display those late
+        # 
         tabview.add("Faculty")
         # we don't know the frame so it kind of like a place holder until later on in the program
-        self.createTwoColumn(tabview.tab("Faculty"), dataFacultyLeft, lambda frame: dataFacultyRight(frame))
+        self.createTwoColumn(tabview.tab("Faculty"),lambda frame:dataFacultyLeft(frame), lambda frame: dataFacultyRight(frame))
 
         tabview.add("Courses")
         self.createTwoColumn(tabview.tab("Courses"))
@@ -417,18 +480,22 @@ class SchedulerApp(ctk.CTk):
         tabview.add("Labs") 
         self.createTwoColumn(tabview.tab("Labs"), lambda frame:dataLabsLeft(frame, data=Labs), lambda frame:dataLabsRight(frame, data=Labs))
 
+    # this is to store and return the choice to order the schedules 
     def orderByChoice(self, choice):
         ## This will only return the user selected choice so we know what to order by. 
         self.selectedOrderBy = choice
         print(choice)
         return choice
 
+    # this will create the ViewSchedulePage
+    # this view will be to strictly to view the schedules. 
     def createViewSchedulePage(self):
-        # this view will be to strictly to view the schedules. 
+
+        # like before make frames and save it 
         frame = ctk.CTkFrame(self, fg_color="transparent")
         self.views["ViewSchedulePage"] = frame
 
-        # This is the header stuff (back, import,export,pathentry/message)
+        # This is the header stuff (back, import,export,pathentry/message), same as before
         backBtn = ctk.CTkButton(frame, text="⬅ Back", width=100, command=lambda: self.show_view("MainPage"))
         backBtn.pack(pady=10, anchor="w", padx=15)
 
@@ -444,6 +511,7 @@ class SchedulerApp(ctk.CTk):
         importBtn = ctk.CTkButton(importFrame, text="Export All", width=150, command=lambda: self.functionHereIDkRN)
         importBtn.pack(side="left", padx=(0,10))      
 
+        # new things here: this make the drop down label and  it self. 
         dropDownFrame = ctk.CTkFrame(importFrame, fg_color="transparent")
         dropDownFrame.pack(side="right", padx=(0,10))
         dropDownLabel = ctk.CTkLabel(dropDownFrame, width = 100, text="Order By: ", font=("Arial", 15, "bold"))
@@ -455,18 +523,25 @@ class SchedulerApp(ctk.CTk):
 
 
         # This the actaully for the schedule viewer now. 
+        # create the Frame to add the schedules to 
         schedulesFrame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         schedulesFrame.pack(expand=True,  fill="both", padx=10, pady=10)
 
+        # for each of the schedules in our files or generated ones 
+        # we use enumerate, makes it easier to keep track of index and value at that index
         for idx, schedule in enumerate(scheduleExample, start=1):
-            
+
+            # Tying to make actual altrenating color but looks a little ugly
             color = "#1F1E1E"
             if idx % 2 == 0:
                 color = "transparent"
 
+            # for each of the schedules we create a frame to put schedule in 
             schFrame = ctk.CTkFrame(schedulesFrame, fg_color = color)
             schFrame.pack(padx=(0,10), pady=(0, 30), fill="x", expand=True)
 
+            # in the schedule frame we will put the header frame which will schedule name, 
+            # and buttion to export csv or json
             scheduleHeaderFrame = ctk.CTkFrame(schFrame, fg_color="transparent")
             scheduleHeaderFrame.pack(side="top", padx=(0,10), fill="x", expand=True)
 
@@ -477,6 +552,7 @@ class SchedulerApp(ctk.CTk):
             ctk.CTkButton(scheduleHeaderFrame, text="Export JSON", width=100, height=35, command=lambda: print(f"Export JSON {idx}")).pack(side="left", padx=(0,10), pady=(10,0),fill="x", expand=False)
 
             # Create the table frame inside schFrame
+            # this is actally for the table it self 
             tableFrame = ctk.CTkFrame(schFrame, fg_color="transparent", height=300)  # scrollable if many rows
             tableFrame.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -488,7 +564,7 @@ class SchedulerApp(ctk.CTk):
                 lbl = ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w")
                 lbl.pack(side="left", padx=5)
 
-            # Table rows
+            # Table rows, and put in the data 
             for row in schedule:
                 rowFrame = ctk.CTkFrame(tableFrame)
                 rowFrame.pack(fill="x", pady=1)
@@ -499,6 +575,7 @@ class SchedulerApp(ctk.CTk):
 
     def createSchedulerPage(self):
         #TODO: still have lots of work here
+        # should be able to understand this now
         frame = ctk.CTkFrame(self, fg_color="transparent")
         self.views["RunSchedulerPage"] = frame
 
@@ -524,28 +601,27 @@ class SchedulerApp(ctk.CTk):
         container = ctk.CTkFrame(frame)
         container.pack(expand=True, fill="both", padx=10, pady=10)
 
-
-
     
     def createTwoColumn(self, parent, popluateLeftData = None, popluateRightData = None):
-
-        # CTkScrollableFrame exists, just using it
+        # This creates the look for the  confi page. 
 
         # Container frame for left and right
         container = ctk.CTkFrame(parent, fg_color="transparent")
         container.pack(expand=True, fill="both", padx=10, pady=10)
 
-        # Left frame
+        # Left frame which will have a Scrollable Frame, that you can scroll if data overflow
         leftFrame = ctk.CTkFrame(container, width=250,fg_color =  "transparent")
         leftFrame.pack(side="left", fill="y", padx=(0,5), pady=5)
         leftFrame.pack_propagate(False)
 
         leftInner = ctk.CTkScrollableFrame(leftFrame, fg_color="transparent")
         leftInner.pack(expand=True, fill="both")
+
+        # if we do have the data we can popluate the left side. 
         if popluateLeftData:
             popluateLeftData(leftInner)
 
-        # right Frame
+        # right Frame, similar to left 
         rightFrameC = ctk.CTkFrame(container,fg_color =  "transparent")
         rightFrameC.pack(side="left", expand=True, fill="both", padx=(0,5), pady=5)
 
@@ -555,11 +631,14 @@ class SchedulerApp(ctk.CTk):
         if popluateRightData:
             popluateRightData(rightInner)
 
+    # this function wil show the actual views.
     def show_view(self, view_name):
         # Hide all views
         for view in self.views.values():
             view.pack_forget()
+            # forget will pretty much remove everthing from the screen and when we have new screen adds that 
 
-        # Show the selected view from list
+        # Show the selected view from list,
+        # each view when we create it will add thigns on screen every cycle
         self.views[view_name].pack(expand=True, fill="both")
 
