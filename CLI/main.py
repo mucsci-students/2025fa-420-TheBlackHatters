@@ -64,23 +64,15 @@ def parseJson(path):
     return Rooms, Labs, Courses, Faculty, other
 
 
-# welcome the user and the options for our shell..
-def welcomeMessage():
+def clearTerminal():
     if os.name == 'nt':  
         _ = os.system('cls')
     else: 
         _ = os.system('clear')
 
-    print("=" * 50)
-    print("   Welcome to the Scheduling Config System!")
-    print("=" * 50)
-
-    print("This program will parse your config files. ")
-    print("With this program you can modify your config files. ")
-    print("You will be able to add, modify, remove: ")
-    print("faculty, courses, labs, Rooms.")
-    print("Run and display the scheduler.")
-
+# welcome the user and the options for our shell..
+def welcomeMessage():
+    clearTerminal()
 
     # should be in its own function 
     print("\n")
@@ -281,61 +273,93 @@ def displayConfig(rooms, labs, courses, faculty):
         print()
     print("\n=============================\n")
 
+def runCLIorGUI():
+
+    print("=" * 50)
+    print("   Welcome to the Scheduling Config System!")
+    print("=" * 50)
+
+    print("This program will parse your config files. ")
+    print("With this program you can modify your config files. ")
+    print("You will be able to add, modify, remove: ")
+    print("faculty, courses, labs, Rooms.")
+    print("Run and display the scheduler.")
+
+    while True:
+        clearTerminal()
+
+        print("Please choose an option: \n")
+        print("1: Run CLI \n")
+        print("2: Run GUI \n")
+        print("3: Run Tests \n")
+        choice = input("Your choice: ")
+        if choice == '1':
+            welcomeMessage()
+            rooms, labs, courses, faculty, other = parseJson(inputPath)
+            
+            while True:
+                choice = input("Enter choice: ")
+
+                if choice == "1":
+                    # Display the current file: 
+                    displayConfig(rooms, labs, courses, faculty)
+                    input("Press Enter to continue...")
+                elif choice == "2":
+                    ##Faculty
+                    mainFacultyController(faculty)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "3":
+                    ## Room
+                    mainRoomControler(rooms)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "4":
+                    ## Labs 
+                    mainLabControler(labs)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "5":
+                    # courses
+                    mainCourseController(courses, rooms, labs, faculty, inputPath)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "6":
+                    # Run Scheduler
+                    runScheduler()
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "7":
+                    # Display saved schedules
+                    display_schedule()
+                    input("Press Enter to continue...")
+                elif choice == "0":
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    print("Goodbye!")
+                    break
+                else:
+                    print("Option not yet implemented.")
+                    input("Press Enter to continue...")
+
+        elif choice == '2':
+            app = SchedulerApp()
+            app.mainloop()
+            quit()
+        elif choice == '3':
+            print(' we need to run tests.. someone needs to implemnt this.... :) \n')
+            pass
+        else: 
+            print("Please type valid respond! ")
+            input("Press Enter to continue...")
+
+
+
+    
+
 
 # main function where everything will start form. 
 def main():
-
-    # just for testing purpuses... Rn 
-    # app = SchedulerApp()
-    # app.mainloop()
-    # quit()
-
-    rooms, labs, courses, faculty, other = parseJson(inputPath)
-    
-    while True:
-        welcomeMessage()
-        choice = input("Enter choice: ")
-
-        if choice == "1":
-            # Display the current file: 
-            displayConfig(rooms, labs, courses, faculty)
-            input("Press Enter to continue...")
-        elif choice == "2":
-            ##Faculty
-            mainFacultyController(faculty)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "3":
-            ## Room
-            mainRoomControler(rooms)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "4":
-            ## Labs 
-            mainLabControler(labs)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "5":
-            # courses
-            mainCourseController(courses, rooms, labs, faculty, inputPath)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "6":
-            # Run Scheduler
-            runScheduler()
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "7":
-            # Display saved schedules
-            display_schedule()
-            input("Press Enter to continue...")
-        elif choice == "0":
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            print("Goodbye!")
-            break
-        else:
-            print("Option not yet implemented.")
-            input("Press Enter to continue...")
+    runCLIorGUI()
 
     quit()
 

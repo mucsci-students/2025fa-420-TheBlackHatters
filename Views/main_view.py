@@ -10,7 +10,7 @@ import Controller.main_controller as mainController
 
 
 # Dummy Data to just put something in the forms i will create
-# This data is just for testing Purpuses! 
+# This data is just for testing Purposes! 
 Rooms = ["Roddy 136","Roddy 140","Roddy 147", "Roddy 1","Roddy 2","Roddy 3"]
 Labs = ["Linux","Mac"]
 Courses = [
@@ -796,7 +796,7 @@ class SchedulerApp(ctk.CTk):
         leftInner = ctk.CTkScrollableFrame(leftFrame, fg_color="transparent")
         leftInner.pack(expand=True, fill="both")
 
-        # if we do have the data we can popluate the left side. 
+        # if we do have the data we can populuate the left side. 
         if popluateLeftData:
             popluateLeftData(leftInner)
 
@@ -820,4 +820,3 @@ class SchedulerApp(ctk.CTk):
         # Show the selected view from list,
         # each view when we create it will add thigns on screen every cycle
         self.views[view_name].pack(expand=True, fill="both")
-
