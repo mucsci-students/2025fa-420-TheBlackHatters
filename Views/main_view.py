@@ -368,6 +368,112 @@ def dataLabsLeft(frame, data=None):
         ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"Delete Button conteoller")).pack(side="left", padx=5)
         ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: print(f"Edit Button conteoller")).pack(side="left", padx=5)
 
+def dataCoursesLeft(frame, courseData=None):
+    # List of courses on the left + an add button
+    container = ctk.CTkFrame(frame, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=5, pady=5)
+
+    ctk.CTkButton(
+        container, text="Add", width=120, height=20,
+        command=lambda: print("Add Course clicked")
+    ).pack(side="top", padx=5)
+
+    # use provided data or fallback to global dummy Courses
+    course_list = courseData if courseData is not None else Courses
+
+    for idx, course in enumerate(course_list):
+        row = ctk.CTkFrame(container, fg_color="transparent")
+        row.pack(fill="x", pady=5, padx=5)
+
+        # Show ex "CMSC 140"
+        title = f'{course.get("course_id","(no id)")}'
+        ctk.CTkLabel(row, text=title, font=("Arial", 14, "bold"), anchor="w").pack(
+            side="left", fill="x", expand=True
+        )
+
+        # Wire up buttons as needed later
+        ctk.CTkButton(
+            row, text="Delete", width=30, height=20,
+            command=lambda i=idx: print(f"Delete Course index={i}")
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            row, text="Edit", width=30, height=20,
+            command=lambda crs=course: print(f"Edit Course {crs.get('course_id','')}")  # hook to load right side
+        ).pack(side="left", padx=5)
+
+
+def dataCoursesRight(frame, data=None):
+    # Right pane form for a single course (new or edit)
+
+    # Course ID
+    row_id = ctk.CTkFrame(frame, fg_color="transparent")
+    row_id.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(row_id, text="Course ID:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
+        side="left", padx=10
+    )
+    entry_id = ctk.CTkEntry(row_id, placeholder_text="E.g: CMSC 140", font=("Arial", 30, "bold"))
+    entry_id.pack(side="left", fill="x", expand=True)
+
+    # Credits
+    row_cr = ctk.CTkFrame(frame, fg_color="transparent")
+    row_cr.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(row_cr, text="Credits:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
+        side="left", padx=10
+    )
+    entry_cr = ctk.CTkEntry(row_cr, placeholder_text="E.g: 4", font=("Arial", 30, "bold"))
+    entry_cr.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Rooms
+    row_rm = ctk.CTkFrame(frame, fg_color="transparent")
+    row_rm.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(row_rm, text="Rooms:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
+        side="left", padx=10
+    )
+    entry_rm = ctk.CTkEntry(row_rm, placeholder_text="E.g: Roddy 136, Roddy 140", font=("Arial", 30, "bold"))
+    entry_rm.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Labs
+    row_lab = ctk.CTkFrame(frame, fg_color="transparent")
+    row_lab.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(row_lab, text="Labs:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
+        side="left", padx=10
+    )
+    entry_lab = ctk.CTkEntry(row_lab, placeholder_text="E.g: Linux, Mac", font=("Arial", 30, "bold"))
+    entry_lab.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Conflicts (comma separated course IDs)
+    row_cf = ctk.CTkFrame(frame, fg_color="transparent")
+    row_cf.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(row_cf, text="Conflicts:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
+        side="left", padx=10
+    )
+    entry_cf = ctk.CTkEntry(row_cf, placeholder_text="E.g: CMSC 161, CMSC 162", font=("Arial", 30, "bold"))
+    entry_cf.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Faculty
+    row_fc = ctk.CTkFrame(frame, fg_color="transparent")
+    row_fc.pack(fill="x", pady=5, padx=5)
+    ctk.CTkLabel(row_fc, text="Faculty:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
+        side="left", padx=10
+    )
+    entry_fc = ctk.CTkEntry(row_fc, placeholder_text="E.g: Hardy, Zoppetti", font=("Arial", 30, "bold"))
+    entry_fc.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Prefill when editing
+    if data:
+        entry_id.insert(0, data.get("course_id", ""))
+        entry_cr.insert(0, str(data.get("credits", "")))
+        entry_rm.insert(0, ", ".join(data.get("room", [])))
+        entry_lab.insert(0, ", ".join(data.get("lab", [])))
+        entry_cf.insert(0, ", ".join(data.get("conflicts", [])))
+        entry_fc.insert(0, ", ".join(data.get("faculty", [])))
+
+    # Save button (hook up to controller later)
+    ctk.CTkButton(
+        frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height=40,
+        command=lambda: print("Save Course clicked")
+    ).pack(side="bottom", padx=5, pady=10)
     
 
 # this is the actual App
@@ -472,7 +578,7 @@ class SchedulerApp(ctk.CTk):
         self.createTwoColumn(tabview.tab("Faculty"),lambda frame:dataFacultyLeft(frame), lambda frame: dataFacultyRight(frame))
 
         tabview.add("Courses")
-        self.createTwoColumn(tabview.tab("Courses"))
+        self.createTwoColumn(tabview.tab("Courses"),lambda frame: dataCoursesLeft(frame, courseData=Courses), lambda frame: dataCoursesRight(frame))  # shows empty form by default
 
         tabview.add("Rooms")
         self.createTwoColumn(tabview.tab("Rooms"), lambda frame:dataRoomLeft(frame), lambda frame:dataRoomRight(frame))
