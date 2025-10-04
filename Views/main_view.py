@@ -237,13 +237,17 @@ def dataFacultyRight(frame, data=None):
         courseRow.pack(fill="x", padx=20, pady=2)
 
         # we create the label, with the couse name, and also create entry for user input
-        ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(fill="x", padx=20, pady=2)
-        weightEntry = ctk.CTkEntry(courseRow, width=80, justify="center", font=("Arial", 25, "bold"))
-        weightEntry.pack(side = "left", fill="x", padx=20, pady=2)
+        # TODO: this course need to be form the list of courese. 
+        ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
+        dropdown = ctk.CTkOptionMenu(courseRow, width=150, values=["1","2","3","4","5", "6", "7","8","9", "10"])
 
-        # we will fill with actual data if possible 
-        if data: 
-            weightEntry.insert(0, str(weight))
+        if data:
+            dropdown.set(str(weight))
+        else:
+            # deafult 
+            dropdown.set("5")
+        dropdown.pack(side="left", padx=(0,10), fill="x")
+
 
 
     # room Prefrence EXACT SAME THING AS ABOVE(Course Prefrence)
@@ -256,14 +260,15 @@ def dataFacultyRight(frame, data=None):
         roomRow = ctk.CTkFrame(rowRoom, fg_color="transparent")
         roomRow.pack(fill="x", padx=20, pady=2)
 
-        ctk.CTkLabel(roomRow, text=f"{room}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(fill="x", padx=20, pady=2)
-        weightEntry = ctk.CTkEntry(roomRow, width=80, justify="center", font=("Arial", 25, "bold"))
-        weightEntry.pack(side = "left", fill="x", padx=20, pady=2)
+        ctk.CTkLabel(roomRow, text=f"{room}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
+        dropdown = ctk.CTkOptionMenu(roomRow, width=150, values=["1","2","3","4","5", "6", "7","8","9", "10"])
 
-        # we will fill with actual data if possible, and wi will HAVE TO
-        # TODO: Need to make functional
-        if data: 
-            weightEntry.insert(0, str(weight))
+        if data:
+            dropdown.set(str(weight))
+        else:
+            # deafult 
+            dropdown.set("5")
+        dropdown.pack(side="left", padx=(0,10), fill="x")
 
     # Lab Prefrence EXACT SAME THING AS ABOVE (Course Prefrence and Room Preferences)
     rowLab = ctk.CTkFrame(frame, fg_color="transparent")
@@ -276,14 +281,15 @@ def dataFacultyRight(frame, data=None):
         labRow = ctk.CTkFrame(rowLab, fg_color="transparent")
         labRow.pack(fill="x", padx=20, pady=2)
 
-        ctk.CTkLabel(labRow, text=f"{lab}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(fill="x", padx=20, pady=2)
-        weightEntry = ctk.CTkEntry(labRow, width=80, justify="center", font=("Arial", 25, "bold"))
-        weightEntry.pack(side = "left", fill="x", padx=20, pady=2)
+        ctk.CTkLabel(labRow, text=f"{lab}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
+        dropdown = ctk.CTkOptionMenu(labRow, width=150, values=["1","2","3","4","5", "6", "7","8","9", "10"])
 
-        # we will fill with actual data if possible, and wi will HAVE TO
-        # TODO: Need to make functional
-        if data: 
-            weightEntry.insert(0, str(weight))
+        if data:
+            dropdown.set(str(weight))
+        else:
+            # deafult 
+            dropdown.set("5")
+        dropdown.pack(side="left", padx=(0,10), fill="x")
 
     # this is the save buttion that will save changes when we add a new faculty and when we modify existing
     # TODO: need to make the button work
