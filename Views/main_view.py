@@ -1,11 +1,12 @@
-# Resourses: https://customtkinter.tomschimansky.com/documentation/widgets 
+# Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
 from tkinter import Canvas, StringVar, filedialog
-from Controller.main_controller import RoomsController, configImportBTN
+from Controller.main_controller import RoomsController, FacultyController, configImportBTN
 
 
 # should create controllers for other things too 
 roomCtr = RoomsController()
+facultyCtr = FacultyController()
 
 
 # Dummy Data to just put something in the forms i will create
@@ -132,21 +133,22 @@ def dataFacultyLeft(frame, facultyData = None):
         # Buttons. The two buttions are for deleting and editing Faculty.
         # TODO: We need ot add the commnd Function. 
         # Again .pack displays on screen, we are adding both buttons on rowFrame
-        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"Delete Button conteoller")).pack(side="left", padx=5)
-        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: print(f"Edit Button conteoller")).pack(side="left", padx=5)
-
+        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"TODO Delete Button Controller")).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: print(f"TODO Edit Button Controller")).pack(side="left", padx=5)
 
 # This function will populate the right side of the page. (If you don't understand left and right load the program and go into config file. Should make sence once you see it!)
 # this function kinda of acts like a form for user to fill. 
 # we need to display the current data if user pressed edit on button before or just get an empty one
 def dataFacultyRight(frame, data=None):
-
-
     # This is for the name of faculty: which has a lebel and entry;
     # it will look somehting like this: Name:__E.g: Hobbs_______
     # Again we create a frame to add the label and entry. 
     rowName = ctk.CTkFrame(frame, fg_color="transparent")
     rowName.pack(fill="x", pady=5, padx=5)
+
+    # Stores if the user is currently editing a faculty. If they are not, it is false. Defaults to false
+    # TODO: Add something that checks if they are editing a faculty
+    isEditing = False
 
     # this is the label for Name. 
     # We just create and display the label here
@@ -295,7 +297,11 @@ def dataFacultyRight(frame, data=None):
 
         # we create the label, with the couse name, and also create entry for user input
         # TODO: this course need to be form the list of courese. 
-        ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
+        # Storage for previous code incase needed:
+        # ctk.CTkEntry(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack(side="left", padx=20, pady=2)
+        courseEntry = ctk.CTkEntry(courseRow, width=150, font=("Arial", 25, "bold"))
+        courseEntry.insert(0, course)
+        courseEntry.pack(side="left", padx=20, pady=2)
         dropdown = ctk.CTkOptionMenu(courseRow, width=150, values=["0","1","2","3","4","5","6","7","8","9","10"])
         
         if data:
@@ -410,12 +416,15 @@ def dataFacultyRight(frame, data=None):
         lab_preferences = {}
         for lab, dropdown in labPreferences.items():
             lab_preferences[lab] = int(dropdown.get())
+
         
         # If there are errors, return nothing and display what the errors are. Otherwise, return what the user inputted
         if errors:
             error_label.configure(text="\n".join(errors), text_color="red")
+            error_label = []
             return
         else:
+            error_label = []
             error_label.configure(text="Faculty successfully saved!", text_color="green")
             new_faculty = {"name":faculty_name, "maximum_credits":maximum_credits, "minimum_credits":minimum_credits, "unique_course_limit":unique_course_limit, "times":availability, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
             # Prints out information being returned, for testing purposes:
