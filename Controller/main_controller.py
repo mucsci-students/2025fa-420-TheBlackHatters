@@ -17,6 +17,9 @@ def configImportBTN(pathVar, refresh):
     DM.load_file(filePath)
     refresh("ConfigPage")
 
+class FacultyController:
+    global DM
+    print("TODO")
 
 
 # room controller 
