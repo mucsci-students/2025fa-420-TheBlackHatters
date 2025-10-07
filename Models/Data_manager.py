@@ -21,7 +21,6 @@ class DataManager():
             with open(filePath, 'r') as file:
                 self.data = json.load(file)
 
-            print(self.data["config"]["rooms"])
 
 
     def deafultData(self):
@@ -31,7 +30,6 @@ class DataManager():
         with open("template/ConfigTemplate.json", 'r') as file:
             config = json.load(file)
         
-        print(config)
         return config
     
     def saveData(self, outPath = None, data = None):
@@ -47,25 +45,12 @@ class DataManager():
             json.dump(self.data, f, indent= 4)
 
     # each method below will get the data from file: 
-
+    # Rooms CRUD(Create, Read, Update, Delete)
     def getRooms(self):
-        print(f"Data form m: {self.data["config"]["rooms"]}")
         return self.data["config"]["rooms"]
     
-    def getLabs(self):
-        return self.data["config"]['labs']
-    
-    def getCourses(self):
-        return self.data["config"]["courses"]
-
-    def getFaculty(self):
-        return self.data["config"]["faculty"]
-
-
-    # these methods will add rooms, labs, courses, faculty to the file it self
     def addRoom(self, newRoom):
         self.data["config"]["rooms"].append(newRoom)
-
         # actally saves the data in file
         self.saveData()
     
@@ -75,21 +60,47 @@ class DataManager():
         rooms[idx] = newName
         self.saveData()
 
-
     def removeRoom(self, roomName):
         rooms = self.data["config"]["rooms"]
         rooms.remove(roomName)
         self.saveData()
 
+
+    # Labs CRUD
+    def getLabs(self):
+        return self.data["config"]['labs']
+    
     def addLab(self, newLab):
         self.data["config"]["labs"].append(newLab)
         self.saveData()
+
+    def editLabs(self, oldName, newName):
+        labs = self.data["config"]["labs"]
+        idx = labs.index(oldName)
+        labs[idx] = newName
+        self.saveData()
+
+    def removeLabs(self, labName):
+        labs = self.data["config"]["labs"]
+        labs.remove(labName)
+        self.saveData() 
+
+    # Course CRUD
+    def getCourses(self):
+        return self.data["config"]["courses"]
+
+    def addCourse(self, newCourse):
+        self.data["config"]["courses"].append(newCourse)
+        self.saveData()
+
+
+    # Faculty CRUD
+    def getFaculty(self):
+        return self.data["config"]["faculty"]
 
     def addFaculty(self, newFaculty):
         self.data["config"]["faculty"].append(newFaculty)
         self.saveData()
 
-    def addCourse(self, newCourse):
-        self.data["config"]["courses"].append(newCourse)
-        self.saveData()
+
 
