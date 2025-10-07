@@ -6,15 +6,16 @@ import json
 class DataManager():
     def __init__(self, filePath = None):
 
+        self.new = True
         self.filePath = filePath
         self.data = None
         if filePath:
-            self.load_file(filePath)
+            self.loadFile(filePath)
         else:
             self.data = self.deafultData()
 
     # we want to load if we have a file path
-    def load_file(self, filePath):
+    def loadFile(self, filePath):
         self.filePath = filePath
         if filePath:
             # Use scheduler loader
@@ -41,7 +42,7 @@ class DataManager():
         # not sure weather to make this here or in the contorler. 
 
         # writes the file to the given FilePath
-        with open(self.filePath , "w") as f:
+        with open(outPath , "w") as f:
             json.dump(self.data, f, indent= 4)
 
     # each method below will get the data from file: 
@@ -52,18 +53,18 @@ class DataManager():
     def addRoom(self, newRoom):
         self.data["config"]["rooms"].append(newRoom)
         # actally saves the data in file
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
     
     def editRoom(self, oldName, newName):
         rooms = self.data["config"]["rooms"]
         idx = rooms.index(oldName)
         rooms[idx] = newName
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
 
     def removeRoom(self, roomName):
         rooms = self.data["config"]["rooms"]
         rooms.remove(roomName)
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
 
 
     # Labs CRUD
@@ -72,18 +73,18 @@ class DataManager():
     
     def addLab(self, newLab):
         self.data["config"]["labs"].append(newLab)
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
 
     def editLabs(self, oldName, newName):
         labs = self.data["config"]["labs"]
         idx = labs.index(oldName)
         labs[idx] = newName
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
 
     def removeLabs(self, labName):
         labs = self.data["config"]["labs"]
         labs.remove(labName)
-        self.saveData() 
+        #self.saveData(outPath = self.filePath)
 
     # Course CRUD
     def getCourses(self):
@@ -91,7 +92,7 @@ class DataManager():
 
     def addCourse(self, newCourse):
         self.data["config"]["courses"].append(newCourse)
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
 
 
     # Faculty CRUD
@@ -100,7 +101,7 @@ class DataManager():
 
     def addFaculty(self, newFaculty):
         self.data["config"]["faculty"].append(newFaculty)
-        self.saveData()
+        #self.saveData(outPath = self.filePath)
 
 
 
