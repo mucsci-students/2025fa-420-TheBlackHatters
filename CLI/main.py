@@ -184,6 +184,7 @@ def runScheduler():
                 with open(f"output/{outputFile}.json", "w") as f:
                     json.dump(all_schedules, f, indent=4)
                 print(f"\nSchedules saved to output/{outputFile}.json")
+
             elif format == "csv":
                 with open(f"output/{outputFile}.csv", "w", newline="") as f:
                     writer = csv.writer(f)
@@ -191,6 +192,7 @@ def runScheduler():
 
                         writer.writerow([])
                         writer.writerows(schedule_list)
+                        
                 print(f"\nSchedules saved to output/{outputFile}.csv")
 
     # return

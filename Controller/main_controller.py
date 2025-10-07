@@ -29,7 +29,6 @@ class RoomsController:
         pass
 
     def listRooms(self):
-        print(f"my rooms from controller: {DM.getRooms()}")
         return DM.getRooms()
 
     def addRoom(self, roomName, refresh):
@@ -47,4 +46,27 @@ class RoomsController:
         else: 
             print('Room not in system')
 
-    
+
+# Lab controller 
+class LabsController:
+    global DM
+    def __init__(self):
+        pass
+
+    def listLabs(self):
+        return DM.getLabs()
+
+    def addLab(self, labName, refresh):
+        DM.addLab(labName)
+        refresh("ConfigPage")
+
+    def editLab(self,oldname, labName, refresh):
+        DM.editLabs(oldname,labName)
+        refresh(target = "ConfigPage", data = labName)
+
+    def removeLab(self, labName, refresh):
+        if labName in self.listLabs():
+            DM.removeLabs(labName)
+            refresh("ConfigPage")
+        else: 
+            print('Lab not in system')
