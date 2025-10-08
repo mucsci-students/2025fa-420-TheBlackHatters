@@ -1,18 +1,19 @@
 # Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
-from tkinter import Canvas, StringVar, filedialog
-from Controller.main_controller import RoomsController, FacultyController, configImportBTN
+from tkinter import StringVar
+from Controller.main_controller import (RoomsController, LabsController,FacultyController,
+                                        configImportBTN, configExportBTN)
 
 
 # should create controllers for other things too 
 roomCtr = RoomsController()
 facultyCtr = FacultyController()
+labCtr = LabsController()
 
 
 # Dummy Data to just put something in the forms i will create
 # This data is just for testing Purpuses! 
 ##Rooms = ["Roddy 136","Roddy 140","Roddy 147", "Roddy 1","Roddy 2","Roddy 3"]
-Labs = ["Linux","Mac"]
 Courses = [
            {    "course_id": "CMSC 140",
                 "credits": 4,
@@ -577,7 +578,7 @@ def dataFacultyRight(frame, data=None, isEditing=False):
     save_button = ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: returnFacultyData()).pack(side="bottom", padx=5)
 
 # this function will fill in the data on the right side of the two column 
-def dataRoomRight(frame, controller, refresh, data = None,) :
+def dataRoomRight(frame, controller, refresh, data = None) :
     #rooms = controller.listRooms()
     # we should know what this does by now. 
     # we make a frame to lay things on top
@@ -597,11 +598,11 @@ def dataRoomRight(frame, controller, refresh, data = None,) :
         if data:
             controller.editRoom(data, name, refresh) 
         else:
-            print(f"User entered: {name}")
             controller.addRoom(name, refresh) 
 
     # Button to save Changes
     # TODO: Need to add command properly. 
+
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command = onSave).pack(side="bottom", padx=5)
     
 # This function is to popluate the left side of the screen.
@@ -612,12 +613,17 @@ def dataRoomLeft(frame, controller, refresh, data= None) :
     container = ctk.CTkFrame(frame, fg_color =  "transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
 
+    # just want to refresh the page to open new form
+    def onAdd():
+        refresh(target = "ConfigPage")
+
     # TODO: Creates new form on the right
-    ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: print(f"Add Button conteoller")).pack(side="top", padx=5)
+    ctk.CTkButton(container, text="Add", width= 120, height = 20, 
+                  command=lambda: onAdd()
+                  ).pack(side="top", padx=5)
 
     def onDelete(room):
         controller.removeRoom(room, refresh)
-        print(f"removed {room}")
 
     def onEdit(room):
         refresh(target = "ConfigPage", data = room)
@@ -640,10 +646,8 @@ def dataRoomLeft(frame, controller, refresh, data= None) :
                     command=lambda r = room: onEdit(r)
                     ).pack(side="left", padx=5)
 
-
-
 # same as ROOMS
-def dataLabsRight(frame, data= None):
+def dataLabsRight(frame, controller, refresh, data = None):
     # Note that that data here is a specefic one to display, for example a name of a lab
     # we will also treat this as a form to fill out
 
@@ -653,31 +657,58 @@ def dataLabsRight(frame, data= None):
     ctk.CTkLabel(rowName, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")).grid(row=0, column=0, padx=10, pady=2)
     nameEntry = ctk.CTkEntry(rowName, width=350, placeholder_text="E.g: Mac",font=("Arial", 30, "bold") )
     nameEntry.grid(row=0, column=1, sticky="ew", padx=5)
+    
 
-    ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: print(f"Save chagnes conteoller for labs")).pack(side="bottom", padx=5)
+    if data:
+        nameEntry.insert(0, data)
+
+    def onSave():
+        name = nameEntry.get()
+        if data:
+            controller.editLab(data, name, refresh) 
+        else:
+            controller.addLab(name, refresh) 
+
+    ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, 
+                  command=lambda: onSave()
+                  ).pack(side="bottom", padx=5)
 
 # same as ROOMS
-def dataLabsLeft(frame, data=None):
+def dataLabsLeft(frame, controller, refresh, data = None):
     # Note that that data here is a list of Labs 
 
     # I need two rows, 1 for add buttion, other for the content
     container = ctk.CTkFrame(frame, fg_color =  "transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
 
-    # we are creating and puting on screen at same time with . pack here
-    ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: print(f"Add Button conteoller")).pack(side="top", padx=5)
+    def onAdd():
+        refresh(target = "ConfigPage")
 
-    for d in data:
+    # we are creating and puting on screen at same time with . pack here
+    ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: onAdd()
+                  ).pack(side="top", padx=5)
+    
+    def onDelete(lab):
+        controller.removeLab(lab, refresh)
+
+    def onEdit(lab):
+        refresh(target = "ConfigPage", data = lab)
+
+    for lab in controller.listLabs():
         # Horizontal container for label  and buttons
         rowFrame = ctk.CTkFrame(container, fg_color =  "transparent")
         rowFrame.pack(fill="x", pady=5, padx=5)
 
         # Label
-        ctk.CTkLabel(rowFrame, text=d, font=("Arial", 14, "bold"), anchor="w").pack(side="left", fill="x", expand=True)
+        ctk.CTkLabel(rowFrame, text=lab, font=("Arial", 14, "bold"), anchor="w").pack(side="left", fill="x", expand=True)
 
         # Buttons
-        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"Delete Button conteoller")).pack(side="left", padx=5)
-        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: print(f"Edit Button conteoller")).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, 
+                      command=lambda l = lab: onDelete(l)
+                      ).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, 
+                      command=lambda  l = lab: onEdit(l)
+                      ).pack(side="left", padx=5)
 
 def dataCoursesLeft(frame, courseData=None):
     # List of courses on the left + an add button
@@ -861,6 +892,8 @@ class SchedulerApp(ctk.CTk):
         # For now, but shoud be in controller 
         # ned this for path
         # self.configPath = StringVar()
+        if self.configPath.get() == "":
+            self.configPath.set("Start editing this new Config File or Import your own. Press export to save new changes.")
 
         # Back Button (⬅), goes back to the main page
         backBtn = ctk.CTkButton(frame, text="⬅ Back", width=100,command=lambda: self.show_view("MainPage"))
@@ -876,11 +909,12 @@ class SchedulerApp(ctk.CTk):
         
         #creates path entry and shows it on screen, note state = readonly so user cant directly change
         # they must selcet proper file to show there. 
+
         pathEntry = ctk.CTkEntry(importFrame,  state="readonly", textvariable= self.configPath, width=500)
         pathEntry.pack(side="left", padx=(0,10), fill="x", expand=True)
 
         #creates export btn and shows it on screen.
-        exportBtn = ctk.CTkButton(importFrame, text="Export Config", width=150, command=lambda: self.functionHereIDkRN)
+        exportBtn = ctk.CTkButton(importFrame, text="Export Config", width=150, command=lambda: configExportBTN(self.configPath))
         exportBtn.pack(side="left", padx=(0,10))
 
         # here we have the tab view with multiple tabs. 
@@ -921,21 +955,19 @@ class SchedulerApp(ctk.CTk):
                             lambda frame: dataCoursesRight(frame))  # shows empty form by default
         ##self.rooms_refresh = dataRoomLeft(tabview.tab("Rooms"), roomCtr)   # store refresh fn
         ##dataRoomRight(tabview.tab("Rooms"), roomCtr)
-
         
         self.createTwoColumn(tabview.tab("Rooms"), 
                             lambda frame:dataRoomLeft(frame, roomCtr, self.refresh), 
                             lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data))
         
         self.createTwoColumn(tabview.tab("Labs"), 
-                            lambda frame: dataLabsLeft(frame, data=Labs),
-                            lambda frame: dataLabsRight(frame, data=Labs))
+                            lambda frame: dataLabsLeft(frame,labCtr, self.refresh),
+                            lambda frame: dataLabsRight(frame, labCtr, self.refresh, data))
 
     # this is to store and return the choice to order the schedules 
     def orderByChoice(self, choice):
         ## This will only return the user selected choice so we know what to order by. 
         self.selectedOrderBy = choice
-        print(choice)
         return choice
 
     # this will create the ViewSchedulePage
@@ -1051,6 +1083,11 @@ class SchedulerApp(ctk.CTk):
 
         container = ctk.CTkFrame(frame)
         container.pack(expand=True, fill="both", padx=10, pady=10)
+
+        limit = ctk.CTkLabel(container, text="How many", font=("Arial", 12, "bold"), width=120, anchor="w")
+
+
+
 
     def createTwoColumn(self, parent, popluateLeft = None, popluateRight = None):
         # This creates the look for the  confi page. 

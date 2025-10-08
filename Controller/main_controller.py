@@ -14,12 +14,25 @@ def configImportBTN(pathVar, refresh):
     filePath = filedialog.askopenfilename(title="Select a JSON file",
         filetypes=[("JSON files", "*.json")])
     pathVar.set(filePath)
-    DM.load_file(filePath)
+    DM.loadFile(filePath)
     refresh("ConfigPage")
 
 class FacultyController:
     global DM
     print("TODO")
+
+def configExportBTN(pathVar):
+    global DM
+
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".json",
+        filetypes=[("Text files", "*.json")]
+    )
+    if file_path != "":
+        DM.saveData(file_path)
+        pathVar.set(f"Config File saved to Path: {file_path}.")
+    
+
 
 
 # room controller 
