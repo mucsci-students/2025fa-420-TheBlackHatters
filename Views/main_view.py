@@ -1,12 +1,13 @@
-# Resourses: https://customtkinter.tomschimansky.com/documentation/widgets 
+# Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
 from tkinter import StringVar
-from Controller.main_controller import (RoomsController, LabsController,
+from Controller.main_controller import (RoomsController, LabsController,FacultyController,
                                         configImportBTN, configExportBTN)
 
 
 # should create controllers for other things too 
 roomCtr = RoomsController()
+facultyCtr = FacultyController()
 labCtr = LabsController()
 
 
@@ -102,6 +103,9 @@ scheduleExample =     [[
 # facultyData: will contain the faculty data for all faculty..  
 def dataFacultyLeft(frame, facultyData = None):
 
+    # A variable that checks if the user is editing a faculty member, is passed into addFacultyRight
+    isEditingFaculty = False
+
     # we create a container to put everything inside, this container lives inside the frame
     # with .pack we display the continer on the screen(fill="both": fills the x and y direction,
     # expand=True: allows it to expand when we change the screen size. padx/y = 5: adds 5px padding on all sides :)
@@ -114,6 +118,11 @@ def dataFacultyLeft(frame, facultyData = None):
     # *** Command = Function: Important we need to make this functional, 
     # TODO: We need this button to on the right generate empty form on right for user to add a new faculty
     ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: print(f"Add Button conteoller")).pack(side="top", padx=5)
+    
+    # Used when clicked on the "Edit" button, sets isEditingFaculty to true for use in dataFacultyRight
+    def updateEditing():
+        isEditingFaculty = True
+        print(str(isEditingFaculty))
 
     # TODO: we need to loop throught the facultyData and show the names of the faculty
     # This will loop thought the facultyData and display the names on the left side 
@@ -133,21 +142,37 @@ def dataFacultyLeft(frame, facultyData = None):
         # Buttons. The two buttions are for deleting and editing Faculty.
         # TODO: We need ot add the commnd Function. 
         # Again .pack displays on screen, we are adding both buttons on rowFrame
-        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"Delete Button conteoller")).pack(side="left", padx=5)
-        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: print(f"Edit Button conteoller")).pack(side="left", padx=5)
-
+        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"TODO Delete Button Controller")).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: updateEditing).pack(side="left", padx=5)
 
 # This function will populate the right side of the page. (If you don't understand left and right load the program and go into config file. Should make sence once you see it!)
 # this function kinda of acts like a form for user to fill. 
 # we need to display the current data if user pressed edit on button before or just get an empty one
-def dataFacultyRight(frame, data=None):
-
-
-    # This is for the name of faculty: which has a lebel and entry;
+def dataFacultyRight(frame, data=None, isEditing=False):
+    # This is for the name of faculty: which has a label and entry;
     # it will look somehting like this: Name:__E.g: Hobbs_______
     # Again we create a frame to add the label and entry. 
     rowName = ctk.CTkFrame(frame, fg_color="transparent")
     rowName.pack(fill="x", pady=5, padx=5)
+
+    # Some dummy data for testing purposes
+    isEditing = True
+
+    
+    data =  {   "name": "Zoppetti",
+                "maximum_credits": 12,
+                "minimum_credits": 12,
+                "unique_course_limit": 3,
+                "times": {
+                    "MON": ["11:00-16:00"],
+                    "TUE": [],
+                    "WED": ["10:00-15:00"],
+                    "THU": ["10:00-17:00"],
+                    "FRI": ["11:00-16:00"]},
+                "course_preferences": {"CMSC 362": 5,"CMSC 476": 5,"CMSC 161": 4},
+                "room_preferences": {"Roddy 136": 5,"Roddy 140": 1,"Roddy 142": 1},
+                "lab_preferences": {"Linux": 5,"Mac": 1}
+            }
 
     # this is the label for Name. 
     # We just create and display the label here
@@ -158,12 +183,45 @@ def dataFacultyRight(frame, data=None):
     nameEntry = ctk.CTkEntry(rowName, placeholder_text="E.g: Hobbs",font=("Arial", 30, "bold") )
     nameEntry.pack(side="left", fill="x", expand=True, padx=5)
 
+    # Gets the faculty type
+    facultyType = ctk.StringVar(value="full")
 
+    # This is what onFacultyTypeChange will change to reflect the maximum credit range a faculty can have (0-4 for adjunct, 0-12 for full-time)
+    maxCreditsToRead = ctk.StringVar(value="0")
+    # This is what onFacultyTypeChange will change to reflect the minimum credit range a faculty can have
+    minCreditsToRead = ctk.StringVar(value="0") 
+    # This is what onFacultyTypeChange will change to reflect the unique course limit range a faculty can have (0-1 for adjunct, 0-2 for full-time)
+    uniqueLimitToRead = ctk.StringVar(value="0")
+
+    # Sets the maximum credits, minimum credits, and unique course limit a faculty can have
+    def onFacultyTypeChange():
+        if facultyType.get() == "full":
+            newMaxCredits = [str(i) for i in range(0, 13)]
+            newMinCredits = [str(i) for i in range(0, 13)]
+            newUniqueLimit = [str(i) for i in range(0, 3)]   
+        else:
+            newMaxCredits = [str(i) for i in range(0, 5)]
+            newMinCredits = [str(i) for i in range(0, 5)]
+            newUniqueLimit = [str(i) for i in range(0, 2)]    
+        maxEntry.configure(values=newMaxCredits)
+        minEntry.configure(values=newMinCredits)            
+        uniqueEntry.configure(values=newUniqueLimit)
+
+    # Makes a row container for the full/adjunct buttons
+    rowFacultyType = ctk.CTkFrame(frame, fg_color="transparent")
+    rowFacultyType.pack(fill="x", pady=5)
+
+    # Label for the faculty type
+    facultyLabel = ctk.CTkLabel(rowFacultyType, text="Is the faculty full-time or adjunct?", font=("Arial", 25, "bold")).pack(side="left", padx=10, pady=5)
+    # Full-time button
+    fullSelection = ctk.CTkRadioButton(rowFacultyType, text="Full-time", variable=facultyType, value="full", font=("Arial", 20, "bold"), command=onFacultyTypeChange).pack(side="left", padx=10)
+    # Adjunct button
+    adjunctSelection = ctk.CTkRadioButton(rowFacultyType, text="Adjunct", variable=facultyType, value="adjunct", font=("Arial", 20, "bold"), command=onFacultyTypeChange).pack(side="left", padx=10)
+    
     # if we have data given here we just display the data
     # for example when someone clicks edit. 
-    if data:
+    if data and isEditing:
         nameEntry.insert(0, data.get("name", ""))
-
 
     # This is to display the credit things   
     # we need to place, Label and Entry to for each of those we need a frame 
@@ -171,45 +229,55 @@ def dataFacultyRight(frame, data=None):
     rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
     rowCredits.pack(fill="x", pady=5, padx=5, expand = True)
 
+    # Helper text for entering credits
+    ctk.CTkLabel(rowCredits, text="(Minimum is 0, Maximum is 4 for adjunct faculty and 12 for full-time faculty)", anchor="w", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(anchor="w", padx=5, pady=(0,5))
+
+    # Dropdown menu, and label for minimum credits
     ctk.CTkLabel(rowCredits, text="Min Credits:", font=("Arial", 30, "bold")).pack(side="left", fill = "x",padx=5)
-    minEntry = ctk.CTkEntry(rowCredits, placeholder_text="E.g: 4", font=("Arial", 30, "bold"))
+    minEntry = ctk.CTkOptionMenu(rowCredits, variable=minCreditsToRead, values=[str(i) for i in range(0, 13)], font=("Arial", 30, "bold"), dropdown_font=("Arial", 20))
     minEntry.pack(side="left", fill="x", expand=True, padx=5)
 
     rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
     rowCredits.pack(fill="x", pady=5, padx=5, expand = True)
 
-    # same things for Max Credits 
+    # Dropdown menu and label for maximum credits
     ctk.CTkLabel(rowCredits, text="Max Credits:", font=("Arial", 30, "bold")).pack( side = "left",fill = "x", padx=5)
-    maxEntry = ctk.CTkEntry(rowCredits, placeholder_text="E.g: 12", font=("Arial", 30, "bold"))
+    maxEntry = ctk.CTkOptionMenu(rowCredits, variable=maxCreditsToRead, values=[str(i) for i in range(0, 13)], font=("Arial", 30, "bold"), dropdown_font=("Arial", 20))
     maxEntry.pack(side="left", fill="x", expand=True, padx=5)
 
-    # same things for Unique Course Limit:
+    # Same things for Unique Course Limit:
     rowCredits = ctk.CTkFrame(frame, fg_color="transparent")
     rowCredits.pack(fill="x", pady=5, padx=5, expand = True)
 
+    # Dropdown menu, label, and helper text for unique course limit
+    ctk.CTkLabel(rowCredits, text="(Minimum is 0, Maximum is 1 for adjunct faculty and 2 for full-time faculty):", anchor="w", font=("Arial", 15, "bold", "underline"), text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0,5))
     ctk.CTkLabel(rowCredits, text="Unique Course Limit:", font=("Arial", 30, "bold")).pack( side = "left", fill = "x", padx=5)
-    uniqueEntry = ctk.CTkEntry(rowCredits, placeholder_text="E.g: 3", font=("Arial", 30, "bold"))
+    uniqueEntry = ctk.CTkOptionMenu(rowCredits, variable=uniqueLimitToRead, values=[str(i) for i in range(0, 3)], font=("Arial", 30, "bold"), dropdown_font=("Arial", 20))
     uniqueEntry.pack(side="left", fill="x", expand=True, padx=5)
 
     # TODO: Actally put the data in the entrys, if there is data given
-    if data:
-        minEntry.insert(0, data.get("minimum_credits", ""))
-        maxEntry.insert(0, data.get("maximum_credits", ""))
-        uniqueEntry.insert(0, data.get("unique_course_limit", ""))
+    if data and isEditing:
+        minEntry.set(str(data.get("minimum_credits", 0)))
+        maxEntry.set(str(data.get("maximum_credits", 0)))
+        uniqueEntry.set(str(data.get("unique_course_limit", 0)))
 
 
     # Again we create row frame for the time availability, that will hold eveything for time
     # Wa also add a label with the text Availability (MON-FRI), and font and put on screen. 
     rowAvailability = ctk.CTkFrame(frame, fg_color="transparent")
     rowAvailability.pack(fill="x", pady=5, padx=5)
+    # Label and helper text for availability
     ctk.CTkLabel(rowAvailability, text="Availability (MON-FRI):", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2,0))
-
+    ctk.CTkLabel(rowAvailability, text=f"(Leave blank for 9:00-5:00, type \"n/a\" if they are not available on that day):", anchor="w", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(side="top", fill="x", pady=(0,5))
 
     # now this will actally put the times from the data 
     # we will just loop through the days
     days = ["MON", "TUE", "WED", "THU", "FRI"]
 
     # in the for loop we create a frame again for each day, with label and engry
+
+    dayEntries = {}
+
     for day in days:
         dayFrame = ctk.CTkFrame(rowAvailability, fg_color="transparent")
         dayFrame.pack(fill="x", padx=20, pady=(0,2))
@@ -221,62 +289,174 @@ def dataFacultyRight(frame, data=None):
         dayEntry = ctk.CTkEntry(dayFrame, placeholder_text="E.g: 8:00-10:00, 12:30-5:00", font=("Arial", 30, "bold"))
         dayEntry.pack(side="left", fill="x", expand=True)
 
+        dayEntries[day] = dayEntry
+
         # this will display the given data if we do give it data,
         # other wise is just empty
-        if data and "times" in data:
+        if data and "times" in data and isEditing:
             dayEntry.insert(0, ', '.join(data["times"].get(day, [])))
 
-    # Course Prefrence Frame. We create it and pack in on screen
+    # Course Preference Frame, we create it and pack in on screen
     # In side this frame we will write everything for course_preferences
     rowCourse = ctk.CTkFrame(frame, fg_color="transparent")
     rowCourse.pack(fill="x", pady=5, padx=5)
 
-    # this is just creating label with text: Course Preferences
+
+    # IMPORTANT, PLEASE READ TO AVOID CONFUSION:
+    # At the moment, when editing, the program loads data from the dummy data I created specifically for this section
+    # When you click the dropdown menus, different rooms and courses are shown than the ones initially displayed
+    # When the file loads things from an actual config file, it will load ALL THE ROOMS AND COURSES AVAILABLE
+    # At the moment, the items in the dropdown are reading from the dummy data at the top of the file. This will be replaced with actual data from a JSON file.
+    # The items initially being displayed are read from the COURSE PREFERENCES, which is where we will want to read them from when outputting existing data
+    # In summary, the DISPLAYS data from the preferences and allows you to select courses that exist FROM THE EXISTING COURSES
+    # This is how it is intended to work, though it may be confusing right now
+
+
+    # Dict to store the course preferences to return
+    coursePreferences = {}
+
+    # List of all possible courses
+    all_courses = sorted({c["course_id"] for c in Courses})
+    values_list = ["None"] + all_courses
+
+    # Track each course dropdown variable + widget
+    course_vars = []
+
+    # Function to update dropdowns so already selected courses don't appear in other dropdowns
+    def update_course_dropdowns(*args):
+        selected_courses = {var.get() for var, _ in course_vars if var.get() != "None"}
+        for var, dropdown in course_vars:
+            current = var.get()
+            available = [c for c in all_courses if c not in selected_courses or c == current]
+            # Always include "None" at the front
+            if "None" not in available:
+                available.insert(0, "None")
+            dropdown.configure(values=available)
+
     ctk.CTkLabel(rowCourse, text="Course Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
 
-    # TODO: Need to make sure this works with actual data, not data for testing purposes, Faculty
-    # we seperate with course and weight for each item in data
-    dummyData = Faculty[0].get("course_preferences")
-    for course, weight in dummyData.items():
-        # Again we create a row frame to put the label and weight in. 
+    # Load all courses in dummy data
+    # Use data if editing
+    dummyData = data.get("course_preferences", {}) if isEditing else {}
+
+    # Create one dropdown row per course in the data if editing, otherwise create empty rows
+    # Decide how many dropdown rows to create (always 3)
+    loop_data = list(data["course_preferences"].items()) if isEditing else [("None", 5)] * 3
+
+    for course_name, weight in loop_data:
         courseRow = ctk.CTkFrame(rowCourse, fg_color="transparent")
         courseRow.pack(fill="x", padx=20, pady=2)
 
-        # we create the label, with the couse name, and also create entry for user input
-        # TODO: this course need to be form the list of courese. 
-        ctk.CTkLabel(courseRow, text=f"{course}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
-        dropdown = ctk.CTkOptionMenu(courseRow, width=150, values=["1","2","3","4","5", "6", "7","8","9", "10"])
+        # Ensure default value is the course from dummy data if it exists in course_ids
+        values_list = ["None"] + all_courses
+        print(str(values_list))
+        if course_name not in values_list:
+            values_list.append(course_name)
+        course_var = ctk.StringVar(value=course_name)
+        course_dropdown = ctk.CTkOptionMenu(courseRow, variable=course_var, values=all_courses, width=200, font=("Arial", 20))
+        course_dropdown.pack(side="left", padx=20, pady=2)
 
-        if data:
-            dropdown.set(str(weight))
-        else:
-            # deafult 
-            dropdown.set("5")
-        dropdown.pack(side="left", padx=(0,10), fill="x")
+        # Trace for mutual exclusivity
+        course_var.trace_add("write", update_course_dropdowns)
+        course_vars.append((course_var, course_dropdown))
 
+        # Weight dropdown
+        weight_dropdown = ctk.CTkOptionMenu(courseRow, width=150, values=[str(i) for i in range(11)])
+        weight_dropdown.set(str(weight) if isEditing else "5")
+        weight_dropdown.pack(side="left", padx=(0,10), fill="x")
 
+        # Store references
+        coursePreferences[course_name] = {
+            "course_var": course_var,
+            "weight_dropdown": weight_dropdown
+        }
+
+    # Initial synchronization of dropdowns
+    update_course_dropdowns()
 
     # room Prefrence EXACT SAME THING AS ABOVE(Course Prefrence)
+
+    # Since the dummy data atop the file doesn't contain rooms, this is more dummy data that does contain it
+    json_data = {
+    "config": {
+            "rooms": ["Roddy 136", "Roddy 140", "Roddy 147"]
+        }
+    }
+
+    # Dict to store the room preferences to return
+    roomPreferences = {}
+
+    # This loads the rooms from the dummy JSON data
+    # TODO: Replace this with the actual JSON data
+    room_ids = ["None"] + json_data["config"]["rooms"]
+
+    # Track each room dropdown variable + widget
+    room_vars = []
+
+    # Function to update the dropdowns so already selected rooms don't appear in the dropdown menu again
+    def update_room_dropdowns(*args):
+        # Collect all selected rooms (ignore "None")
+        selected_rooms = {var.get() for var, _ in room_vars if var.get() != "None"}
+
+        for var, dropdown in room_vars:
+            current_value = var.get()
+
+            # Build available list without duplicating "None"
+            available = [r for r in room_ids if r not in selected_rooms or r == current_value]
+
+            # Include "None" only if this dropdown currently has it selected
+            if current_value == "None" and "None" not in available:
+                available.insert(0, "None")
+
+            dropdown.configure(values=available)
+
     rowRoom= ctk.CTkFrame(frame, fg_color="transparent")
     rowRoom.pack(fill="x", pady=5, padx=5)
 
+    # The room selection section
+    # List of all rooms from JSON config
+    all_rooms = json_data["config"]["rooms"]
+
+    # Decide which data to loop over
+    loop_room_data = list(data["room_preferences"].items()) if isEditing else [("None", 5)] * 3
+
+    # Dict to store the room preferences
+    roomPreferences = {}
+    room_vars = []
+
     ctk.CTkLabel(rowRoom, text="Room Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
-    dummyData = Faculty[0].get("room_preferences")
-    for room, weight in dummyData.items():
+
+    for room_name, weight in loop_room_data:
         roomRow = ctk.CTkFrame(rowRoom, fg_color="transparent")
         roomRow.pack(fill="x", padx=20, pady=2)
 
-        ctk.CTkLabel(roomRow, text=f"{room}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
-        dropdown = ctk.CTkOptionMenu(roomRow, width=150, values=["1","2","3","4","5", "6", "7","8","9", "10"])
+        # Ensure default value is the room from data if it exists
+        values_list = ["None"] + all_rooms
+        if room_name not in values_list:
+            values_list.append(room_name)
 
-        if data:
-            dropdown.set(str(weight))
-        else:
-            # deafult 
-            dropdown.set("5")
-        dropdown.pack(side="left", padx=(0,10), fill="x")
+        room_var = ctk.StringVar(value=room_name)
+        room_dropdown = ctk.CTkOptionMenu(roomRow, variable=room_var, values=values_list, width=200, font=("Arial", 20))
+        room_dropdown.pack(side="left", padx=20, pady=2)
 
+        # Trace for mutual exclusivity
+        room_var.trace_add("write", update_room_dropdowns)
+        room_vars.append((room_var, room_dropdown))
+
+        # Weight dropdown
+        weight_dropdown = ctk.CTkOptionMenu(roomRow, width=150, values=[str(i) for i in range(11)])
+        weight_dropdown.set(str(weight))
+        weight_dropdown.pack(side="left", padx=(0,10), fill="x")
+
+        # Store references
+        roomPreferences[room_name] = {
+            "room_var": room_var,
+            "weight_dropdown": weight_dropdown
+        }
+    
     # Lab Prefrence EXACT SAME THING AS ABOVE (Course Prefrence and Room Preferences)
+    labPreferences = {}
+
     rowLab = ctk.CTkFrame(frame, fg_color="transparent")
     rowLab.pack(fill="x", pady=5, padx=5)
 
@@ -288,19 +468,114 @@ def dataFacultyRight(frame, data=None):
         labRow.pack(fill="x", padx=20, pady=2)
 
         ctk.CTkLabel(labRow, text=f"{lab}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
-        dropdown = ctk.CTkOptionMenu(labRow, width=150, values=["1","2","3","4","5", "6", "7","8","9", "10"])
+        dropdown = ctk.CTkOptionMenu(labRow, width=150, values=[str(i) for i in range(11)])
 
         if data:
             dropdown.set(str(weight))
         else:
-            # deafult 
+            # default 
             dropdown.set("5")
         dropdown.pack(side="left", padx=(0,10), fill="x")
 
+        labPreferences[lab] = dropdown
+
+    # Creates a pop-up to display error messages when attempting to save faculty
+    def show_error_popup(errors):
+        popup = ctk.CTkToplevel()
+        popup.title("Error(s) Found!")
+        popup.geometry("400x300")
+        popup.grab_set()
+
+        ctk.CTkLabel(popup, text="Please correct the following:", font=("Arial", 20, "bold"), text_color="red").pack(pady=(10, 5))
+
+        # Display each error as a label
+        for err in errors:
+            ctk.CTkLabel(popup, text=f"• {err}", font=("Arial", 15), anchor="w", justify="left", wraplength=350).pack(anchor="w", padx=20, pady=2)
+
+        # Add a Close button
+        ctk.CTkButton(popup, text="Close", width=100, command=popup.destroy).pack(pady=15)
+
+    # Gets the faculty data to return to the program
+    def returnFacultyData():
+
+        # Stores potential errors that may exist when trying to save changes
+        errors = []
+        
+        # Gets the user input for the faculty name
+        faculty_name = nameEntry.get()
+        # Checks if user entered a name for the faculty, gives an error if not
+        if not faculty_name:
+            errors.append("Please enter a faculty name!")
+
+        # Gets the user input for the maximum credits
+        maximum_credits = maxEntry.get()
+
+        # Gets the user input for the minimum credits
+        minimum_credits = minEntry.get()
+
+        if minimum_credits > maximum_credits:
+            errors.append("Minimum credits cannot be greater than maximum credits!")
+
+        # Gets the available times
+        availability = {}
+        for day, entry in dayEntries.items():
+            value = entry.get().strip()
+            if not value:
+                availability[day] = ["9:00-5:00"]
+            elif value.lower() == "n/a":
+                availability[day] = []
+            else:
+                availability[day] = [v.strip() for v in value.split(",")]
+
+        # Gets the user input for the unique course limit
+        unique_course_limit = uniqueEntry.get()
+
+        # Gets the course preferences and formats them properly
+        course_preferences = {}
+        for key, widgets in coursePreferences.items():
+            course_name = widgets["course_var"].get()
+            weight = int(widgets["weight_dropdown"].get())
+
+            # If 'None' is selected, skip it
+            if course_name != "None":
+                course_preferences[course_name] = weight
+
+        # Gets the room preferences and formats them properly
+        room_preferences = {}
+        for key, widgets in roomPreferences.items():
+            room_name = widgets["room_var"].get()
+            weight = int(widgets["weight_dropdown"].get())
+
+            # Skip if "None" is selected
+            if room_name != "None":
+                room_preferences[room_name] = weight
+
+       # Gets the lab preferences and formats them properly
+        lab_preferences = {}
+        for lab, dropdown in labPreferences.items():
+            lab_preferences[lab] = int(dropdown.get())
+        
+        # If there are errors, show popup and return nothing
+        if errors:
+            show_error_popup(errors)
+            return
+
+        # Otherwise, success popup
+        success_popup = ctk.CTkToplevel()
+        success_popup.title("Success")
+        success_popup.geometry("300x150")
+        success_popup.grab_set()
+        ctk.CTkLabel(success_popup, text="Faculty successfully saved!", font=("Arial", 18, "bold"), text_color="green").pack(pady=30)
+        ctk.CTkButton(success_popup, text="OK", command=success_popup.destroy).pack()
+        
+        # Returns the new_faculty with the given data
+        new_faculty = {"name":faculty_name, "maximum_credits":maximum_credits, "minimum_credits":minimum_credits, "unique_course_limit":unique_course_limit, "times":availability, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
+        # Prints out information being returned, for testing purposes:
+        print("Faculty name: " ,faculty_name, "Max credits: ", maximum_credits, "Min credits: ", minimum_credits, "Unqiue course limit: ", unique_course_limit, "Availablity: ", availability, "Course preferences: ", course_preferences, "Room preferences: ", room_preferences, "Lab preferences: ", lab_preferences)
+        return new_faculty
     # this is the save buttion that will save changes when we add a new faculty and when we modify existing
     # TODO: need to make the button work
-    ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: print(f"Save chagnes conteoller")).pack(side="bottom", padx=5)
-
+    save_button = ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: returnFacultyData()).pack(side="bottom", padx=5)
 
 # this function will fill in the data on the right side of the two column 
 def dataRoomRight(frame, controller, refresh, data = None) :
@@ -325,9 +600,11 @@ def dataRoomRight(frame, controller, refresh, data = None) :
         else:
             controller.addRoom(name, refresh) 
 
+    # Button to save Changes
+    # TODO: Need to add command properly. 
 
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command = onSave).pack(side="bottom", padx=5)
-
+    
 # This function is to popluate the left side of the screen.
 # pretty much same things as above. 
 def dataRoomLeft(frame, controller, refresh, data= None) :
@@ -843,7 +1120,7 @@ class SchedulerApp(ctk.CTk):
 
 
     def refresh(self, target=None, data = None):
-        # this refreshes everything when we load the data or if we do any CRUD behaviors
+        # this refreshes everything when we load the data or do any CRUD behaviors
         # this is a bit slow but this the best i have gotten so far. 
 
         # we can pick a specefic page to refresh or 

@@ -17,6 +17,9 @@ def configImportBTN(pathVar, refresh):
     DM.loadFile(filePath)
     refresh("ConfigPage")
 
+class FacultyController:
+    global DM
+    print("TODO")
 
 def configExportBTN(pathVar):
     global DM
