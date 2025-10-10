@@ -1,13 +1,14 @@
 from tkinter import filedialog
 from Models.Data_manager import DataManager
-
+from scheduler import Scheduler, CombinedConfig
+# from scheduler.config import CombinedConfig
 
 # Lets Create 1 DataManager for all the classes
 # this should make things easier
 DM = DataManager()
 
 # Import button form the tabs view rooms and others. 
-def configImportBTN(pathVar, refresh):
+def configImportBTN(pathVar, refresh = None):
     global DM
 
     # this just opens the file manager and accepts only .json files
@@ -15,7 +16,10 @@ def configImportBTN(pathVar, refresh):
         filetypes=[("JSON files", "*.json")])
     pathVar.set(filePath)
     DM.loadFile(filePath)
-    refresh("ConfigPage")
+
+    if refresh:
+        refresh("ConfigPage")
+
 
 class FacultyController:
     global DM
@@ -32,6 +36,31 @@ def configExportBTN(pathVar):
         DM.saveData(file_path)
         pathVar.set(f"Config File saved to Path: {file_path}.")
     
+def generateSchedulesBtn(limit, optimize):
+    global DM
+
+    # TODO: Not sure how to update the limit, optimize gotten form user. 
+    config = CombinedConfig(**DM.data)
+    # print(config)
+
+    scheduler = Scheduler(config)
+    all_schedules = []
+    for schedule in scheduler.get_models():
+        # print(schedule)
+        schedule_list = []
+        for course in schedule:
+            csv_line = course.as_csv()
+            # print(csv_line)
+
+            schedule_list.append(csv_line.split(','))
+                    
+            all_schedules.append(schedule_list)
+
+    print(all_schedules)
+    
+
+
+
 
 
 

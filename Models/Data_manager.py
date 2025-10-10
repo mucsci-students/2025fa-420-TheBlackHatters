@@ -1,5 +1,6 @@
 import json
-
+from scheduler import load_config_from_file
+from scheduler.config import CombinedConfig
 # This will manage all of the data for the whole config file. 
 # We will need to give a config filePath or it will start will an empty file
 # note: empty file only inclues, 
@@ -18,9 +19,12 @@ class DataManager():
     def loadFile(self, filePath):
         self.filePath = filePath
         if filePath:
-            # Use scheduler loader
+            #Use scheduler loader
             with open(filePath, 'r') as file:
                 self.data = json.load(file)
+
+            # self.data = load_config_from_file(CombinedConfig, self.filePath)
+            # print(self.data)
 
 
 
@@ -30,7 +34,7 @@ class DataManager():
         # Without other stuff form the config file the scheduler won't run to generate schedules
         with open("template/ConfigTemplate.json", 'r') as file:
             config = json.load(file)
-        
+        # config = load_config_from_file(CombinedConfig, "template/ConfigTemplate.json")
         return config
     
     def saveData(self, outPath = None, data = None):
