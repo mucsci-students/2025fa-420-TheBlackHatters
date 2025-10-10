@@ -1,6 +1,7 @@
 from tkinter import filedialog
 from Models.Data_manager import DataManager
 from scheduler import Scheduler, CombinedConfig
+import os, json
 # from scheduler.config import CombinedConfig
 
 # Lets Create 1 DataManager for all the classes
@@ -58,6 +59,53 @@ def generateSchedulesBtn(limit, optimize):
 
     print(all_schedules)
     
+
+def importSchedulesBTN(pathEntaryVar):
+    # this just opens the file manager and accepts only .json files
+    filePath = filedialog.askopenfilename(title="Select a JSON file",
+        filetypes=[("JSON files", "*.json")])
+    
+    if filePath and os.path.exists(filePath):
+        with open(filePath, 'r') as file:
+            sch = json.load(file)
+            #print(sch)
+        
+            pathEntaryVar.set(filePath)
+        return sch
+    else:
+        pathEntaryVar.set(f"Please open a valid file, Unable to open: {filePath}.")
+        return None
+
+
+def exportAllSchedulesBTN(data, pathEntaryVar):
+    # exports all schedules :)
+
+    filePath = filedialog.asksaveasfilename(defaultextension=".json",
+        filetypes=[("Text files", "*.json")])
+    
+    if filePath != "":
+        with open(filePath , "w") as f:
+            json.dump(data, f, indent= 4)
+
+        pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
+
+def exportOneScheduleBTN(data, pathEntaryVar, num):
+    # exports selected schedule :)
+    selectedSch = data[num-1]
+
+    filePath = filedialog.asksaveasfilename(defaultextension=".json",
+        filetypes=[("Text files", "*.json")])
+    
+    if filePath != "":
+        with open(filePath , "w") as f:
+            json.dump(selectedSch, f, indent= 4)
+
+        pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
+
+
+    
+    
+
 
 
 
