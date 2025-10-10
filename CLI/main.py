@@ -168,7 +168,6 @@ def runScheduler():
 
             all_schedules = []
 
-            print("Generating Schedules please wait! \n")
             for schedule in scheduler.get_models():
                 schedule_list = []
                 for course in schedule:
@@ -192,7 +191,7 @@ def runScheduler():
 
                         writer.writerow([])
                         writer.writerows(schedule_list)
-                        
+
                 print(f"\nSchedules saved to output/{outputFile}.csv")
 
     # return
