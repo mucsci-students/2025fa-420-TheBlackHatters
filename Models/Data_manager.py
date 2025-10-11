@@ -9,7 +9,7 @@ from Models.courses.Course_model import (
 
 # This will manage all of the data for the whole config file.
 # We will need to give a config filePath or it will start will an empty file
-# note: empty file only inclues, 
+# note: empty file only inclues,
 class DataManager():
     def __init__(self, filePath = None):
 
@@ -35,7 +35,7 @@ class DataManager():
 
 
     def deafultData(self):
-        # deafult data if the file path is empty. 
+        # deafult data if the file path is empty.
         # all the defult data will come from a templateFile I created
         # Without other stuff form the config file the scheduler won't run to generate schedules
         with open("template/ConfigTemplate.json", 'r') as file:
@@ -53,16 +53,16 @@ class DataManager():
         with open(path, "w") as f:
             json.dump(self.data, f, indent=4)
 
-    # each method below will get the data from file: 
+    # each method below will get the data from file:
     # Rooms CRUD(Create, Read, Update, Delete)
     def getRooms(self):
         return self.data["config"]["rooms"]
-    
+
     def addRoom(self, newRoom):
         self.data["config"]["rooms"].append(newRoom)
         # actally saves the data in file
         #self.saveData(outPath = self.filePath)
-    
+
     def editRoom(self, oldName, newName):
         rooms = self.data["config"]["rooms"]
         idx = rooms.index(oldName)
@@ -78,7 +78,7 @@ class DataManager():
     # Labs CRUD
     def getLabs(self):
         return self.data["config"]['labs']
-    
+
     def addLab(self, newLab):
         self.data["config"]["labs"].append(newLab)
         #self.saveData(outPath = self.filePath)
@@ -96,43 +96,54 @@ class DataManager():
 
     # Course CRUD
     def getCourses(self):
-        """Return the list of all courses."""
+        """Return the list of all valid courses, auto-cleaning invalid references."""
+        self._clean_invalid_references()
         return self.data["config"].get("courses", [])
 
     def addCourse(self, course_dict):
-        """
-        Add a validated course to the config.
-        course_dict = {
-            "course_id": "CMSC 101",
-            "credits": 4,
-            "room": ["Roddy 136"],
-            "lab": ["Linux Lab"],
-            "conflicts": ["CMSC 140"],
-            "faculty": ["Zoppetti"]
-        }
-        """
         config_obj = self.data["config"]
-        add_course_to_config(config_obj, course_dict, strict_membership=True)
-        print(f"Added course: {course_dict['course_id']}")
+        try:
+            add_course_to_config(config_obj, course_dict, strict_membership=True)
+            print(f"Added course: {course_dict['course_id']}")
+        except Exception as e:
+            raise ValueError(str(e))
 
-    def editCourse(self, old_course_id, updates):
-        """
-        Edit a course using its existing course_id.
-        updates = {
-            "course_id": "CMSC 102",
-            "credits": 3,
-            "room": ["Roddy 120"]
-        }
-        """
+    def editCourse(self, old_course_id, updates, target_index=None):
         config_obj = self.data["config"]
-        modify_course_in_config(config_obj, old_course_id, updates=updates, strict_membership=True)
-        print(f"✏️ Updated course: {old_course_id} → {updates.get('course_id', old_course_id)}")
+
+        try:
+            courses = config_obj.get("courses", [])
+            matching = [c for c in courses if c.get("course_id") == old_course_id]
+            if not matching:
+                raise ValueError(f"Course not found: {old_course_id}")
+
+            idx = target_index if target_index is not None else courses.index(matching[0])
+            current = courses[idx]
+
+            # Merge updates into a fresh dict
+            new_data = current.copy()
+            new_data.update(updates)
+
+            from Models.courses.Course_model import Course
+            candidate = Course.from_dict(new_data)
+
+            candidate.validate(
+                config_obj=config_obj,
+                existing_courses=courses,
+                strict_membership=True,
+                ignore_index=idx
+            )
+
+            # Replace course only if validation passes
+            courses[idx] = candidate.to_dict()
+            print(f"Updated course: {old_course_id} → {candidate.course_id}")
+
+        except Exception as e:
+            raise ValueError(str(e))
 
     def removeCourse(self, course):
-        """Delete a course from config."""
         cfg = self.data.get("config", {})
         try:
-            # Handle both dict and string inputs safely
             if isinstance(course, dict):
                 course_id = course.get("course_id")
             else:
@@ -140,12 +151,60 @@ class DataManager():
 
             deleted = delete_course_from_config(cfg, course_id)
             self.data["config"] = cfg
-            #self.saveData()
             print(f"Removed course: {course_id}")
             return deleted
-        except ValueError as e:
-            print(f"Failed to remove course: {e}")
-            raise
+        except Exception as e:
+            raise ValueError(str(e))
+
+    def _clean_invalid_references(self):
+        """
+        Cleans all invalid references in course lists:
+          - Removes missing rooms, labs, faculty, and conflicts.
+        Returns True if any data was changed.
+        """
+        config = self.data.get("config", {})
+        courses = config.get("courses", [])
+
+        existing_rooms = set(config.get("rooms", []))
+        existing_labs = set(config.get("labs", []))
+        existing_courses = {c.get("course_id") for c in courses if "course_id" in c}
+        existing_faculty = {
+            f["name"] if isinstance(f, dict) and "name" in f else str(f)
+            for f in config.get("faculty", [])
+        }
+
+        changed = False
+
+        for c in courses:
+            # Rooms
+            if "room" in c:
+                valid_rooms = [r for r in c["room"] if r in existing_rooms]
+                if len(valid_rooms) != len(c["room"]):
+                    c["room"] = valid_rooms
+                    changed = True
+
+            # Labs
+            if "lab" in c:
+                valid_labs = [l for l in c["lab"] if l in existing_labs]
+                if len(valid_labs) != len(c["lab"]):
+                    c["lab"] = valid_labs
+                    changed = True
+
+            # Conflicts
+            if "conflicts" in c:
+                valid_conflicts = [conf for conf in c["conflicts"] if conf in existing_courses]
+                if len(valid_conflicts) != len(c["conflicts"]):
+                    c["conflicts"] = valid_conflicts
+                    changed = True
+
+            # Faculty
+            if "faculty" in c:
+                valid_faculty = [f for f in c["faculty"] if f in existing_faculty]
+                if len(valid_faculty) != len(c["faculty"]):
+                    c["faculty"] = valid_faculty
+                    changed = True
+
+        return changed
 
     # Faculty CRUD
     def getFaculty(self):
