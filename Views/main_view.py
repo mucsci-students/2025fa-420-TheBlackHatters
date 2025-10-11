@@ -1,15 +1,17 @@
 # Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
 from tkinter import StringVar, IntVar
-from Controller.main_controller import (RoomsController, LabsController,FacultyController,
+from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
-                                        importSchedulesBTN, exportAllSchedulesBTN,exportOneScheduleBTN)
+                                        importSchedulesBTN, exportAllSchedulesBTN, exportOneScheduleBTN,
+                                        CourseController)
 
 
 # should create controllers for other things too 
 roomCtr = RoomsController()
 facultyCtr = FacultyController()
 labCtr = LabsController()
+courseCtr = CourseController()
 
 
 # Dummy Data to just put something in the forms i will create
@@ -710,44 +712,59 @@ def dataLabsLeft(frame, controller, refresh, data = None):
                       command=lambda  l = lab: onEdit(l)
                       ).pack(side="left", padx=5)
 
-def dataCoursesLeft(frame, courseData=None):
-    # List of courses on the left + an add button
+def dataCoursesLeft(frame, controller, refresh, data=None):
     container = ctk.CTkFrame(frame, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
 
-    ctk.CTkButton(
-        container, text="Add", width=120, height=20,
-        command=lambda: print("Add Course clicked")
-    ).pack(side="top", padx=5)
+    def onAdd():
+        refresh(target="ConfigPage")
 
-    # use provided data or fallback to global dummy Courses
-    course_list = courseData if courseData is not None else Courses
+    ctk.CTkButton(container, text="Add", width=120, height=20,
+                  command=lambda: onAdd()).pack(side="top", padx=5)
 
-    for idx, course in enumerate(course_list):
+    def onDelete(course):
+        controller.removeCourse(course, refresh)
+
+    def onEdit(course, index):
+        refresh(target="ConfigPage", data={"course": course, "index": index})
+
+    for i, course in enumerate(controller.listCourses()):
         row = ctk.CTkFrame(container, fg_color="transparent")
         row.pack(fill="x", pady=5, padx=5)
 
-        # Show ex "CMSC 140"
-        title = f'{course.get("course_id","(no id)")}'
+        title = f'{course.get("course_id", "(no id)")}'
         ctk.CTkLabel(row, text=title, font=("Arial", 14, "bold"), anchor="w").pack(
             side="left", fill="x", expand=True
         )
 
-        # Wire up buttons as needed later
+        # Delete button
         ctk.CTkButton(
             row, text="Delete", width=30, height=20,
-            command=lambda i=idx: print(f"Delete Course index={i}")
+            command=lambda c=course: onDelete(c)
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             row, text="Edit", width=30, height=20,
-            command=lambda crs=course: print(f"Edit Course {crs.get('course_id','')}")  # hook to load right side
+            command=lambda c=course, idx=i: onEdit(c, idx)
         ).pack(side="left", padx=5)
 
+def dataCoursesRight(frame, controller, refresh, data=None):
+    def split_csv(s):
+        return [x.strip() for x in s.split(",") if x.strip()] if s else []
 
-def dataCoursesRight(frame, data=None):
-    # Right pane form for a single course (new or edit)
+    # ✅ Handle both raw course dicts and {"course": ..., "index": ...}
+    course = None
+    target_index = None
+    if isinstance(data, dict):
+        if "course" in data and "index" in data:
+            course = data["course"]
+            target_index = data["index"]
+        else:
+            course = data
+    else:
+        course = data
 
+    # --- UI fields ---
     # Course ID
     row_id = ctk.CTkFrame(frame, fg_color="transparent")
     row_id.pack(fill="x", pady=5, padx=5)
@@ -784,7 +801,7 @@ def dataCoursesRight(frame, data=None):
     entry_lab = ctk.CTkEntry(row_lab, placeholder_text="E.g: Linux, Mac", font=("Arial", 30, "bold"))
     entry_lab.pack(side="left", fill="x", expand=True, padx=5)
 
-    # Conflicts (comma separated course IDs)
+    # Conflicts
     row_cf = ctk.CTkFrame(frame, fg_color="transparent")
     row_cf.pack(fill="x", pady=5, padx=5)
     ctk.CTkLabel(row_cf, text="Conflicts:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
@@ -802,19 +819,123 @@ def dataCoursesRight(frame, data=None):
     entry_fc = ctk.CTkEntry(row_fc, placeholder_text="E.g: Hardy, Zoppetti", font=("Arial", 30, "bold"))
     entry_fc.pack(side="left", fill="x", expand=True, padx=5)
 
-    # Prefill when editing
-    if data:
-        entry_id.insert(0, data.get("course_id", ""))
-        entry_cr.insert(0, str(data.get("credits", "")))
-        entry_rm.insert(0, ", ".join(data.get("room", [])))
-        entry_lab.insert(0, ", ".join(data.get("lab", [])))
-        entry_cf.insert(0, ", ".join(data.get("conflicts", [])))
-        entry_fc.insert(0, ", ".join(data.get("faculty", [])))
+    # --- Prefill when editing ---
+    if course:
+        entry_id.insert(0, course.get("course_id", ""))
+        entry_cr.insert(0, str(course.get("credits", "")))
+        entry_rm.insert(0, ", ".join(course.get("room", [])))
+        entry_lab.insert(0, ", ".join(course.get("lab", [])))
+        entry_cf.insert(0, ", ".join(course.get("conflicts", [])))
+        entry_fc.insert(0, ", ".join(course.get("faculty", [])))
 
-    # Save button (hook up to controller later)
+    # --- Error display ---
+    error_label = ctk.CTkLabel(
+        frame,
+        text="",
+        text_color="red",
+        font=("Arial", 20, "bold"),
+        wraplength=600,
+        anchor="center",
+        justify="center"
+    )
+    error_label.pack(pady=(10, 5))
+
+    # --- Save logic ---
+    def onSave():
+        error_label.configure(text="")
+        errors = []
+
+        # --- Gather field values ---
+        course_id = entry_id.get().strip()
+        credits_str = entry_cr.get().strip()
+        rooms = split_csv(entry_rm.get())
+        labs = split_csv(entry_lab.get())
+        conflicts = split_csv(entry_cf.get())
+        faculty = split_csv(entry_fc.get())
+
+        # --- Validation ---
+
+        # 1. Course ID
+        if not course_id:
+            errors.append("Course ID cannot be empty.")
+
+        # 2. Credits must be integer >= 0
+        try:
+            credits = int(credits_str)
+            if credits < 0:
+                errors.append("Credits must be greater than or equal to 0.")
+        except ValueError:
+            errors.append("Credits must be an integer number.")
+            credits = 0
+
+        # 3. Room / Lab membership (if we can read from controller.config)
+        try:
+            config_obj = controller.config.get("config", {})
+            cfg_rooms = config_obj.get("rooms", [])
+            cfg_labs = config_obj.get("labs", [])
+        except Exception:
+            cfg_rooms, cfg_labs = [], []
+
+        if cfg_rooms:
+            bad_rooms = [r for r in rooms if r not in cfg_rooms]
+            if bad_rooms:
+                errors.append("Unknown room(s): " + ", ".join(bad_rooms))
+        if cfg_labs:
+            bad_labs = [l for l in labs if l not in cfg_labs]
+            if bad_labs:
+                errors.append("Unknown lab(s): " + ", ".join(bad_labs))
+
+        # 4. Uniqueness check (duplicate course_id)
+        existing_courses = controller.listCourses()
+        for i, c in enumerate(existing_courses):
+            existing_id = str(c.get("course_id", "")).strip()
+            if existing_id == course_id:
+                # Skip if we’re editing the same index
+                if target_index is None or i != target_index:
+                    errors.append(f"Duplicate course ID '{course_id}' at index {i}")
+                    break
+
+        # --- If any errors, show popup + inline message ---
+        if errors:
+            error_label.configure(text="\n".join(errors))
+            popup = ctk.CTkToplevel()
+            popup.title("Validation Error")
+            popup.geometry("400x300")
+            popup.grab_set()
+            ctk.CTkLabel(popup, text="Please correct the following:",
+                         font=("Arial", 20, "bold"),
+                         text_color="red").pack(pady=(10, 5))
+            for e in errors:
+                ctk.CTkLabel(popup, text=f"• {e}",
+                             font=("Arial", 15),
+                             anchor="w",
+                             justify="left",
+                             wraplength=350).pack(anchor="w", padx=20, pady=2)
+            ctk.CTkButton(popup, text="Close", width=100, command=popup.destroy).pack(pady=15)
+            return
+
+        # --- If all good, construct and save course ---
+        new_course = {
+            "course_id": course_id,
+            "credits": credits,
+            "room": rooms,
+            "lab": labs,
+            "conflicts": conflicts,
+            "faculty": faculty,
+        }
+
+        try:
+            if course:
+                controller.editCourse(course.get("course_id"), new_course, refresh, target_index=target_index)
+            else:
+                controller.addCourse(new_course, refresh)
+        except Exception as e:
+            error_label.configure(text=f"Failed to save course: {str(e)}")
+
+    # --- Save button ---
     ctk.CTkButton(
         frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height=40,
-        command=lambda: print("Save Course clicked")
+        command=onSave
     ).pack(side="bottom", padx=5, pady=10)
 
 
@@ -1093,22 +1214,22 @@ class SchedulerApp(ctk.CTk):
         # 
         # we don't know the frame so it kind of like a place holder until later on in the program
         self.createTwoColumn(tabview.tab("Faculty"),
-                            lambda frame, rightData=None: dataFacultyLeft(frame), 
-                            lambda frame, rightData=None: dataFacultyRight(frame))
-        
+                             lambda frame, rightData=None: dataFacultyLeft(frame),
+                             lambda frame, rightData=None: dataFacultyRight(frame))
+        course_data = None
+        if isinstance(data, dict) and "course" in data:
+            course_data = data
         self.createTwoColumn(tabview.tab("Courses"),
-                            lambda frame: dataCoursesLeft(frame, courseData=Courses), 
-                            lambda frame: dataCoursesRight(frame))  # shows empty form by default
-        ##self.rooms_refresh = dataRoomLeft(tabview.tab("Rooms"), roomCtr)   # store refresh fn
-        ##dataRoomRight(tabview.tab("Rooms"), roomCtr)
-        
-        self.createTwoColumn(tabview.tab("Rooms"), 
-                            lambda frame:dataRoomLeft(frame, roomCtr, self.refresh), 
-                            lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data))
-        
-        self.createTwoColumn(tabview.tab("Labs"), 
-                            lambda frame: dataLabsLeft(frame,labCtr, self.refresh),
-                            lambda frame: dataLabsRight(frame, labCtr, self.refresh, data))
+                             lambda frame: dataCoursesLeft(frame, courseCtr, self.refresh),
+                             lambda frame: dataCoursesRight(frame, courseCtr, self.refresh, course_data))
+
+        self.createTwoColumn(tabview.tab("Rooms"),
+                             lambda frame: dataRoomLeft(frame, roomCtr, self.refresh),
+                             lambda frame: dataRoomRight(frame, roomCtr, self.refresh))
+
+        self.createTwoColumn(tabview.tab("Labs"),
+                             lambda frame: dataLabsLeft(frame, labCtr, self.refresh),
+                             lambda frame: dataLabsRight(frame, labCtr, self.refresh))
 
     # this is to store and return the choice to order the schedules 
     def orderByChoice(self, choice, sch):
@@ -1125,7 +1246,7 @@ class SchedulerApp(ctk.CTk):
     def orderedSchedules(self, schedules):
         if not schedules:
             return None
-        
+
         if  self.selectedOrderBy == "Default":
             return schedules 
         elif self.selectedOrderBy == "Rooms & Labs":

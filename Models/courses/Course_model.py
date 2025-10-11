@@ -23,12 +23,14 @@ def _get_courses_list(config_obj):
         config_obj["courses"] = []
     return config_obj["courses"]
 
-def _find_course_index(courses_list, course_id):
+def _find_course_indexes(courses_list, course_id):
+    """Return list of all indexes that match a course_id (may be empty)."""
     target = str(course_id).strip()
+    idxs = []
     for i, c in enumerate(courses_list or []):
         if str(c.get("course_id", "")).strip() == target:
-            return i
-    return -1
+            idxs.append(i)
+    return idxs
 
 class Course:
     def __init__(self, course_id, credits, room=None, lab=None, conflicts=None, faculty=None):
@@ -134,10 +136,8 @@ class Course:
                 raise ValueError("; ".join(msgs))
 
         # Uniqueness
-        if existing_courses is not None:
+        if existing_courses is not None and ignore_index is None:
             for i, c in enumerate(existing_courses or []):
-                if ignore_index is not None and i == ignore_index:
-                    continue
                 other_id = c.course_id if isinstance(c, Course) else str(c.get("course_id", "")).strip()
                 if other_id == self.course_id:
                     raise ValueError(f"duplicate course_id '{self.course_id}' at index {i}")
@@ -162,18 +162,31 @@ def add_course_to_config(config_obj, course_dict, *, strict_membership=True):
     courses.append(course.to_dict())
     return course.to_dict()
 
-def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membership=True):
+def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membership=True, target_index=None):
     """
-    Replace fields for a course by id. 'updates' can include:
-      course_id, credits, room, lab, conflicts, faculty
+    Replace fields for a course by id or index.
+    If multiple courses share the same course_id, and target_index is None,
+    the first match is modified. GUI can specify target_index for duplicates.
     """
     courses = _get_courses_list(config_obj)
-    idx = _find_course_index(courses, course_id)
-    if idx == -1:
-        raise ValueError(f"course not found: {course_id}")
+
+    # Determine which index to edit
+    if target_index is not None:
+        if target_index < 0 or target_index >= len(courses):
+            raise ValueError(f"invalid target_index: {target_index}")
+        idx = target_index
+    else:
+        # fallback: edit first match
+        idxs = _find_course_indexes(courses, course_id)
+        if not idxs:
+            raise ValueError(f"course not found: {course_id}")
+        if len(idxs) > 1:
+            print(f"⚠️ Multiple '{course_id}' found; editing first instance (index {idxs[0]}).")
+        idx = idxs[0]
 
     cur = Course.from_dict(courses[idx])
     updates = updates or {}
+
     if "course_id" in updates and updates["course_id"] is not None:
         cur.rename(updates["course_id"])
     if "credits" in updates and updates["credits"] is not None:
@@ -187,7 +200,14 @@ def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membe
     if "faculty" in updates and updates["faculty"] is not None:
         cur.set_faculty(updates["faculty"])
 
-    cur.validate(config_obj=config_obj, existing_courses=courses, strict_membership=strict_membership, ignore_index=idx)
+    # Validate, ignoring the same index
+    cur.validate(
+        config_obj=config_obj,
+        existing_courses=courses,
+        strict_membership=False,
+        ignore_index=idx,
+    )
+
     courses[idx] = cur.to_dict()
     return courses[idx]
 
