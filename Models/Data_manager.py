@@ -1,7 +1,13 @@
 import json
 from scheduler import load_config_from_file
 from scheduler.config import CombinedConfig
-# This will manage all of the data for the whole config file. 
+from Models.courses.Course_model import (
+    add_course_to_config,
+    modify_course_in_config,
+    delete_course_from_config
+)
+
+# This will manage all of the data for the whole config file.
 # We will need to give a config filePath or it will start will an empty file
 # note: empty file only inclues, 
 class DataManager():
@@ -36,18 +42,16 @@ class DataManager():
             config = json.load(file)
         # config = load_config_from_file(CombinedConfig, "template/ConfigTemplate.json")
         return config
-    
-    def saveData(self, outPath = None, data = None):
-        if data: 
-            # updates data with new data
-            self.data = data
 
-        #TODO: Not sure where to do this but, need way to save/export to difrent file, 
-        # not sure weather to make this here or in the contorler. 
-
-        # writes the file to the given FilePath
-        with open(outPath , "w") as f:
-            json.dump(self.data, f, indent= 4)
+    def saveData(self, path=None):
+        """Save data to the current or given path."""
+        if path is None:
+            path = self.filePath
+        if not path:
+            print("No path specified for saveData()")
+            return
+        with open(path, "w") as f:
+            json.dump(self.data, f, indent=4)
 
     # each method below will get the data from file: 
     # Rooms CRUD(Create, Read, Update, Delete)
@@ -92,12 +96,56 @@ class DataManager():
 
     # Course CRUD
     def getCourses(self):
-        return self.data["config"]["courses"]
+        """Return the list of all courses."""
+        return self.data["config"].get("courses", [])
 
-    def addCourse(self, newCourse):
-        self.data["config"]["courses"].append(newCourse)
-        #self.saveData(outPath = self.filePath)
+    def addCourse(self, course_dict):
+        """
+        Add a validated course to the config.
+        course_dict = {
+            "course_id": "CMSC 101",
+            "credits": 4,
+            "room": ["Roddy 136"],
+            "lab": ["Linux Lab"],
+            "conflicts": ["CMSC 140"],
+            "faculty": ["Zoppetti"]
+        }
+        """
+        config_obj = self.data["config"]
+        add_course_to_config(config_obj, course_dict, strict_membership=True)
+        print(f"Added course: {course_dict['course_id']}")
 
+    def editCourse(self, old_course_id, updates):
+        """
+        Edit a course using its existing course_id.
+        updates = {
+            "course_id": "CMSC 102",
+            "credits": 3,
+            "room": ["Roddy 120"]
+        }
+        """
+        config_obj = self.data["config"]
+        modify_course_in_config(config_obj, old_course_id, updates=updates, strict_membership=True)
+        print(f"✏️ Updated course: {old_course_id} → {updates.get('course_id', old_course_id)}")
+
+    def removeCourse(self, course):
+        """Delete a course from config."""
+        cfg = self.data.get("config", {})
+        try:
+            # Handle both dict and string inputs safely
+            if isinstance(course, dict):
+                course_id = course.get("course_id")
+            else:
+                course_id = str(course)
+
+            deleted = delete_course_from_config(cfg, course_id)
+            self.data["config"] = cfg
+            #self.saveData()
+            print(f"Removed course: {course_id}")
+            return deleted
+        except ValueError as e:
+            print(f"Failed to remove course: {e}")
+            raise
 
     # Faculty CRUD
     def getFaculty(self):

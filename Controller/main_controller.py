@@ -102,16 +102,6 @@ def exportOneScheduleBTN(data, pathEntaryVar, num):
 
         pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
 
-
-    
-    
-
-
-
-
-
-
-
 # room controller 
 class RoomsController:
     global DM
@@ -160,3 +150,34 @@ class LabsController:
             refresh("ConfigPage")
         else: 
             print('Lab not in system')
+
+class CourseController:
+    global DM
+    def __init__(self):
+        pass
+    def listCourses(self):
+        return DM.getCourses()
+
+    def addCourse(self, courseData, refresh):
+        try:
+            DM.addCourse(courseData)
+            refresh("ConfigPage")
+            return None
+        except Exception as e:
+            return str(e)
+
+    def editCourse(self, oldName, newData, refresh, target_index=None):
+        try:
+            DM.editCourse(oldName, newData, target_index=target_index)
+            refresh(target="ConfigPage", data=newData)
+            return None
+        except Exception as e:
+            return str(e)
+
+    def removeCourse(self, courseName, refresh):
+        try:
+            DM.removeCourse(courseName)
+            refresh("ConfigPage")
+            return None
+        except Exception as e:
+            return str(e)
