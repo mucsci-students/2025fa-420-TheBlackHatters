@@ -29,6 +29,7 @@ from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
 
 from Views.main_view import SchedulerApp
+from CLI.test_cli import run_tests_cli
 
 # output/input Path
 outputPath = "output/example1.json"
@@ -347,8 +348,7 @@ def runCLIorGUI():
             app.mainloop()
             quit()
         elif choice == '3':
-            print(' we need to run tests.. someone needs to implemnt this.... :) \n')
-            pass
+            run_tests_cli()
         else: 
             print("Please type valid respond! ")
             input("Press Enter to continue...")
