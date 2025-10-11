@@ -1,7 +1,7 @@
 from tkinter import filedialog
 from Models.Data_manager import DataManager
 from scheduler import Scheduler, CombinedConfig
-import os, json
+import os, json,io,csv
 # from scheduler.config import CombinedConfig
 
 # Lets Create 1 DataManager for all the classes
@@ -60,22 +60,88 @@ def generateSchedulesBtn(limit, optimize):
     print(all_schedules)
     
 
+def checkFileContent(data, pathEntaryVar):
+    if not isinstance(data, list):
+        # cheaks if data is a list or not 
+        pathEntaryVar.set("Please open a valid file!")
+        return False
+
+    # we look at each schedule in the list
+    for idx, sch in enumerate(data):
+        # checks if the whole data schedule is a list or not 
+        if not isinstance(sch, list):
+            pathEntaryVar.set(f"Invalid: schedule {idx} is not a list.")
+            return False
+        
+        # chesi if we have empty schedule 
+        if len(sch) == 0:
+            pathEntaryVar.set(f"Invalid: schedule {idx} is empty.")
+            return False
+ 
+        # checking each schedule
+        for ridx, row in enumerate(sch):
+            # check if the row is a list or not
+            if not isinstance(row, list):
+                pathEntaryVar.set(f"Invalid: row {ridx} in schedule {ridx} is not a list.")
+                return False
+
+            # to check if we have atleat 5 things in the row
+            # at least calss, facult, room, lab ,1 time
+            if len(row) < 5: 
+                pathEntaryVar.set(f"Invalid: row {ridx} in schedule {ridx} has too few elements.")
+                return False
+            
+    return True
+
+def csvToJson(data):
+    # turn CSV data to json 
+    schedules = []
+    current_schedule = []
+
+    for row in data:
+        if not row:
+            if current_schedule:
+                schedules.append(current_schedule)
+                current_schedule = []
+            continue
+
+        current_schedule.append(row)
+
+    # Add last schedule if it exists
+    if current_schedule:
+        schedules.append(current_schedule)
+
+    return schedules
+
+
+
 def importSchedulesBTN(pathEntaryVar):
-    # this just opens the file manager and accepts only .json files
+    # This will work for both the csv and json files now
     filePath = filedialog.askopenfilename(title="Select a JSON file",
-        filetypes=[("JSON files", "*.json")])
+        filetypes=[("JSON files", "*.json"), ("CSV files", "*.csv")])
     
     if filePath and os.path.exists(filePath):
-        with open(filePath, 'r') as file:
-            sch = json.load(file)
-            #print(sch)
-        
-            pathEntaryVar.set(filePath)
-        return sch
+        sch = None
+        ext = os.path.splitext(filePath)[1].lower()
+        if ext == ".json":
+            with open(filePath, 'r') as file:
+                sch = json.load(file)
+                if not checkFileContent(sch, pathEntaryVar):
+                    return None
+        elif ext == ".csv":
+            with open(filePath, 'r') as file:
+                reader = csv.reader(file)
+                sch = list(reader)
+                sch = csvToJson(sch)
+                # print(sch)
+                if not checkFileContent(sch,  pathEntaryVar):
+                    return None      
     else:
         pathEntaryVar.set(f"Please open a valid file, Unable to open: {filePath}.")
         return None
-
+    
+    pathEntaryVar.set(filePath)
+    return sch
 
 def exportAllSchedulesBTN(data, pathEntaryVar):
     # exports all schedules :)
