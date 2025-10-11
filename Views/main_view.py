@@ -843,94 +843,25 @@ def dataCoursesRight(frame, controller, refresh, data=None):
     # --- Save logic ---
     def onSave():
         error_label.configure(text="")
-        errors = []
 
-        # --- Gather field values ---
-        course_id = entry_id.get().strip()
-        credits_str = entry_cr.get().strip()
-        rooms = split_csv(entry_rm.get())
-        labs = split_csv(entry_lab.get())
-        conflicts = split_csv(entry_cf.get())
-        faculty = split_csv(entry_fc.get())
-
-        # --- Validation ---
-
-        # 1. Course ID
-        if not course_id:
-            errors.append("Course ID cannot be empty.")
-
-        # 2. Credits must be integer >= 0
-        try:
-            credits = int(credits_str)
-            if credits < 0:
-                errors.append("Credits must be greater than or equal to 0.")
-        except ValueError:
-            errors.append("Credits must be an integer number.")
-            credits = 0
-
-        # 3. Room / Lab membership (if we can read from controller.config)
-        try:
-            config_obj = controller.config.get("config", {})
-            cfg_rooms = config_obj.get("rooms", [])
-            cfg_labs = config_obj.get("labs", [])
-        except Exception:
-            cfg_rooms, cfg_labs = [], []
-
-        if cfg_rooms:
-            bad_rooms = [r for r in rooms if r not in cfg_rooms]
-            if bad_rooms:
-                errors.append("Unknown room(s): " + ", ".join(bad_rooms))
-        if cfg_labs:
-            bad_labs = [l for l in labs if l not in cfg_labs]
-            if bad_labs:
-                errors.append("Unknown lab(s): " + ", ".join(bad_labs))
-
-        # 4. Uniqueness check (duplicate course_id)
-        existing_courses = controller.listCourses()
-        for i, c in enumerate(existing_courses):
-            existing_id = str(c.get("course_id", "")).strip()
-            if existing_id == course_id:
-                # Skip if we’re editing the same index
-                if target_index is None or i != target_index:
-                    errors.append(f"Duplicate course ID '{course_id}' at index {i}")
-                    break
-
-        # --- If any errors, show popup + inline message ---
-        if errors:
-            error_label.configure(text="\n".join(errors))
-            popup = ctk.CTkToplevel()
-            popup.title("Validation Error")
-            popup.geometry("400x300")
-            popup.grab_set()
-            ctk.CTkLabel(popup, text="Please correct the following:",
-                         font=("Arial", 20, "bold"),
-                         text_color="red").pack(pady=(10, 5))
-            for e in errors:
-                ctk.CTkLabel(popup, text=f"• {e}",
-                             font=("Arial", 15),
-                             anchor="w",
-                             justify="left",
-                             wraplength=350).pack(anchor="w", padx=20, pady=2)
-            ctk.CTkButton(popup, text="Close", width=100, command=popup.destroy).pack(pady=15)
-            return
-
-        # --- If all good, construct and save course ---
         new_course = {
-            "course_id": course_id,
-            "credits": credits,
-            "room": rooms,
-            "lab": labs,
-            "conflicts": conflicts,
-            "faculty": faculty,
+            "course_id": entry_id.get().strip(),
+            "credits": entry_cr.get().strip(),
+            "room": split_csv(entry_rm.get()),
+            "lab": split_csv(entry_lab.get()),
+            "conflicts": split_csv(entry_cf.get()),
+            "faculty": split_csv(entry_fc.get()),
         }
 
-        try:
-            if course:
-                controller.editCourse(course.get("course_id"), new_course, refresh, target_index=target_index)
-            else:
-                controller.addCourse(new_course, refresh)
-        except Exception as e:
-            error_label.configure(text=f"Failed to save course: {str(e)}")
+        # Try add or edit
+        if course:
+            error = controller.editCourse(course.get("course_id"), new_course, refresh, target_index=target_index)
+        else:
+            error = controller.addCourse(new_course, refresh)
+
+        # Display any model error inline
+        if error:
+            error_label.configure(text=error)
 
     # --- Save button ---
     ctk.CTkButton(
