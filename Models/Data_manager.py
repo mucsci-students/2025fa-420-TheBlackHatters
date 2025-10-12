@@ -1,6 +1,8 @@
 import json
 from scheduler import load_config_from_file
 from scheduler.config import CombinedConfig
+import Models.Faculty_model as FacultyModel
+
 # This will manage all of the data for the whole config file. 
 # We will need to give a config filePath or it will start will an empty file
 # note: empty file only inclues, 
@@ -104,8 +106,12 @@ class DataManager():
         return self.data["config"]["faculty"]
 
     def addFaculty(self, newFaculty):
-        self.data["config"]["faculty"].append(newFaculty)
+        conFaculty = self.data["config"]["faculty"]
+        FacultyModel.Faculty.addFaculty(conFaculty, newFaculty)
         #self.saveData(outPath = self.filePath)
 
-
-
+    def removeFaculty(self, faculty):
+        conFaculty = self.data["config"]["faculty"]
+        facName = faculty.get("name")
+        FacultyModel.Faculty.removeFaculty(conFaculty, facName)
+        #self.saveData(outPath = self.filePath)

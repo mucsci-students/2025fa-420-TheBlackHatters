@@ -102,7 +102,7 @@ scheduleExample =[[
 # right now we are not using the data varabale and just working with dummy data. 
 # frame: the place we are going to put all out stuff.
 # facultyData: will contain the faculty data for all faculty..  
-def dataFacultyLeft(frame, facultyData = None):
+def dataFacultyLeft(frame, controller, refresh, facultyData = None):
 
     # A variable that checks if the user is editing a faculty member, is passed into addFacultyRight
     isEditingFaculty = False
@@ -113,21 +113,27 @@ def dataFacultyLeft(frame, facultyData = None):
     container = ctk.CTkFrame(frame, fg_color =  "transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
 
+
+    # just want to refresh the page to open new form
+    def onAdd():
+        refresh(target = "ConfigPage")
+
     # we are creating and puting on screen at same time with .pack. 
     # Button lives in container we crated above
-    # Button has text "Add" inside it
-    # *** Command = Function: Important we need to make this functional, 
-    # TODO: We need this button to on the right generate empty form on right for user to add a new faculty
-    ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: print(f"Add Button conteoller")).pack(side="top", padx=5)
-    
-    # Used when clicked on the "Edit" button, sets isEditingFaculty to true for use in dataFacultyRight
-    def updateEditing():
-        isEditingFaculty = True
-        print(str(isEditingFaculty))
+    # Button has text "Add" inside it        
+    ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: onAdd()).pack(side="top", padx=5)
+
+
+    def onDelete(faculty):
+        controller.removeFaculty(faculty, refresh)
+
+    def onEdit(faculty):
+        refresh(target = "ConfigPage", data = faculty)
+
 
     # TODO: we need to loop throught the facultyData and show the names of the faculty
     # This will loop thought the facultyData and display the names on the left side 
-    for faculty in Faculty:
+    for faculty in facultyCtr.listFaculty():
         
         # For each faculty member I need their name, edit and delete btn. 
         # I need to create a fram to put thoses element. 
@@ -143,37 +149,19 @@ def dataFacultyLeft(frame, facultyData = None):
         # Buttons. The two buttions are for deleting and editing Faculty.
         # TODO: We need ot add the commnd Function. 
         # Again .pack displays on screen, we are adding both buttons on rowFrame
-        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda faculty: print(f"TODO Delete Button Controller")).pack(side="left", padx=5)
-        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda faculty: updateEditing).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda f = faculty: onDelete(f)).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda f = faculty: onEdit(f)).pack(side="left", padx=5)
 
 # This function will populate the right side of the page. (If you don't understand left and right load the program and go into config file. Should make sence once you see it!)
 # this function kinda of acts like a form for user to fill. 
 # we need to display the current data if user pressed edit on button before or just get an empty one
-def dataFacultyRight(frame, data=None, isEditing=False):
+def dataFacultyRight(frame, controller, refresh, data=None):
     # This is for the name of faculty: which has a label and entry;
     # it will look somehting like this: Name:__E.g: Hobbs_______
     # Again we create a frame to add the label and entry. 
     rowName = ctk.CTkFrame(frame, fg_color="transparent")
     rowName.pack(fill="x", pady=5, padx=5)
-
-    # Some dummy data for testing purposes
-    isEditing = True
-
     
-    data =  {   "name": "Zoppetti",
-                "maximum_credits": 12,
-                "minimum_credits": 12,
-                "unique_course_limit": 3,
-                "times": {
-                    "MON": ["11:00-16:00"],
-                    "TUE": [],
-                    "WED": ["10:00-15:00"],
-                    "THU": ["10:00-17:00"],
-                    "FRI": ["11:00-16:00"]},
-                "course_preferences": {"CMSC 362": 5,"CMSC 476": 5,"CMSC 161": 4},
-                "room_preferences": {"Roddy 136": 5,"Roddy 140": 1,"Roddy 142": 1},
-                "lab_preferences": {"Linux": 5,"Mac": 1}
-            }
 
     # this is the label for Name. 
     # We just create and display the label here
@@ -221,7 +209,7 @@ def dataFacultyRight(frame, data=None, isEditing=False):
     
     # if we have data given here we just display the data
     # for example when someone clicks edit. 
-    if data and isEditing:
+    if data:
         nameEntry.insert(0, data.get("name", ""))
 
     # This is to display the credit things   
@@ -256,8 +244,8 @@ def dataFacultyRight(frame, data=None, isEditing=False):
     uniqueEntry = ctk.CTkOptionMenu(rowCredits, variable=uniqueLimitToRead, values=[str(i) for i in range(0, 3)], font=("Arial", 30, "bold"), dropdown_font=("Arial", 20))
     uniqueEntry.pack(side="left", fill="x", expand=True, padx=5)
 
-    # TODO: Actally put the data in the entrys, if there is data given
-    if data and isEditing:
+    # Actally put the data in the entrys, if there is data given
+    if data:
         minEntry.set(str(data.get("minimum_credits", 0)))
         maxEntry.set(str(data.get("maximum_credits", 0)))
         uniqueEntry.set(str(data.get("unique_course_limit", 0)))
@@ -294,7 +282,7 @@ def dataFacultyRight(frame, data=None, isEditing=False):
 
         # this will display the given data if we do give it data,
         # other wise is just empty
-        if data and "times" in data and isEditing:
+        if data and "times" in data:
             dayEntry.insert(0, ', '.join(data["times"].get(day, [])))
 
     # Course Preference Frame, we create it and pack in on screen
@@ -338,13 +326,14 @@ def dataFacultyRight(frame, data=None, isEditing=False):
 
     # Load all courses in dummy data
     # Use data if editing
-    dummyData = data.get("course_preferences", {}) if isEditing else {}
+    dummyData = data.get("course_preferences", {}) if data else {}
 
     # Create one dropdown row per course in the data if editing, otherwise create empty rows
     # Decide how many dropdown rows to create (always 3)
-    loop_data = list(data["course_preferences"].items()) if isEditing else [("None", 5)] * 3
+    loop_data = list(data["course_preferences"].items()) if data else [("None", 5)] * 3
 
-    for course_name, weight in loop_data:
+    #Allows for more modular bar creation if we need to allow user to choose to add more classes.
+    def preference_bar_creation(course_name, weight):
         courseRow = ctk.CTkFrame(rowCourse, fg_color="transparent")
         courseRow.pack(fill="x", padx=20, pady=2)
 
@@ -363,7 +352,7 @@ def dataFacultyRight(frame, data=None, isEditing=False):
 
         # Weight dropdown
         weight_dropdown = ctk.CTkOptionMenu(courseRow, width=150, values=[str(i) for i in range(11)])
-        weight_dropdown.set(str(weight) if isEditing else "5")
+        weight_dropdown.set(str(weight) if data else "5")
         weight_dropdown.pack(side="left", padx=(0,10), fill="x")
 
         # Store references
@@ -372,24 +361,20 @@ def dataFacultyRight(frame, data=None, isEditing=False):
             "weight_dropdown": weight_dropdown
         }
 
+
+    for course_name, weight in loop_data:
+        preference_bar_creation(course_name, weight)
+
     # Initial synchronization of dropdowns
     update_course_dropdowns()
 
     # room Prefrence EXACT SAME THING AS ABOVE(Course Prefrence)
 
-    # Since the dummy data atop the file doesn't contain rooms, this is more dummy data that does contain it
-    json_data = {
-    "config": {
-            "rooms": ["Roddy 136", "Roddy 140", "Roddy 147"]
-        }
-    }
-
     # Dict to store the room preferences to return
     roomPreferences = {}
 
-    # This loads the rooms from the dummy JSON data
-    # TODO: Replace this with the actual JSON data
-    room_ids = ["None"] + json_data["config"]["rooms"]
+    # This loads the rooms from the JSON data
+    room_ids = roomCtr.listRooms()
 
     # Track each room dropdown variable + widget
     room_vars = []
@@ -416,10 +401,10 @@ def dataFacultyRight(frame, data=None, isEditing=False):
 
     # The room selection section
     # List of all rooms from JSON config
-    all_rooms = json_data["config"]["rooms"]
+    #all_rooms = json_data["config"]["rooms"]
 
     # Decide which data to loop over
-    loop_room_data = list(data["room_preferences"].items()) if isEditing else [("None", 5)] * 3
+    loop_room_data = list(data["room_preferences"].items()) if data else [("None", 5)] * 3
 
     # Dict to store the room preferences
     roomPreferences = {}
@@ -432,7 +417,7 @@ def dataFacultyRight(frame, data=None, isEditing=False):
         roomRow.pack(fill="x", padx=20, pady=2)
 
         # Ensure default value is the room from data if it exists
-        values_list = ["None"] + all_rooms
+        values_list = ["None"] + room_ids
         if room_name not in values_list:
             values_list.append(room_name)
 
@@ -573,9 +558,24 @@ def dataFacultyRight(frame, data=None, isEditing=False):
         # Prints out information being returned, for testing purposes:
         #print("Faculty name: " ,faculty_name, "Max credits: ", maximum_credits, "Min credits: ", minimum_credits, "Unqiue course limit: ", unique_course_limit, "Availablity: ", availability, "Course preferences: ", course_preferences, "Room preferences: ", room_preferences, "Lab preferences: ", lab_preferences)
         return new_faculty
+
+    # The actions that will happen when save changes is pressed - either calling edit faculty or add faculty.
+    def onSave():
+        newFaculty = returnFacultyData()
+        faculty_name = nameEntry.get()
+        if data:
+            controller.editFaculty(newFaculty, faculty_name, refresh) 
+            
+        else:
+            controller.addFaculty(newFaculty, refresh) 
+    
     # this is the save buttion that will save changes when we add a new faculty and when we modify existing
-    # TODO: need to make the button work
-    ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: returnFacultyData()).pack(side="bottom", padx=5)
+    ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: onSave()).pack(side="bottom", padx=5)
+
+
+
+
+
 
 # this function will fill in the data on the right side of the two column 
 def dataRoomRight(frame, controller, refresh, data = None) :
@@ -1093,9 +1093,8 @@ class SchedulerApp(ctk.CTk):
         # 
         # we don't know the frame so it kind of like a place holder until later on in the program
         self.createTwoColumn(tabview.tab("Faculty"),
-                            lambda frame, rightData=None: dataFacultyLeft(frame), 
-                            lambda frame, rightData=None: dataFacultyRight(frame))
-        
+                            lambda frame, rightData=None: dataFacultyLeft(frame, facultyCtr, self.refresh), 
+                            lambda frame, rightData=None: dataFacultyRight(frame, facultyCtr, self.refresh, data))
         self.createTwoColumn(tabview.tab("Courses"),
                             lambda frame: dataCoursesLeft(frame, courseData=Courses), 
                             lambda frame: dataCoursesRight(frame))  # shows empty form by default
@@ -1295,6 +1294,37 @@ class SchedulerApp(ctk.CTk):
 
 
     def createTwoColumn(self, parent, popluateLeft = None, popluateRight = None):
+        # This creates the look for the  confi page. 
+
+        # Container frame for left and right
+        container = ctk.CTkFrame(parent, fg_color="transparent")
+        container.pack(expand=True, fill="both", padx=10, pady=10)
+
+        # Left frame which will have a Scrollable Frame, that you can scroll if data overflow
+        leftFrame = ctk.CTkFrame(container, width=250,fg_color =  "transparent")
+        leftFrame.pack(side="left", fill="y", padx=(0,5), pady=5)
+        leftFrame.pack_propagate(False)
+
+        leftInner = ctk.CTkScrollableFrame(leftFrame, fg_color="transparent")
+        leftInner.pack(expand=True, fill="both")
+
+        # if we do have the data we can popluate the left side. 
+        if popluateLeft:
+            popluateLeft(leftInner)
+
+        # right Frame, similar to left 
+        rightFrameC = ctk.CTkFrame(container,fg_color =  "transparent")
+        rightFrameC.pack(side="left", expand=True, fill="both", padx=(0,5), pady=5)
+
+        rightInner = ctk.CTkScrollableFrame(rightFrameC, fg_color="transparent")
+        rightInner.pack(expand=True, fill="both")
+
+        if popluateRight:
+            popluateRight(rightInner)
+
+
+
+    def createPartialColumn(self, parent, container, popluateLeft = None, popluateRight = None):
         # This creates the look for the  confi page. 
 
         # Container frame for left and right

@@ -20,11 +20,7 @@ def configImportBTN(pathVar, refresh = None):
 
     if refresh:
         refresh("ConfigPage")
-
-
-class FacultyController:
-    global DM
-    print("TODO")
+    
 
 def configExportBTN(pathVar):
     global DM
@@ -160,3 +156,25 @@ class LabsController:
             refresh("ConfigPage")
         else: 
             print('Lab not in system')
+
+
+class FacultyController:
+    global DM
+    def __init__(self):
+        pass
+    
+    def listFaculty(self):
+        return DM.getFaculty()
+    
+    def addFaculty(self, newFaculty, refresh):
+        DM.addFaculty(newFaculty)
+        refresh("ConfigPage")
+
+    def editFaculty(self, newFaculty, facultyName, refresh):
+        DM.removeFaculty(newFaculty)
+        DM.addFaculty(newFaculty)
+        refresh("ConfigPage")
+
+    def removeFaculty(self, faculty, refresh):
+        DM.removeFaculty(faculty)
+        refresh("ConfigPage")
