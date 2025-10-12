@@ -122,8 +122,17 @@ def importSchedulesBTN(pathEntaryVar):
         if ext == ".json":
             with open(filePath, 'r') as file:
                 sch = json.load(file)
-                if not checkFileContent(sch, pathEntaryVar):
-                    return None
+                # If wrapped like {"schedules": [...]}, unwrap it
+                if isinstance(sch, dict) and "schedules" in sch:
+                    # if value is a list of lists, validate it; otherwise return the full dict
+                    val = sch["schedules"]
+                    if isinstance(val, list) and all(isinstance(x, list) for x in val):
+                        if not checkFileContent(val, pathEntaryVar):
+                            return None
+                        sch = val
+                    else:
+                        pathEntaryVar.set(filePath)
+                        return sch  # return original dict for simple test-style JSONs
         elif ext == ".csv":
             with open(filePath, 'r') as file:
                 reader = csv.reader(file)
