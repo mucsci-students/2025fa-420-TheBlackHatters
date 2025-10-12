@@ -307,7 +307,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     coursePreferences = {}
 
     # List of all possible courses
-    all_courses = sorted({c["course_id"] for c in Courses})
+    all_courses = sorted({c["course_id"] for c in courseCtr.listCourses()})
     values_list = ["None"] + all_courses
 
     # Track each course dropdown variable + widget
@@ -328,7 +328,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     # Load all courses in dummy data
     # Use data if editing
-    dummyData = data.get("course_preferences", {}) if data else {}
+    #dummyData = data.get("course_preferences", {}) if data else {}
 
     # Create one dropdown row per course in the data if editing, otherwise create empty rows
     # Decide how many dropdown rows to create (always 3)
