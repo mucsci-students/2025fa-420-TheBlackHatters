@@ -545,7 +545,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         # If there are errors, show popup and return nothing
         if errors:
             show_error_popup(errors)
-            return
+            return [False, None]
 
         # Otherwise, success popup
         success_popup = ctk.CTkToplevel()
@@ -559,17 +559,18 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         new_faculty = {"name":faculty_name, "maximum_credits":maximum_credits, "minimum_credits":minimum_credits, "unique_course_limit":unique_course_limit, "times":availability, "course_preferences":course_preferences, "room_preferences":room_preferences, "lab_preferences":lab_preferences}
         # Prints out information being returned, for testing purposes:
         #print("Faculty name: " ,faculty_name, "Max credits: ", maximum_credits, "Min credits: ", minimum_credits, "Unqiue course limit: ", unique_course_limit, "Availablity: ", availability, "Course preferences: ", course_preferences, "Room preferences: ", room_preferences, "Lab preferences: ", lab_preferences)
-        return new_faculty
+        return [True, new_faculty]
 
     # The actions that will happen when save changes is pressed - either calling edit faculty or add faculty.
     def onSave():
-        newFaculty = returnFacultyData()
-        faculty_name = nameEntry.get()
-        if data:
-            controller.editFaculty(newFaculty, faculty_name, refresh) 
-            
-        else:
-            controller.addFaculty(newFaculty, refresh) 
+        result=returnFacultyData()
+        if result[0]:
+            newFaculty = result[1]
+            faculty_name = nameEntry.get()
+            if data:
+                controller.editFaculty(newFaculty, faculty_name, refresh) 
+            else:
+                controller.addFaculty(newFaculty, refresh) 
     
     # this is the save buttion that will save changes when we add a new faculty and when we modify existing
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: onSave()).pack(side="bottom", padx=5)
