@@ -368,13 +368,13 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     # Decide how many dropdown rows to create
     if data:
         course_data = data.get("course_preferences")
-        print(course_data)
-        for course in course_data:
-            # Stores the weight for the course.
-            weight = course_data.get(course)
-            #Creates the Course entries
-            preference_bar_creation(course, weight)
-        pass
+        if course_data != None:
+            print(course_data)
+            for course in course_data:
+                # Stores the weight for the course.
+                weight = course_data.get(course)
+                #Creates the Course entries
+                preference_bar_creation(course, weight)
     else:
         # for i in range(3):
         #     preference_bar_creation("None", 5)
@@ -462,12 +462,12 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     if data:
         room_data = data.get("room_preferences")
-        for room in room_data:
-            # Stores the weight for the course.
-            weight = room_data.get(room)
-            #Creates the Course entries
-            room_bar_creation(room, weight)
-        pass
+        if room_data != None:
+            for room in room_data:
+                # Stores the weight for the course.
+                weight = room_data.get(room)
+                #Creates the Course entries
+                room_bar_creation(room, weight)
     else:
         # for i in range(3):
         #     room_bar_creation("None", 5)
@@ -504,7 +504,6 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     ctk.CTkLabel(rowLab, text="Lab Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
     ctk.CTkLabel(rowLab, text="(Maximum 2 entries):", anchor="w", font=("Arial", 15, "bold", "underline"), text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0,5))
-
 
     # Allows user to add additional lab entries if needed.
     addLabButton = ctk.CTkButton(rowLab, text="Add Lab", width=30, height = 20,
@@ -543,12 +542,12 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     # Creates Lab entry for each Lab in the Faculty Data, otherwise creates two.
     if data:
         lab_data = data.get("lab_preferences")
-        for lab in lab_data:
-            # Stores the weight for the course.
-            weight = lab_data.get(lab)
-            #Creates the Course entries
-            lab_bar_creation(lab, weight)
-        pass
+        if lab_data != None:
+            for lab in lab_data:
+                # Stores the weight for the course.
+                weight = lab_data.get(lab)
+                #Creates the Course entries
+                lab_bar_creation(lab, weight)
     else:
         # for i in range(2):
         #     lab_bar_creation("None", 5)
