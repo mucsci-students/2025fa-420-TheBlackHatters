@@ -42,18 +42,15 @@ def generateSchedulesBtn(limit, optimize):
 
     scheduler = Scheduler(config)
     all_schedules = []
-    for schedule in scheduler.get_models():
-        # print(schedule)
-        schedule_list = []
-        for course in schedule:
-            csv_line = course.as_csv()
-            # print(csv_line)
-
-            schedule_list.append(csv_line.split(','))
-                    
-            all_schedules.append(schedule_list)
+    # Generate schedules, respecting the limit
+    for i, schedule in enumerate(scheduler.get_models()):
+        if i >= limit:  # stop generating after reaching the limit
+            break
+        schedule_list = [course.as_csv().split(',') for course in schedule]
+        all_schedules.append(schedule_list)
 
     print(all_schedules)
+    return all_schedules
     
 
 def checkFileContent(data, pathEntaryVar):
@@ -122,8 +119,17 @@ def importSchedulesBTN(pathEntaryVar):
         if ext == ".json":
             with open(filePath, 'r') as file:
                 sch = json.load(file)
-                if not checkFileContent(sch, pathEntaryVar):
-                    return None
+                # If wrapped like {"schedules": [...]}, unwrap it
+                if isinstance(sch, dict) and "schedules" in sch:
+                    # if value is a list of lists, validate it; otherwise return the full dict
+                    val = sch["schedules"]
+                    if isinstance(val, list) and all(isinstance(x, list) for x in val):
+                        if not checkFileContent(val, pathEntaryVar):
+                            return None
+                        sch = val
+                    else:
+                        pathEntaryVar.set(filePath)
+                        return sch  # return original dict for simple test-style JSONs
         elif ext == ".csv":
             with open(filePath, 'r') as file:
                 reader = csv.reader(file)
@@ -266,3 +272,4 @@ class CourseController:
             return None
         except Exception as e:
             return str(e)
+

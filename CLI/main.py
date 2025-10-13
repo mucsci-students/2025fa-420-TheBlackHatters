@@ -294,14 +294,15 @@ def runCLIorGUI():
         print("1: Run CLI \n")
         print("2: Run GUI \n")
         print("3: Run Tests \n")
+        print("0: Exit Program \n")
         choice = input("Your choice: ")
         if choice == '1':
             welcomeMessage()
             rooms, labs, courses, faculty, other = parseJson(inputPath)
             
             while True:
+                welcomeMessage()
                 choice = input("Enter choice: ")
-
                 if choice == "1":
                     # Display the current file: 
                     displayConfig(rooms, labs, courses, faculty)
@@ -349,6 +350,9 @@ def runCLIorGUI():
             quit()
         elif choice == '3':
             run_tests_cli()
+        elif choice == '0':
+            print("Goodbye!")
+            break
         else: 
             print("Please type valid respond! ")
             input("Press Enter to continue...")
