@@ -28,6 +28,9 @@ from scheduler import (
 from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
 
+from Views.main_view import SchedulerApp
+from CLI.test_cli import run_tests_cli
+
 # output/input Path
 outputPath = "output/example1.json"
 inputPath = "output/mainConfig.json"
@@ -62,23 +65,15 @@ def parseJson(path):
     return Rooms, Labs, Courses, Faculty, other
 
 
-# welcome the user and the options for our shell..
-def welcomeMessage():
+def clearTerminal():
     if os.name == 'nt':  
         _ = os.system('cls')
     else: 
         _ = os.system('clear')
 
-    print("=" * 50)
-    print("   Welcome to the Scheduling Config System!")
-    print("=" * 50)
-
-    print("This program will parse your config files. ")
-    print("With this program you can modify your config files. ")
-    print("You will be able to add, modify, remove: ")
-    print("faculty, courses, labs, Rooms.")
-    print("Run and display the scheduler.")
-
+# welcome the user and the options for our shell..
+def welcomeMessage():
+    clearTerminal()
 
     # should be in its own function 
     print("\n")
@@ -174,7 +169,6 @@ def runScheduler():
 
             all_schedules = []
 
-            print("Generating Schedules please wait! \n")
             for schedule in scheduler.get_models():
                 schedule_list = []
                 for course in schedule:
@@ -190,6 +184,7 @@ def runScheduler():
                 with open(f"output/{outputFile}.json", "w") as f:
                     json.dump(all_schedules, f, indent=4)
                 print(f"\nSchedules saved to output/{outputFile}.json")
+
             elif format == "csv":
                 with open(f"output/{outputFile}.csv", "w", newline="") as f:
                     writer = csv.writer(f)
@@ -197,12 +192,16 @@ def runScheduler():
 
                         writer.writerow([])
                         writer.writerows(schedule_list)
+
                 print(f"\nSchedules saved to output/{outputFile}.csv")
 
     # return
 
 
 def displayConfig(rooms, labs, courses, faculty):
+    #this Function will display the config File,
+    # in a human readable way. 
+
     print("\n=== Current Configuration ===\n")
 
     # Rooms
@@ -276,54 +275,96 @@ def displayConfig(rooms, labs, courses, faculty):
         print()
     print("\n=============================\n")
 
+def runCLIorGUI():
+
+    print("=" * 50)
+    print("   Welcome to the Scheduling Config System!")
+    print("=" * 50)
+
+    print("This program will parse your config files. ")
+    print("With this program you can modify your config files. ")
+    print("You will be able to add, modify, remove: ")
+    print("faculty, courses, labs, Rooms.")
+    print("Run and display the scheduler.")
+
+    while True:
+        clearTerminal()
+
+        print("Please choose an option: \n")
+        print("1: Run CLI \n")
+        print("2: Run GUI \n")
+        print("3: Run Tests \n")
+        print("0: Exit Program \n")
+        choice = input("Your choice: ")
+        if choice == '1':
+            welcomeMessage()
+            rooms, labs, courses, faculty, other = parseJson(inputPath)
+            
+            while True:
+                welcomeMessage()
+                choice = input("Enter choice: ")
+                if choice == "1":
+                    # Display the current file: 
+                    displayConfig(rooms, labs, courses, faculty)
+                    input("Press Enter to continue...")
+                elif choice == "2":
+                    ##Faculty
+                    mainFacultyController(faculty)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "3":
+                    ## Room
+                    mainRoomControler(rooms)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "4":
+                    ## Labs 
+                    mainLabControler(labs)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "5":
+                    # courses
+                    mainCourseController(courses, rooms, labs, faculty, inputPath)
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "6":
+                    # Run Scheduler
+                    runScheduler()
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    input("Press Enter to continue...")
+                elif choice == "7":
+                    # Display saved schedules
+                    display_schedule()
+                    input("Press Enter to continue...")
+                elif choice == "0":
+                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    print("Goodbye!")
+                    break
+                else:
+                    print("Option not yet implemented.")
+                    input("Press Enter to continue...")
+
+        elif choice == '2':
+            app = SchedulerApp()
+            app.mainloop()
+            quit()
+        elif choice == '3':
+            run_tests_cli()
+        elif choice == '0':
+            print("Goodbye!")
+            break
+        else: 
+            print("Please type valid respond! ")
+            input("Press Enter to continue...")
+
+
+
+    
+
 
 # main function where everything will start form. 
 def main():
-    rooms, labs, courses, faculty, other = parseJson(inputPath)
-    
-    while True:
-        welcomeMessage()
-        choice = input("Enter choice: ")
-
-        if choice == "1":
-            # Display the current file: 
-            input("Press Enter to continue...")
-        elif choice == "2":
-            ##Faculty
-            mainFacultyController(faculty)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "3":
-            ## Room
-            mainRoomControler(rooms)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "4":
-            ## Labs 
-            mainLabControler(labs)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "5":
-            # courses
-            mainCourseController(courses, inputPath)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "6":
-            # Run Scheduler
-            runScheduler()
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            input("Press Enter to continue...")
-        elif choice == "7":
-            # Display saved schedules
-            display_schedule()
-            input("Press Enter to continue...")
-        elif choice == "0":
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-            print("Goodbye!")
-            break
-        else:
-            print("Option not yet implemented.")
-            input("Press Enter to continue...")
+    runCLIorGUI()
 
     quit()
 
@@ -340,5 +381,4 @@ if __name__ == "__main__" :
 
 
 
-# scheduler output/example.json --limit 3 --format json --output output/schedules
 

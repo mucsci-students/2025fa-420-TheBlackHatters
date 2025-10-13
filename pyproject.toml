@@ -1,0 +1,10 @@
+[project]
+name = "2025fa-420-theblackhatters"
+version = "0.1.0"
+description = "This is a tool built for the Course Constraint Scheduler that allows you to run the Course Constraint Scheduler, create and modify configuration files, and manage output files completely in command line or graphical interface."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "course-constraint-scheduler>=2.5.2",
+    "customtkinter>=5.2.2",
+]
