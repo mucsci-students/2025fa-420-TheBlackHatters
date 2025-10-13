@@ -42,18 +42,15 @@ def generateSchedulesBtn(limit, optimize):
 
     scheduler = Scheduler(config)
     all_schedules = []
-    for schedule in scheduler.get_models():
-        # print(schedule)
-        schedule_list = []
-        for course in schedule:
-            csv_line = course.as_csv()
-            # print(csv_line)
-
-            schedule_list.append(csv_line.split(','))
-                    
-            all_schedules.append(schedule_list)
+    # Generate schedules, respecting the limit
+    for i, schedule in enumerate(scheduler.get_models()):
+        if i >= limit:  # stop generating after reaching the limit
+            break
+        schedule_list = [course.as_csv().split(',') for course in schedule]
+        all_schedules.append(schedule_list)
 
     print(all_schedules)
+    return all_schedules
     
 
 def checkFileContent(data, pathEntaryVar):
@@ -275,3 +272,4 @@ class CourseController:
             return None
         except Exception as e:
             return str(e)
+
