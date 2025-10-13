@@ -308,7 +308,6 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     # List of all possible courses
     all_courses = sorted({c["course_id"] for c in courseCtr.listCourses()})
-    values_list = ["None"] + all_courses
 
     # Track each course dropdown variable + widget
     course_vars = []
@@ -326,14 +325,15 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     ctk.CTkLabel(rowCourse, text="Course Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
 
-    # Load all courses in dummy data
-    # Use data if editing
-    #dummyData = data.get("course_preferences", {}) if data else {}
+    ctk.CTkLabel(rowCourse, text="(Set name to None to remove - Second option is for Weight):", anchor="w", font=("Arial", 15, "bold", "underline"), text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0,5))
+    ctk.CTkLabel(rowCourse, text="(Maximum 3 entries, further are truncated):", anchor="w", font=("Arial", 15, "bold", "underline"), text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0,5))
 
-    # Create one dropdown row per course in the data if editing, otherwise create empty rows
-    # Decide how many dropdown rows to create (always 3)
-    loop_data = list(data["course_preferences"].items()) if data else [("None", 5)] * 3
 
+
+    # Lets the user add additonal course rows if desired.
+    addCourseButton = ctk.CTkButton(rowCourse, text="Add Course", width=30, height = 20,
+                  command=lambda: preference_bar_creation("None", 5)).pack(side=ctk.LEFT, padx=5)
+    
     #Allows for more modular bar creation if we need to allow user to choose to add more classes.
     def preference_bar_creation(course_name, weight):
         courseRow = ctk.CTkFrame(rowCourse, fg_color="transparent")
@@ -364,8 +364,21 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         }
 
 
-    for course_name, weight in loop_data:
-        preference_bar_creation(course_name, weight)
+    # Create one dropdown row per course in the data if editing, otherwise create empty rows
+    # Decide how many dropdown rows to create
+    if data:
+        course_data = data.get("course_preferences")
+        print(course_data)
+        for course in course_data:
+            # Stores the weight for the course.
+            weight = course_data.get(course)
+            #Creates the Course entries
+            preference_bar_creation(course, weight)
+        pass
+    else:
+        # for i in range(3):
+        #     preference_bar_creation("None", 5)
+        preference_bar_creation("None", 5)
 
     # Initial synchronization of dropdowns
     update_course_dropdowns()
@@ -377,10 +390,11 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     # This loads the rooms from the JSON data
     room_ids = roomCtr.listRooms()
+    #all_rooms = sorted({c["room_id"] for c in room_ids})
 
     # Track each room dropdown variable + widget
     room_vars = []
-
+    
     # Function to update the dropdowns so already selected rooms don't appear in the dropdown menu again
     def update_room_dropdowns(*args):
         # Collect all selected rooms (ignore "None")
@@ -393,7 +407,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
             available = [r for r in room_ids if r not in selected_rooms or r == current_value]
 
             # Include "None" only if this dropdown currently has it selected
-            if current_value == "None" and "None" not in available:
+            if "None" not in available:
                 available.insert(0, "None")
 
             dropdown.configure(values=available)
@@ -405,16 +419,19 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     # List of all rooms from JSON config
     #all_rooms = json_data["config"]["rooms"]
 
-    # Decide which data to loop over
-    loop_room_data = list(data["room_preferences"].items()) if data else [("None", 5)] * 3
 
     # Dict to store the room preferences
     roomPreferences = {}
     room_vars = []
 
     ctk.CTkLabel(rowRoom, text="Room Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
+    ctk.CTkLabel(rowRoom, text="(Maximum 3 entries):", anchor="w", font=("Arial", 15, "bold", "underline"), text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0,5))
 
-    for room_name, weight in loop_room_data:
+
+    addRoomButton = ctk.CTkButton(rowRoom, text="Add Room", width=30, height = 20,
+                  command=lambda: room_bar_creation("None", 5)).pack(side=ctk.LEFT, padx=5)
+
+    def room_bar_creation(room_name, weight):
         roomRow = ctk.CTkFrame(rowRoom, fg_color="transparent")
         roomRow.pack(fill="x", padx=20, pady=2)
 
@@ -441,30 +458,103 @@ def dataFacultyRight(frame, controller, refresh, data=None):
             "room_var": room_var,
             "weight_dropdown": weight_dropdown
         }
+
+
+    if data:
+        room_data = data.get("room_preferences")
+        for room in room_data:
+            # Stores the weight for the course.
+            weight = room_data.get(room)
+            #Creates the Course entries
+            room_bar_creation(room, weight)
+        pass
+    else:
+        # for i in range(3):
+        #     room_bar_creation("None", 5)
+        room_bar_creation("None", 5)
+    
     
     # Lab Prefrence EXACT SAME THING AS ABOVE (Course Prefrence and Room Preferences)
     labPreferences = {}
+    lab_ids = labCtr.listLabs()
+    #all_labs = sorted({c["lab_id"] for c in lab_ids})
+    lab_vars = []
+
+
+    # Function to update the dropdowns so already selected labs don't appear in the dropdown menu again
+    def update_lab_dropdowns(*args):
+        # Collect all selected labs (ignore "None")
+        selected_labs = {var.get() for var, _ in lab_vars if var.get() != "None"}
+
+        for var, dropdown in lab_vars:
+            current_value = var.get()
+
+            # Build available list without duplicating "None"
+            available = [r for r in lab_ids if r not in selected_labs or r == current_value]
+
+            # Include "None" only if this dropdown currently has it selected
+            if "None" not in available:
+                available.insert(0, "None")
+
+            dropdown.configure(values=available)
+
 
     rowLab = ctk.CTkFrame(frame, fg_color="transparent")
     rowLab.pack(fill="x", pady=5, padx=5)
 
     ctk.CTkLabel(rowLab, text="Lab Preferences:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10, pady=(2, 5))
-    dummyData = Faculty[0].get("lab_preferences")
-    for lab, weight in dummyData.items():
+    ctk.CTkLabel(rowLab, text="(Maximum 2 entries):", anchor="w", font=("Arial", 15, "bold", "underline"), text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0,5))
+
+
+    # Allows user to add additional lab entries if needed.
+    addLabButton = ctk.CTkButton(rowLab, text="Add Lab", width=30, height = 20,
+                  command=lambda: lab_bar_creation("None", 5)).pack(side=ctk.LEFT, padx=5)
+    
+    # Lab Entry constructor, Allows for more modular creation of lab entries.
+    def lab_bar_creation(lab, weight):
         labRow = ctk.CTkFrame(rowLab, fg_color="transparent")
         labRow.pack(fill="x", padx=20, pady=2)
 
-        ctk.CTkLabel(labRow, text=f"{lab}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
-        dropdown = ctk.CTkOptionMenu(labRow, width=150, values=[str(i) for i in range(11)])
+        # Ensure default value is the room from data if it exists
+        values_list = ["None"] + lab_ids
+        if lab not in values_list:
+            values_list.append(lab)
 
-        if data:
-            dropdown.set(str(weight))
-        else:
-            # default 
-            dropdown.set("5")
-        dropdown.pack(side="left", padx=(0,10), fill="x")
+        lab_var = ctk.StringVar(value=lab)
+        dropdown = ctk.CTkOptionMenu(labRow, variable=lab_var, values=values_list, width=200, font=("Arial", 20))
+        dropdown.pack(side="left", padx=20, pady=2)
 
-        labPreferences[lab] = dropdown
+        # Trace for mutual exclusivity
+        lab_var.trace_add("write", update_lab_dropdowns)
+        lab_vars.append((lab_var, dropdown))
+
+
+        #ctk.CTkLabel(labRow, text=f"{lab}:", anchor="w", width=150, font=("Arial", 25, "bold")).pack( side="left", padx=20, pady=2)
+        weight_dropdown = ctk.CTkOptionMenu(labRow, width=150, values=[str(i) for i in range(11)])
+        weight_dropdown.set(str(weight))
+        weight_dropdown.pack(side="left", padx=(0,10), fill="x")
+        
+        labPreferences[lab] = {
+            "lab_var": lab_var,
+            "weight_dropdown": weight_dropdown
+        }
+
+
+    # Creates Lab entry for each Lab in the Faculty Data, otherwise creates two.
+    if data:
+        lab_data = data.get("lab_preferences")
+        for lab in lab_data:
+            # Stores the weight for the course.
+            weight = lab_data.get(lab)
+            #Creates the Course entries
+            lab_bar_creation(lab, weight)
+        pass
+    else:
+        # for i in range(2):
+        #     lab_bar_creation("None", 5)
+        lab_bar_creation("None", 5)
+
+
 
     # Creates a pop-up to display error messages when attempting to save faculty
     def show_error_popup(errors):
@@ -539,8 +629,13 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
        # Gets the lab preferences and formats them properly
         lab_preferences = {}
-        for lab, dropdown in labPreferences.items():
-            lab_preferences[lab] = int(dropdown.get())
+        for lab, widgets in labPreferences.items():
+            lab_name = widgets["lab_var"].get()
+            weight = int(widgets["weight_dropdown"].get())
+        
+            # Skip if "None" is selected
+            if lab_name != "None":
+                lab_preferences[lab_name] = weight
         
         # If there are errors, show popup and return nothing
         if errors:
