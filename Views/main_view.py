@@ -608,10 +608,10 @@ def dataFacultyRight(frame, controller, refresh, data=None):
                 errors.append("Please enter a faculty name!")
 
             # Gets the user input for the maximum credits
-            maximum_credits = maxEntry.get()
+            maximum_credits = int(maxEntry.get())
 
             # Gets the user input for the minimum credits
-            minimum_credits = minEntry.get()
+            minimum_credits = int(minEntry.get())
 
             if minimum_credits > maximum_credits:
                 errors.append("Minimum credits cannot be greater than maximum credits!")
