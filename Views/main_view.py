@@ -1245,24 +1245,40 @@ class SchedulerApp(ctk.CTk):
         # NOTE: Frame is importtant here we create the two column system, left and right frame and display those late
         # 
         # we don't know the frame so it kind of like a place holder until later on in the program
-        self.createTwoColumn(tabview.tab("Faculty"),
 
-                            lambda frame, rightData=None: dataFacultyLeft(frame, facultyCtr, self.refresh), 
-                            lambda frame, rightData=None: dataFacultyRight(frame, facultyCtr, self.refresh, data))
+        # Determine if we're editing a course
         course_data = None
         if isinstance(data, dict) and "course" in data:
             course_data = data
-        self.createTwoColumn(tabview.tab("Courses"),
-                             lambda frame: dataCoursesLeft(frame, courseCtr, self.refresh),
-                             lambda frame: dataCoursesRight(frame, courseCtr, self.refresh, course_data))
 
-        self.createTwoColumn(tabview.tab("Rooms"),
-                             lambda frame: dataRoomLeft(frame, roomCtr, self.refresh),
-                             lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data))
+        # Faculty tab — only gets faculty data if data looks like a faculty dict
+        faculty_data = data if isinstance(data, dict) and "name" in data else None
 
-        self.createTwoColumn(tabview.tab("Labs"),
-                             lambda frame: dataLabsLeft(frame, labCtr, self.refresh),
-                             lambda frame: dataLabsRight(frame, labCtr, self.refresh, data))
+        self.createTwoColumn(
+            tabview.tab("Faculty"),
+            lambda frame: dataFacultyLeft(frame, facultyCtr, self.refresh),
+            lambda frame: dataFacultyRight(frame, facultyCtr, self.refresh, faculty_data)
+        )
+
+        # Courses tab — only gets course data
+        self.createTwoColumn(
+            tabview.tab("Courses"),
+            lambda frame: dataCoursesLeft(frame, courseCtr, self.refresh),
+            lambda frame: dataCoursesRight(frame, courseCtr, self.refresh, course_data)
+        )
+
+        # Rooms and Labs should never get structured dicts like {"course": ..., "index": ...}
+        self.createTwoColumn(
+            tabview.tab("Rooms"),
+            lambda frame: dataRoomLeft(frame, roomCtr, self.refresh),
+            lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data if isinstance(data, str) else None)
+        )
+
+        self.createTwoColumn(
+            tabview.tab("Labs"),
+            lambda frame: dataLabsLeft(frame, labCtr, self.refresh),
+            lambda frame: dataLabsRight(frame, labCtr, self.refresh, data if isinstance(data, str) else None)
+        )
 
     # this is to store and return the choice to order the schedules 
     def orderByChoice(self, choice, sch):
