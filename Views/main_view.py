@@ -1449,13 +1449,14 @@ class SchedulerApp(ctk.CTk):
 
 
         def onGenerate():
-            if limitEntry.get().isdigit() :
-                self.limit = int(limitEntry.get())
-            else: 
-                ctk.CTkLabel(container, text="Please put valid number", font=("Arial", 20, "bold"), anchor="w"
-                     ).pack(padx=(0, 10))
-                
-            generateSchedulesBtn(limit, optimize )
+            limit_value = limitEntry.get()
+            if limit_value.isdigit():
+                limit_int = int(limit_value)
+                optimize_value = optimize.get()
+                generateSchedulesBtn(limit_int, optimize_value)
+            else:
+                ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
+                             text_color="red").pack(padx=(0, 10))
 
 
         genBtn = ctk.CTkButton(importFrame, text="Generate Schedules",
