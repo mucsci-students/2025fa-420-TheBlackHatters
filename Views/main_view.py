@@ -106,9 +106,6 @@ scheduleExample =[[
 # facultyData: will contain the faculty data for all faculty..  
 def dataFacultyLeft(frame, controller, refresh, facultyData = None):
 
-    # A variable that checks if the user is editing a faculty member, is passed into addFacultyRight
-    isEditingFaculty = False
-
     # we create a container to put everything inside, this container lives inside the frame
     # with .pack we display the continer on the screen(fill="both": fills the x and y direction,
     # expand=True: allows it to expand when we change the screen size. padx/y = 5: adds 5px padding on all sides :)
@@ -126,8 +123,8 @@ def dataFacultyLeft(frame, controller, refresh, facultyData = None):
     ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: onAdd()).pack(side="top", padx=5)
 
 
-    def onDelete(faculty):
-        controller.removeFaculty(faculty, refresh)
+    def onDelete(facName):
+        controller.removeFaculty(facName, refresh)
 
     def onEdit(faculty):
         refresh(target = "ConfigPage", data = faculty)
@@ -135,7 +132,6 @@ def dataFacultyLeft(frame, controller, refresh, facultyData = None):
     facList = facultyCtr.listFaculty()
     sorted_fac = sorted(facList, key=lambda x: x["name"])
     
-    # TODO: we need to loop throught the facultyData and show the names of the faculty
     # This will loop thought the facultyData and display the names on the left side 
     for faculty in sorted_fac:
         
@@ -145,24 +141,24 @@ def dataFacultyLeft(frame, controller, refresh, facultyData = None):
         rowFrame = ctk.CTkFrame(container, fg_color =  "transparent")
         rowFrame.pack(fill="x", pady=5, padx=5)
 
+        facName = faculty["name"]
         # This is a Label, text showen on screen! 
         # Label lives inside the rowFrame we created above, text is the name
-        # TODO: chanage the faculty["name"] put the actualy name when we change the loop later
-        ctk.CTkLabel(rowFrame, text=faculty["name"], font=("Arial", 14, "bold"), anchor="w").pack(side="left", fill="x", expand=True)
+        ctk.CTkLabel(rowFrame, text=facName, font=("Arial", 14, "bold"), anchor="w").pack(side="left", fill="x", expand=True)
 
         # Buttons. The two buttions are for deleting and editing Faculty.
-        # TODO: We need ot add the commnd Function. 
         # Again .pack displays on screen, we are adding both buttons on rowFrame
-        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda f = faculty: onDelete(f)).pack(side="left", padx=5)
+        ctk.CTkButton(rowFrame, text="Delete", width=30, height = 20, command=lambda n = facName: onDelete(n)).pack(side="left", padx=5)
         ctk.CTkButton(rowFrame, text="Edit", width=30,  height = 20, command=lambda f = faculty: onEdit(f)).pack(side="left", padx=5)
 
 # This function will populate the right side of the page. (If you don't understand left and right load the program and go into config file. Should make sence once you see it!)
 # this function kinda of acts like a form for user to fill. 
 # we need to display the current data if user pressed edit on button before or just get an empty one
 def dataFacultyRight(frame, controller, refresh, data=None):
-    if isinstance(data, str):
-        pass
-    else:
+    #Checks if the data being passed in is a string (will break things if so, so stops it)
+    #if isinstance(data, str):
+    #    pass
+    #else:
         # This is for the name of faculty: which has a label and entry;
         # it will look somehting like this: Name:__E.g: Hobbs_______
         # Again we create a frame to add the label and entry. 
@@ -175,7 +171,6 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         ctk.CTkLabel(rowName, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")).pack(side = "left", padx=10, pady=(0, 2))
 
         # this is for and entry, this is where the user can write things in 
-        # TODO: get what the user had typed in and validate what the user has put when click save buttion at the bottom
         nameEntry = ctk.CTkEntry(rowName, placeholder_text="E.g: Hobbs",font=("Arial", 30, "bold") )
         nameEntry.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -465,7 +460,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
                 "weight_dropdown": weight_dropdown
             }
 
-
+    
         if data:
             room_data = data.get("room_preferences")
             if room_data != None:
@@ -590,10 +585,10 @@ def dataFacultyRight(frame, controller, refresh, data=None):
                 errors.append("Please enter a faculty name!")
 
             # Gets the user input for the maximum credits
-            maximum_credits = maxEntry.get()
+            maximum_credits = int(maxEntry.get())
 
             # Gets the user input for the minimum credits
-            minimum_credits = minEntry.get()
+            minimum_credits = int(minEntry.get())
 
             if minimum_credits > maximum_credits:
                 errors.append("Minimum credits cannot be greater than maximum credits!")
@@ -663,14 +658,19 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
         # The actions that will happen when save changes is pressed - either calling edit faculty or add faculty.
         def onSave():
+            #Gets the values from all entries
             result=returnFacultyData()
+            #Checks if there was a problem, if so does nothing.
             if result[0]:
+                #Grabs the new faculty data.
                 newFaculty = result[1]
-                faculty_name = nameEntry.get()
                 if data:
-                    controller.editFaculty(newFaculty, faculty_name, refresh) 
+                    #Stores the original name for the data for proper replacement when editing in case the name has changed.
+                    facName = data.get("name")
+                    controller.editFaculty(newFaculty, facName, refresh)
                 else:
-                    controller.addFaculty(newFaculty, refresh) 
+                    controller.addFaculty(newFaculty, refresh)
+
         
         # this is the save buttion that will save changes when we add a new faculty and when we modify existing
         ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: onSave()).pack(side="bottom", padx=5)
@@ -1258,6 +1258,7 @@ class SchedulerApp(ctk.CTk):
             tabview.tab("Faculty"),
             lambda frame: dataFacultyLeft(frame, facultyCtr, self.refresh),
             lambda frame: dataFacultyRight(frame, facultyCtr, self.refresh, faculty_data)
+            #Holding this
         )
 
         # Courses tab — only gets course data
