@@ -85,6 +85,7 @@ def welcomeMessage():
     print("5. Add, Modify, Delete Courses")
     print("6. Run Scheduler")
     print("7. Display Saved Schedules")
+    print("8. Import Config")
     print("0. Exit")
 
 
@@ -298,9 +299,10 @@ def runCLIorGUI():
         choice = input("Your choice: ")
         if choice == '1':
             welcomeMessage()
-            rooms, labs, courses, faculty, other = parseJson(inputPath)
+            inputPath = "output/mainConfig.json"
             
             while True:
+                rooms, labs, courses, faculty, other = parseJson(inputPath)
                 welcomeMessage()
                 choice = input("Enter choice: ")
                 if choice == "1":
@@ -335,6 +337,11 @@ def runCLIorGUI():
                 elif choice == "7":
                     # Display saved schedules
                     display_schedule()
+                    input("Press Enter to continue...")
+                elif choice == "8":
+                    # Ask for an alternative Config file path
+                    print("Enter the file path: ")
+                    inputPath = input()
                     input("Press Enter to continue...")
                 elif choice == "0":
                     saveConfig(outputPath, rooms, labs, courses, faculty, other)
