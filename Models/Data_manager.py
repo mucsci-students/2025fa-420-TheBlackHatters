@@ -219,8 +219,7 @@ class DataManager():
         FacultyModel.Faculty.addFaculty(conFaculty, newFaculty)
         #self.saveData(outPath = self.filePath)
 
-    def removeFaculty(self, faculty):
+    def removeFaculty(self, facName):
         conFaculty = self.data["config"]["faculty"]
-        facName = faculty.get("name")
         FacultyModel.Faculty.removeFaculty(conFaculty, facName)
         #self.saveData(outPath = self.filePath)

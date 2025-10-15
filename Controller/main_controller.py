@@ -232,13 +232,13 @@ class FacultyController:
         DM.addFaculty(newFaculty)
         refresh("ConfigPage")
 
-    def editFaculty(self, newFaculty, facultyName, refresh):
-        DM.removeFaculty(newFaculty)
+    def editFaculty(self, newFaculty, oldName, refresh):
+        DM.removeFaculty(oldName)
         DM.addFaculty(newFaculty)
         refresh("ConfigPage")
 
-    def removeFaculty(self, faculty, refresh):
-        DM.removeFaculty(faculty)
+    def removeFaculty(self, facName, refresh):
+        DM.removeFaculty(facName)
         refresh("ConfigPage")
         
 # Course Controller
