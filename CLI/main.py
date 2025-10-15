@@ -86,6 +86,7 @@ def welcomeMessage():
     print("6. Run Scheduler")
     print("7. Display Saved Schedules")
     print("8. Import Config")
+    print("9. Create Config")
     print("0. Exit")
 
 
@@ -197,6 +198,90 @@ def runScheduler():
                 print(f"\nSchedules saved to output/{outputFile}.csv")
 
     # return
+
+
+def createEmptyJson(name):
+    data = {
+        "config": {
+            "rooms": [],
+            "labs": [],
+            "courses": [],
+            "faculty": []
+        },
+        "time_slot_config": {
+            "times": {
+                "MON": [
+                    {
+                        "start": "08:00",
+                        "spacing": 60,
+                        "end": "18:00"
+                    }
+                ],
+                "TUE": [
+                    {
+                        "start": "08:00",
+                        "spacing": 60,
+                        "end": "18:00"
+                    }
+                ],
+                "WED": [
+                    {
+                        "start": "08:00",
+                        "spacing": 60,
+                        "end": "18:00"
+                    }
+                ],
+                "THU": [
+                    {
+                        "start": "08:00",
+                        "spacing": 60,
+                        "end": "18:00"
+                    }
+                ],
+                "FRI": [
+                    {
+                        "start": "08:00",
+                        "spacing": 60,
+                        "end": "18:00"
+                    }
+                ]
+            },
+            "classes": [
+                {
+                    "credits": 3,
+                    "meetings": [
+                        {
+                            "day": "MON",
+                            "duration": 50
+                        },
+                        {
+                            "day": "WED",
+                            "duration": 50
+                        },
+                        {
+                            "day": "FRI",
+                            "duration": 50
+                        }
+                    ]
+                }
+            ]
+        },
+        "limits": {},
+        "optimizer_flags": [
+            "faculty_course",
+            "faculty_room",
+            "faculty_lab",
+            "same_room",
+            "same_lab",
+            "pack_rooms"
+        ]
+    }
+    file_name = "output/{name}.json"
+    with open(file_name, 'w') as f:
+        json.dump(data, f)
+    return file_name
+
+
 
 
 def displayConfig(rooms, labs, courses, faculty):
@@ -342,6 +427,11 @@ def runCLIorGUI():
                     # Ask for an alternative Config file path
                     print("Enter the file path: ")
                     inputPath = input()
+                    input("Press Enter to continue...")
+                elif choice == "9":
+                    # Gives a blank config
+                    name = input("Enter the file name: ")
+                    inputPath = createEmptyJson(name)
                     input("Press Enter to continue...")
                 elif choice == "0":
                     saveConfig(outputPath, rooms, labs, courses, faculty, other)
