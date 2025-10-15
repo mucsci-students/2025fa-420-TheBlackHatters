@@ -721,12 +721,14 @@ def dataRoomRight(frame, controller, refresh, data=None):
 
     def onSave():
         name = nameEntry.get()
-        if data:
-            controller.editRoom(data, name, refresh)
+        if name.strip():
+            if data:
+                controller.editRoom(data, name, refresh)
+            else:
+                controller.addRoom(name, refresh)
         else:
-            controller.addRoom(name, refresh)
+            ctk.CTkLabel(frame, text="Please Input Valid Room Name! ", width=120, anchor="w", font=("Arial", 30, "bold"), text_color = "red").grid(row=0, column=0,padx=10, pady=2)
 
-            # Button to save Changes
 
     # TODO: Need to add command properly.
 
@@ -793,10 +795,14 @@ def dataLabsRight(frame, controller, refresh, data=None):
 
     def onSave():
         name = nameEntry.get()
-        if data:
-            controller.editLab(data, name, refresh)
-        else:
-            controller.addLab(name, refresh)
+        if name.strip():
+            if data:
+                controller.editLab(data, name, refresh)
+            else:
+                controller.addLab(name, refresh)
+        else :
+            ctk.CTkLabel(frame, text="Please Input Valid Lab Name! ", width=120, anchor="w", font=("Arial", 30, "bold"), text_color = "red").grid(row=0, column=0,padx=10, pady=2)
+
 
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height=40,
                   command=lambda: onSave()
@@ -822,6 +828,7 @@ def dataLabsLeft(frame, controller, refresh, data=None):
         controller.removeLab(lab, refresh)
 
     def onEdit(lab):
+
         refresh(target="ConfigPage", data=lab)
 
     for lab in controller.listLabs():
@@ -1495,13 +1502,22 @@ class SchedulerApp(ctk.CTk):
                      font=("Arial", 20, "bold")).pack(side="left", padx=10)
         ctk.CTkRadioButton(optFrame, text="Yes", variable=optimize, value=1).pack(side="left")
         ctk.CTkRadioButton(optFrame, text="No", variable=optimize, value=0).pack(side="left")
+        # generatedSch = None
+
+        def onView():
+            self.refresh(target="ViewSchedulePage", data=self.schedulesImported)
 
         def onGenerate():
             limit_value = limitEntry.get()
             if limit_value.isdigit():
                 limit_int = int(limit_value)
                 optimize_value = optimize.get()
-                generateSchedulesBtn(limit_int, optimize_value)
+                self.schedulesImported = generateSchedulesBtn(limit_int, optimize_value)
+                ctk.CTkLabel(container, text="Click View Schedules to see them!  ", font=("Arial", 20, "bold"),
+                            ).pack(padx=(0, 10))
+                viewBtn = ctk.CTkButton(container, text="View Schedules",
+                               font=("Arial", 20, "bold"), width=150, command=onView)
+                viewBtn.pack(padx=(0, 10))
             else:
                 ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
                              text_color="red").pack(padx=(0, 10))

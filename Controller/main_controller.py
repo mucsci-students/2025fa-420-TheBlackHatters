@@ -44,12 +44,11 @@ def generateSchedulesBtn(limit, optimize):
     all_schedules = []
     # Generate schedules, respecting the limit
     for i, schedule in enumerate(scheduler.get_models()):
-        if i >= limit:  # stop generating after reaching the limit
+        if i >= limit:  # stop generating after reaching the limit!
             break
         schedule_list = [course.as_csv().split(',') for course in schedule]
         all_schedules.append(schedule_list)
 
-    print(all_schedules)
     return all_schedules
     
 
