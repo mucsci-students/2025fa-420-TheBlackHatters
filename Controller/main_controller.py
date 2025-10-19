@@ -33,7 +33,7 @@ def configExportBTN(pathVar):
         DM.saveData(file_path)
         pathVar.set(f"Config File saved to Path: {file_path}.")
     
-def generateSchedulesBtn(limit, optimize):
+def generateSchedulesBtn(limit, optimize, progress_callback = None):
     global DM
 
     # TODO: Not sure how to update the limit, optimize gotten form user. 
@@ -42,12 +42,26 @@ def generateSchedulesBtn(limit, optimize):
 
     scheduler = Scheduler(config)
     all_schedules = []
-    # Generate schedules, respecting the limit
+
+    total_steps = limit + (1 if optimize else 0)  # optimization counts as one step
+    current_step = 0
+    # Step 1: Optimization (if any)
+    if optimize:
+        # Add optimization logic here if needed
+        current_step += 1
+        if progress_callback:
+            progress_callback(current_step, total_steps)
+
+    # Step 2: Generate schedules
     for i, schedule in enumerate(scheduler.get_models()):
-        if i >= limit:  # stop generating after reaching the limit!
+        if i >= limit:
             break
         schedule_list = [course.as_csv().split(',') for course in schedule]
         all_schedules.append(schedule_list)
+
+        current_step += 1
+        if progress_callback:
+            progress_callback(current_step, total_steps)
 
     return all_schedules
     

@@ -5,6 +5,8 @@ from Controller.main_controller import (RoomsController, LabsController, Faculty
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
                                         importSchedulesBTN, exportAllSchedulesBTN, exportOneScheduleBTN,
                                         CourseController)
+import threading
+import time
 
 # should create controllers for other things too
 roomCtr = RoomsController()
@@ -1504,23 +1506,59 @@ class SchedulerApp(ctk.CTk):
         ctk.CTkRadioButton(optFrame, text="No", variable=optimize, value=0).pack(side="left")
         # generatedSch = None
 
+        # These lines create a (for now) invisible progress bar
+        progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
+        progress_bar.set(0)
         def onView():
             self.refresh(target="ViewSchedulePage", data=self.schedulesImported)
 
+        # Defines what happens when the generate button is clicked
         def onGenerate():
             limit_value = limitEntry.get()
             if limit_value.isdigit():
                 limit_int = int(limit_value)
                 optimize_value = optimize.get()
-                self.schedulesImported = generateSchedulesBtn(limit_int, optimize_value)
-                ctk.CTkLabel(container, text="Click View Schedules to see them!  ", font=("Arial", 20, "bold"),
-                            ).pack(padx=(0, 10))
-                viewBtn = ctk.CTkButton(container, text="View Schedules",
-                               font=("Arial", 20, "bold"), width=150, command=onView)
-                viewBtn.pack(padx=(0, 10))
+
+                # Status label + progress bar
+                status_label = ctk.CTkLabel(container, text="Starting generation...", font=("Arial", 18, "bold"))
+                status_label.pack(pady=(10, 0))
+
+                progress_bar.pack(pady=15)
+                progress_bar.set(0)
+                progress_bar.configure(mode="determinate")
+
+                def progress_callback(current_step, total_steps):
+                    progress_bar.set(current_step / total_steps)
+                    # Updates the text of the progress bar
+                    if optimize_value and current_step == 1:
+                        status_label.configure(text="Creating optimization goals...")
+                    else:
+                        schedule_num = current_step - (1 if optimize_value else 0)
+                        status_label.configure(text=f"Generating schedule {schedule_num}/{limit_int}")
+                    container.update_idletasks()
+
+                def work():
+                    try:
+                        self.schedulesImported = generateSchedulesBtn(limit_int, optimize_value, progress_callback)
+                        status_label.configure(text="All schedules generated successfully!")
+                    finally:
+                        progress_bar.set(1)
+                        progress_bar.pack_forget()
+
+                        ctk.CTkLabel(container, text="Click View Schedules to see them!", font=("Arial", 20, "bold")).pack(padx=(0, 10))
+                        viewBtn = ctk.CTkButton(container, text="View Schedules", font=("Arial", 20, "bold"), width=150,
+                                                command=onView)
+                        viewBtn.pack(padx=(0, 10))
+
+                threading.Thread(target=work, daemon=True).start()
+
             else:
                 ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
-                             text_color="red").pack(padx=(0, 10))
+                            text_color="red").pack(padx=(0, 10))
+
+
+
+
 
         genBtn = ctk.CTkButton(importFrame, text="Generate Schedules",
                                font=("Arial", 20, "bold"), width=150, command=onGenerate)
