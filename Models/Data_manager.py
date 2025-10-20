@@ -57,6 +57,12 @@ class DataManager():
         with open(path, "w") as f:
             json.dump(self.data, f, indent=4)
 
+    def updateLimit(self,limit):
+        self.data['limit'] = limit
+    
+    def updateOptimizerFlags(self, flags):
+        self.data['optimizer_flags'] = flags
+
     # each method below will get the data from file:
     # Rooms CRUD(Create, Read, Update, Delete)
     def getRooms(self):

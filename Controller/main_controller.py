@@ -35,6 +35,8 @@ def configExportBTN(pathVar):
     
 def generateSchedulesBtn(limit, optimize):
     global DM
+    DM.updateLimit(limit)
+    DM.updateOptimizerFlags(optimize)
 
     # TODO: Not sure how to update the limit, optimize gotten form user. 
     config = CombinedConfig(**DM.data)
@@ -156,16 +158,13 @@ def exportAllSchedulesBTN(data, pathEntaryVar):
 
         pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
 
-def exportOneScheduleBTN(data, pathEntaryVar, num):
-    # exports selected schedule :)
-    selectedSch = data[num-1]
-
+def exportOneScheduleBTN(data, pathEntaryVar):
     filePath = filedialog.asksaveasfilename(defaultextension=".json",
         filetypes=[("Text files", "*.json")])
     
     if filePath != "":
         with open(filePath , "w") as f:
-            json.dump(selectedSch, f, indent= 4)
+            json.dump(data, f, indent= 4)
 
         pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
 
