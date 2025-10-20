@@ -1,7 +1,7 @@
 # File Name: main.py
 
-# Author: Bhagi Dhakal, Fletcher Burton
-# Last Modified: September 21, 2025
+# Author: Bhagi Dhakal, Fletcher Burton, Liam Delaney
+# Last Modified: October 20, 2025
 
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
@@ -14,6 +14,8 @@
 import os #very dangerous
 import json, csv
 import scheduler
+import sys
+import time
 
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
@@ -166,20 +168,27 @@ def runScheduler():
 
             config = load_config_from_file(CombinedConfig, f"{configInput}")
 
-            # # Create scheduler
+            # Create scheduler
             scheduler = Scheduler(config)
-
+            
             all_schedules = []
-
+            count = 0
+            # Total schedules to be generated
+            # Wrap the generator to respect the limit and update progress
             for schedule in scheduler.get_models():
-                schedule_list = []
-                for course in schedule:
-                    csv_line = course.as_csv()
-                    print(csv_line)
+                if count >= limit:
+                    break
 
-                    schedule_list.append(csv_line.split(','))
-                    
+                # Convert schedule to list of CSV rows
+                schedule_list = [course.as_csv().split(',') for course in schedule]
                 all_schedules.append(schedule_list)
+                count += 1
+
+                # Print live progress after each schedule
+                bar_length = 50
+                progress = int((count / limit) * bar_length)
+                bar = '█' * progress + '-' * (bar_length - progress)
+                print(f"Progress: |{bar}| {count}/{limit}")
 
 
             if format == "json":
@@ -276,8 +285,7 @@ def createEmptyJson(name):
             "pack_rooms"
         ]
     }
-    file_name = "output/"+name+".json"
-    print(file_name)
+    file_name = "output/{name}.json"
     with open(file_name, 'w') as f:
         json.dump(data, f)
     return file_name
