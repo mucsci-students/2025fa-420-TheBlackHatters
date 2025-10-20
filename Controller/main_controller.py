@@ -33,26 +33,24 @@ def configExportBTN(pathVar):
         DM.saveData(file_path)
         pathVar.set(f"Config File saved to Path: {file_path}.")
     
-def generateSchedulesBtn(limit, optimize, progress_callback = None):
+def generateSchedulesBtn(limit, optimize, progressCallback):
     global DM
+    DM.updateLimit(limit)
+    DM.updateOptimizerFlags(optimize)
 
-    # TODO: Not sure how to update the limit, optimize gotten form user. 
     config = CombinedConfig(**DM.data)
-    # print(config)
 
     scheduler = Scheduler(config)
     all_schedules = []
 
     total_steps = limit + (1 if optimize else 0)  # optimization counts as one step
     current_step = 0
-    # Step 1: Optimization (if any)
     if optimize:
         # Add optimization logic here if needed
         current_step += 1
-        if progress_callback:
-            progress_callback(current_step, total_steps)
+        if progressCallback:
+            progressCallback(current_step, total_steps)
 
-    # Step 2: Generate schedules
     for i, schedule in enumerate(scheduler.get_models()):
         if i >= limit:
             break
@@ -60,8 +58,8 @@ def generateSchedulesBtn(limit, optimize, progress_callback = None):
         all_schedules.append(schedule_list)
 
         current_step += 1
-        if progress_callback:
-            progress_callback(current_step, total_steps)
+        if progressCallback:
+            progressCallback(current_step, total_steps)
 
     return all_schedules
     
@@ -170,16 +168,13 @@ def exportAllSchedulesBTN(data, pathEntaryVar):
 
         pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
 
-def exportOneScheduleBTN(data, pathEntaryVar, num):
-    # exports selected schedule :)
-    selectedSch = data[num-1]
-
+def exportOneScheduleBTN(data, pathEntaryVar):
     filePath = filedialog.asksaveasfilename(defaultextension=".json",
         filetypes=[("Text files", "*.json")])
     
     if filePath != "":
         with open(filePath , "w") as f:
-            json.dump(selectedSch, f, indent= 4)
+            json.dump(data, f, indent= 4)
 
         pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
 
