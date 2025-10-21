@@ -1,7 +1,7 @@
 # File Name: main.py
 
-# Author: Bhagi Dhakal, Fletcher Burton
-# Last Modified: September 21, 2025
+# Author: Bhagi Dhakal, Fletcher Burton, Liam Delaney
+# Last Modified: October 20, 2025
 
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
@@ -14,6 +14,8 @@
 import os #very dangerous
 import json, csv
 import scheduler
+import sys
+import time
 
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
@@ -79,14 +81,11 @@ def welcomeMessage():
     print("\n")
     print("Please select one option: ")
     print("1. View Current Config File")
-    print("2. Add, Modify, Delete Faculty")
-    print("3. Add, Modify, Delete Rooms")
-    print("4. Add, Modify, Delete Labs")
-    print("5. Add, Modify, Delete Courses")
-    print("6. Run Scheduler")
-    print("7. Display Saved Schedules")
-    print("8. Import Config")
-    print("9. Create Config")
+    print("2. Edit Config")
+    print("3. Run Scheduler")
+    print("4. Display Saved Schedules")
+    print("5. Import Config")
+    print("6. Create Config")
     print("0. Exit")
 
 
@@ -166,23 +165,31 @@ def runScheduler():
 
             config = load_config_from_file(CombinedConfig, f"{configInput}")
 
-            # # Create scheduler
+            # Create scheduler
             scheduler = Scheduler(config)
-
+            
             all_schedules = []
+            count = 0
 
-            for i, schedule in enumerate(scheduler.get_models()):
-                if i >= limit:
-                    break # stop if we reached the limit
+            for schedule in scheduler.get_models():
+                count += 1
+                if count > limit:
+                    break
 
-                schedule_list = []
-                for course in schedule:
-                    csv_line = course.as_csv()
-                    print(csv_line)
-
-                    schedule_list.append(csv_line.split(','))
-                    
+                schedule_list = [course.as_csv().split(',') for course in schedule]
                 all_schedules.append(schedule_list)
+
+                # Convert schedule to list of CSV rows
+                schedule_list = [course.as_csv().split(',') for course in schedule]
+                all_schedules.append(schedule_list)
+
+                # Print live progress after each schedule
+                bar_length = 50
+                progress = int((count / limit) * bar_length)
+                bar = '█' * progress + '-' * (bar_length - progress)
+                print(f"Progress: |{bar}| {count}/{limit}")
+
+            print("\nAll schedules generated!\n")
 
 
             if format == "json":
@@ -202,86 +209,41 @@ def runScheduler():
 
     # return
 
+def whatAction(rooms, labs, courses, faculty, other):
+    while True:
+        print("1. Add, Modify, Delete Faculty")
+        print("2. Add, Modify, Delete Rooms")
+        print("3. Add, Modify, Delete Labs")
+        print("4. Add, Modify, Delete Courses")
+        print("5. Go Back")
+        choice = input("Enter choice: ")
+        if choice == "1":
+            ##Faculty
+            mainFacultyController(faculty)
+            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+        elif choice == "2":
+            ## Room
+            mainRoomControler(rooms)
+            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+        elif choice == "3":
+            ## Labs 
+            mainLabControler(labs)
+            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+        elif choice == "4":
+            # courses
+            mainCourseController(courses, rooms, labs, faculty, inputPath)
+            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+        elif choice == "5":
+            # Go back to selections.
+            break
 
 def createEmptyJson(name):
-    data = {
-        "config": {
-            "rooms": [],
-            "labs": [],
-            "courses": [],
-            "faculty": []
-        },
-        "time_slot_config": {
-            "times": {
-                "MON": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "TUE": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "WED": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "THU": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "FRI": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ]
-            },
-            "classes": [
-                {
-                    "credits": 3,
-                    "meetings": [
-                        {
-                            "day": "MON",
-                            "duration": 50
-                        },
-                        {
-                            "day": "WED",
-                            "duration": 50
-                        },
-                        {
-                            "day": "FRI",
-                            "duration": 50
-                        }
-                    ]
-                }
-            ]
-        },
-        "limits": {},
-        "optimizer_flags": [
-            "faculty_course",
-            "faculty_room",
-            "faculty_lab",
-            "same_room",
-            "same_lab",
-            "pack_rooms"
-        ]
-    }
-    file_name = "output/{name}.json"
+    with open('output/blank_template.json', 'r') as template:
+        data = json.load(template)
+    file_name = "output/"+name+".json"
+    print(file_name)
     with open(file_name, 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
     return file_name
 
 
@@ -399,39 +361,24 @@ def runCLIorGUI():
                     input("Press Enter to continue...")
                 elif choice == "2":
                     ##Faculty
-                    mainFacultyController(faculty)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    whatAction(rooms, labs, courses, faculty, other)
                     input("Press Enter to continue...")
+
                 elif choice == "3":
-                    ## Room
-                    mainRoomControler(rooms)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "4":
-                    ## Labs 
-                    mainLabControler(labs)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "5":
-                    # courses
-                    mainCourseController(courses, rooms, labs, faculty, inputPath)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "6":
                     # Run Scheduler
                     runScheduler()
                     saveConfig(outputPath, rooms, labs, courses, faculty, other)
                     input("Press Enter to continue...")
-                elif choice == "7":
+                elif choice == "4":
                     # Display saved schedules
                     display_schedule()
                     input("Press Enter to continue...")
-                elif choice == "8":
+                elif choice == "5":
                     # Ask for an alternative Config file path
                     print("Enter the file path: ")
                     inputPath = input()
                     input("Press Enter to continue...")
-                elif choice == "9":
+                elif choice == "6":
                     # Gives a blank config
                     name = input("Enter the file name: ")
                     inputPath = createEmptyJson(name)
@@ -476,6 +423,7 @@ def main():
 
 if __name__ == "__main__" :
     main()
+
 
 
 
