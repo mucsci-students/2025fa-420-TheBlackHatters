@@ -169,12 +169,15 @@ def runScheduler():
             scheduler = Scheduler(config)
             
             all_schedules = []
-            count = 0
-            # Total schedules to be generated
-            # Wrap the generator to respect the limit and update progress
-            for schedule in scheduler.get_models():
-                if count >= limit:
-                    break
+
+            for i, schedule in enumerate(scheduler.get_models()):
+                if i >= limit:
+                    break # stop if we reached the limit
+
+                schedule_list = []
+                for course in schedule:
+                    csv_line = course.as_csv()
+                    print(csv_line)
 
                 # Convert schedule to list of CSV rows
                 schedule_list = [course.as_csv().split(',') for course in schedule]
