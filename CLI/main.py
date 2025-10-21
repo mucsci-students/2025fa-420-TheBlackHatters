@@ -169,26 +169,27 @@ def runScheduler():
             scheduler = Scheduler(config)
             
             all_schedules = []
+            count = 0
 
-            for i, schedule in enumerate(scheduler.get_models()):
-                if i >= limit:
-                    break # stop if we reached the limit
+            for schedule in scheduler.get_models():
+                count += 1
+                if count > limit:
+                    break
 
-                schedule_list = []
-                for course in schedule:
-                    csv_line = course.as_csv()
-                    print(csv_line)
+                schedule_list = [course.as_csv().split(',') for course in schedule]
+                all_schedules.append(schedule_list)
 
                 # Convert schedule to list of CSV rows
                 schedule_list = [course.as_csv().split(',') for course in schedule]
                 all_schedules.append(schedule_list)
-                count += 1
 
                 # Print live progress after each schedule
                 bar_length = 50
                 progress = int((count / limit) * bar_length)
                 bar = '█' * progress + '-' * (bar_length - progress)
                 print(f"Progress: |{bar}| {count}/{limit}")
+
+            print("\nAll schedules generated!\n")
 
 
             if format == "json":
@@ -422,6 +423,7 @@ def main():
 
 if __name__ == "__main__" :
     main()
+
 
 
 
