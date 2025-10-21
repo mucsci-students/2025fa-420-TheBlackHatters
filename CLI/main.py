@@ -171,7 +171,10 @@ def runScheduler():
 
             all_schedules = []
 
-            for schedule in scheduler.get_models():
+            for i, schedule in enumerate(scheduler.get_models()):
+                if i >= limit:
+                    break # stop if we reached the limit
+
                 schedule_list = []
                 for course in schedule:
                     csv_line = course.as_csv()
