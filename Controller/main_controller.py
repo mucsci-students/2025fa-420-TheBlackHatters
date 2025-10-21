@@ -52,7 +52,7 @@ def generateSchedulesBtn(limit, optimize, progressCallback):
             progressCallback(current_step, total_steps)
 
     for i, schedule in enumerate(scheduler.get_models()):
-        if i >= limit:  # stop generating after reaching the limit!
+        if i >= limit:
             break
         schedule_list = [course.as_csv().split(',') for course in schedule]
         all_schedules.append(schedule_list)

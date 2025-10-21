@@ -3,7 +3,8 @@ import customtkinter as ctk
 from tkinter import StringVar, IntVar
 from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
-                                        importSchedulesBTN, exportSchedulesBTN, CourseController)
+                                        importSchedulesBTN, exportAllSchedulesBTN, exportOneScheduleBTN,
+                                        CourseController)
 
 import threading
 
@@ -1412,11 +1413,15 @@ class SchedulerApp(ctk.CTk):
         progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
         progress_bar.set(0)
 
+        # These lines create a (for now) invisible progress bar
+        progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
+        progress_bar.set(0)
         def onView():
             self.refresh(target="ViewSchedulePage", data=self.schedulesImported)
             if hasattr(self, 'tabview'):
                 self.tabview.set("View Schedules")
 
+        # Defines what happens when the generate button is clicked
         def onGenerate():
             selectedOpts = [key for key, var in optimizeVars.items() if var.get()]
             print("Selected optimizations:", selectedOpts)
@@ -1457,7 +1462,11 @@ class SchedulerApp(ctk.CTk):
 
             else:
                 ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
-                             text_color="red").pack(padx=(0, 10))
+                            text_color="red").pack(padx=(0, 10))
+
+
+
+
 
         genBtn = ctk.CTkButton(importFrame, text="Generate Schedules",
                              width=150, command=onGenerate)

@@ -1,0 +1,75 @@
+{
+    "config": {
+        "rooms": [],
+        "labs": [],
+        "courses": [],
+        "faculty": []
+    },
+    "time_slot_config": {
+        "times": {
+            "MON": [
+                {
+                    "start": "08:00",
+                    "spacing": 60,
+                    "end": "18:00"
+                }
+            ],
+            "TUE": [
+                {
+                    "start": "08:00",
+                    "spacing": 60,
+                    "end": "18:00"
+                }
+            ],
+            "WED": [
+                {
+                    "start": "08:00",
+                    "spacing": 60,
+                    "end": "18:00"
+                }
+            ],
+            "THU": [
+                {
+                    "start": "08:00",
+                    "spacing": 60,
+                    "end": "18:00"
+                }
+            ],
+            "FRI": [
+                {
+                    "start": "08:00",
+                    "spacing": 60,
+                    "end": "18:00"
+                }
+            ]
+        },
+        "classes": [
+            {
+                "credits": 3,
+                "meetings": [
+                    {
+                        "day": "MON",
+                        "duration": 50
+                    },
+                    {
+                        "day": "WED",
+                        "duration": 50
+                    },
+                    {
+                        "day": "FRI",
+                        "duration": 50
+                    }
+                ]
+            }
+        ]
+    },
+    "limits": {},
+    "optimizer_flags": [
+        "faculty_course",
+        "faculty_room",
+        "faculty_lab",
+        "same_room",
+        "same_lab",
+        "pack_rooms"
+    ]
+}
