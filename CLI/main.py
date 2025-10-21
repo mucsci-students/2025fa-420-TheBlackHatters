@@ -12,9 +12,8 @@
 
 # Imports
 import os #very dangerous
-import json, csv, shutil
+import json, csv
 import scheduler
-
 
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
@@ -34,7 +33,7 @@ from CLI.test_cli import run_tests_cli
 
 # output/input Path
 outputPath = "output/example1.json"
-##inputPath = "output/mainConfig.json"
+inputPath = "output/mainConfig.json"
 
 
 fileData = None
@@ -45,11 +44,8 @@ def parseJson(path):
 
     # TODO: IF file is empty or difrent structur error and it will crash 
     # we need to fix that...
-    if os.path.exists(path):
-        with open(path, 'r') as file:
-            fileData = json.load(file)
-    else:
-        print(f"Can not open File: {path}")
+    with open(path, 'r') as file:
+        fileData = json.load(file)
 
     config = fileData.get("config", {})
 
@@ -368,32 +364,6 @@ def displayConfig(rooms, labs, courses, faculty):
         print()
     print("\n=============================\n")
 
-def loadOrCreateConfig():
-    clearTerminal()
-    print("1: Create new Config File \n")
-    print("2: Load in Config File \n")
-    print("3: Back \n")
-    choice = input("Your choice: ")
-
-    while True:
-        if choice == "1":
-            nameNew = path = input("What would you like to Name the new Config File: ")
-            outputPath = f"{nameNew}.json"
-            shutil.copyfile("template/ConfigTemplate.json", f"{nameNew}.json")
-            return parseJson(f"{nameNew}.json")
-
-
-        elif choice == "2":
-            path = input("Type Config File path to load: ")
-            outputPath = path
-            return parseJson(path)
-        elif choice == "3":
-            return None
-        else:
-            input("Please choice valid options. Press Enter to continue...")
-
-
-
 def runCLIorGUI():
 
     print("=" * 50)
@@ -416,19 +386,8 @@ def runCLIorGUI():
         print("0: Exit Program \n")
         choice = input("Your choice: ")
         if choice == '1':
-
-            while True:
-                rooms, labs, courses, faculty, other = loadOrCreateConfig()
-
-                if(rooms):
-                    break
-                
-
             welcomeMessage()
-<<<<<<< HEAD
-=======
             inputPath = "output/mainConfig.json"
->>>>>>> origin/develop
             
             while True:
                 rooms, labs, courses, faculty, other = parseJson(inputPath)
@@ -455,7 +414,7 @@ def runCLIorGUI():
                     input("Press Enter to continue...")
                 elif choice == "5":
                     # courses
-                    mainCourseController(courses, rooms, labs, faculty)
+                    mainCourseController(courses, rooms, labs, faculty, inputPath)
                     saveConfig(outputPath, rooms, labs, courses, faculty, other)
                     input("Press Enter to continue...")
                 elif choice == "6":
@@ -482,6 +441,7 @@ def runCLIorGUI():
                     print("Goodbye!")
                     break
                 else:
+                    print("Option not yet implemented.")
                     input("Press Enter to continue...")
 
         elif choice == '2':
@@ -516,7 +476,6 @@ def main():
 
 if __name__ == "__main__" :
     main()
-
 
 
 
