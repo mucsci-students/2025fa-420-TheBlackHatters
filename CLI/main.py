@@ -34,8 +34,7 @@ from Views.main_view import SchedulerApp
 from CLI.test_cli import run_tests_cli
 
 # output/input Path
-outputPath = "output/example1.json"
-inputPath = "output/mainConfig.json"
+filePath = "output/mainConfig.json"
 
 
 fileData = None
@@ -73,23 +72,18 @@ def clearTerminal():
     else: 
         _ = os.system('clear')
 
-# welcome the user and the options for our shell..
+# welcome the user and provide the options for our shell.
 def welcomeMessage():
     clearTerminal()
-
-    # should be in its own function 
     print("\n")
-    print("Please select one option: ")
-    print("1. View Current Config File")
-    print("2. Edit Config")
-    print("3. Run Scheduler")
-    print("4. Display Saved Schedules")
-    print("5. Import Config")
-    print("6. Create Config")
-    print("0. Exit")
+    print("Please select one option:\n")
+    print("1. Configuration\n")
+    print("2. Run Scheduler\n")
+    print("3. Display Saved Schedules\n")
+    print("0. Exit\n")
 
 
-# easier function to save daate
+# Saves the data to the config file.
 def saveConfig(path, rooms, labs, courses, faculty, other):
     newData = {
         "config" : {
@@ -211,31 +205,77 @@ def runScheduler():
 
 def whatAction(rooms, labs, courses, faculty, other):
     while True:
-        print("1. Add, Modify, Delete Faculty")
-        print("2. Add, Modify, Delete Rooms")
-        print("3. Add, Modify, Delete Labs")
-        print("4. Add, Modify, Delete Courses")
-        print("5. Go Back")
+        print("Please choose an option: \n")
+        print("1. Add, Modify, Delete Faculty\n")
+        print("2. Add, Modify, Delete Rooms\n")
+        print("3. Add, Modify, Delete Labs\n")
+        print("4. Add, Modify, Delete Courses\n")
+        print("0. Go Back\n")
         choice = input("Enter choice: ")
         if choice == "1":
             ##Faculty
             mainFacultyController(faculty)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "2":
             ## Room
             mainRoomControler(rooms)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "3":
             ## Labs 
             mainLabControler(labs)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "4":
             # courses
-            mainCourseController(courses, rooms, labs, faculty, inputPath)
-            saveConfig(outputPath, rooms, labs, courses, faculty, other)
-        elif choice == "5":
+            mainCourseController(courses, rooms, labs, faculty, filePath)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "0":
             # Go back to selections.
             break
+
+def configMessage():
+    print("\n")
+    print("Please select one option: \n")
+    print("1. Import Config\n")
+    print("2. Create New Config\n")
+    print("3. Edit config\n")
+    print("4. View Current Config File\n")
+    print("0. Back\n")
+
+def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
+    while True:
+        configMessage()
+        choice = input("Enter choice: ")
+        if choice == "1":
+        # Ask for an alternative Config file path
+            print("Enter the file path: ")
+            while True:
+                userPath = input()
+                # Checks if the provided path is valid
+                if os.path.exists(userPath):
+                    # If so, makes it the input path
+                    filePath = userPath
+                    print("Config Loaded Successfully")
+                    return
+                else:
+                    # If not, tells the user and asks for another path.
+                    print("Invalid path!")
+                    print("\n")
+                    print("Enter a valid file path: (i.e output/example.json)")
+        elif choice == "2":
+            # Gives a blank config
+            name = input("Enter the file name: (i.e newconfig)")
+            filePath = createEmptyJson(name)
+        elif choice == "3":
+            ##Faculty
+            whatAction(rooms, labs, courses, faculty, other)
+        elif choice == "4":
+            # Display the current file: 
+            displayConfig(rooms, labs, courses, faculty)
+        elif choice == "0":
+            # return to main selection: 
+            break
+
+
 
 def createEmptyJson(name):
     with open('output/blank_template.json', 'r') as template:
@@ -349,42 +389,27 @@ def runCLIorGUI():
         choice = input("Your choice: ")
         if choice == '1':
             welcomeMessage()
-            inputPath = "output/mainConfig.json"
+            filePath = "output/mainConfig.json"
             
             while True:
-                rooms, labs, courses, faculty, other = parseJson(inputPath)
+                rooms, labs, courses, faculty, other = parseJson(filePath)
                 welcomeMessage()
                 choice = input("Enter choice: ")
                 if choice == "1":
-                    # Display the current file: 
-                    displayConfig(rooms, labs, courses, faculty)
+                    ##Faculty
+                    configurationPrompt(filePath, rooms, labs, courses, faculty, other)
                     input("Press Enter to continue...")
                 elif choice == "2":
-                    ##Faculty
-                    whatAction(rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-
-                elif choice == "3":
                     # Run Scheduler
                     runScheduler()
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    saveConfig(filePath, rooms, labs, courses, faculty, other)
                     input("Press Enter to continue...")
-                elif choice == "4":
+                elif choice == "3":
                     # Display saved schedules
                     display_schedule()
                     input("Press Enter to continue...")
-                elif choice == "5":
-                    # Ask for an alternative Config file path
-                    print("Enter the file path: ")
-                    inputPath = input()
-                    input("Press Enter to continue...")
-                elif choice == "6":
-                    # Gives a blank config
-                    name = input("Enter the file name: ")
-                    inputPath = createEmptyJson(name)
-                    input("Press Enter to continue...")
                 elif choice == "0":
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
+                    saveConfig(filePath, rooms, labs, courses, faculty, other)
                     print("Goodbye!")
                     break
                 else:
