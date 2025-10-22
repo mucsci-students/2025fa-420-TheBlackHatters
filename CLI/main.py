@@ -166,6 +166,13 @@ def runScheduler():
 
             config = load_config_from_file(CombinedConfig, f"{configInput}")
 
+            #Handle optimization flag
+            if optimize == 'y':
+                print("Optimization enabled - using optimizer flags.")
+            else:
+                print("Optimization disabled - removing optimizer flags.")
+                config.optimizer_flags= []
+
             # # Create scheduler
             scheduler = Scheduler(config)
 
