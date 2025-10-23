@@ -38,18 +38,28 @@ class Faculty:
     def facCheck(self, name):
         i=0
         for entry in self:
-            subFaculty = self[i].get('name')
-            if name in subFaculty:
-                return True
-            else:
-                i=i+1
+            # guard against entries without 'name' or with None
+            subFaculty = self[i].get('name') if isinstance(self[i], dict) else None
+            if subFaculty is None:
+                i = i + 1
+                continue
+            # only perform substring check for string types
+            try:
+                if name in subFaculty:
+                    return True
+            except TypeError:
+                # name or subFaculty not iterable/compatible — skip this entry
+                pass
+            i = i + 1
         return False
 
 
     # Prints a list of all current faculty entries.
     def viewFaculty(self):
         for entry in self:
-            print(entry,"\n")
+            # print each entry followed by a blank line (match existing tests expecting "\n\n")
+            print(entry)
+            print()
 
 
     # Adds the faculty to the JSON file by taking in the data of a faculty member
@@ -64,13 +74,17 @@ class Faculty:
         i=0
         for entry in self:
             # Specifically stores the 'name' section of the faculty list entry.
-            subFaculty = self[i].get('name')
-            # Checks if the name to be deleted is in that entry.
-            if faculty_name in subFaculty:
-                # If so, deletes that index.
-                rem = self[i]
-                del self[i]
-                return rem
-            else:
-                # otherwise, iterate and back to the top of loop.
-                i=i+1
+            subFaculty = self[i].get('name') if isinstance(self[i], dict) else None
+            # If there's no name on this entry, skip it
+            if subFaculty is None:
+                i = i + 1
+                continue
+            try:
+                if faculty_name in subFaculty:
+                    rem = self[i]
+                    del self[i]
+                    return rem
+            except TypeError:
+                # faculty_name or subFaculty not iterable/compatible — skip this entry
+                pass
+            i = i + 1
