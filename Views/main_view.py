@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import StringVar, IntVar
 from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
-                                        importSchedulesBTN, exportAllSchedulesBTN, exportOneScheduleBTN,
+                                        importSchedulesBTN, exportSchedulesBTN,
                                         CourseController)
 
 import threading
@@ -952,16 +952,27 @@ def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch, order 
     # Table header
     headerFrame = ctk.CTkFrame(tableFrame)
     headerFrame.pack(fill="x", pady=(0, 2))
-    columns = ["Course", "Faculty", "Room", "Lab", "Time"]
+    #columns = ["Course", "Faculty", "Room", "Lab", "Time"]
+    columns = ["Course", "Faculty", "Room", "Lab", "Mon", "Tue", "Wed", "Thu", "Fri"]
     for col in columns:
         lbl = ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w")
         lbl.pack(side="left", padx=5)
 
     # Table rows, and put in the data
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
     for row in schedules:
         rowFrame = ctk.CTkFrame(tableFrame)
         rowFrame.pack(fill="x", pady=1)
-        for item in row:
+
+        other = row[:4]
+        times = row[4:]
+
+        dayToTime = {t.split()[0]: t.split()[1] for t in times}
+        FixedTimes = [dayToTime.get(day, '') for day in days]
+
+        row = other + FixedTimes
+
+        for idx, item in enumerate(row):
             lbl = ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w")
             lbl.pack(side="left", padx=5)
 
@@ -995,6 +1006,8 @@ def roomLabsScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSc
         headerFrame = ctk.CTkFrame(tableFrame)
         headerFrame.pack(fill="x", padx=20, pady=(0, 2))
         columns = ["Course", "Faculty", "Lab", "Time"]
+        columns = ["Course", "Faculty", "Lab", "Mon", "Tue", "Wed", "Thu", "Fri"]
+        daysName = ["MON", "TUE", "WED", "THU", "FRI"]
         for col in columns:
             ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w"
                         ).pack(side="left",padx=5)
@@ -1003,10 +1016,18 @@ def roomLabsScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSc
             course, faculty, lab, *days = row
             rowFrame = ctk.CTkFrame(tableFrame)
             rowFrame.pack(fill="x", padx=20, pady=1)
-            values = [course, faculty, lab] + days
+
+            times = row[3:]
+
+            dayToTime = {t.split()[0]: t.split()[1] for t in times}
+            FixedTimes = [dayToTime.get(day, '') for day in daysName]
+
+            values = [course, faculty, lab] + FixedTimes
             for item in values:
-                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w").pack(side="left",
-                                                                                                      padx=5)
+                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), 
+                    width=120, anchor="w").pack(side="left",padx=5)
+
+                
 
 
 def facultyScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch, order):
@@ -1037,7 +1058,8 @@ def facultyScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch
 
         headerFrame = ctk.CTkFrame(tableFrame)
         headerFrame.pack(fill="x", padx=20, pady=(0, 2))
-        columns = ["Course", "Room", "Lab", "Time"]
+        columns = ["Course", "Room", "Lab", "Mon", "Tue", "Wed", "Thu", "Fri"]
+        daysName = ["MON", "TUE", "WED", "THU", "FRI"]
         for col in columns:
             ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), 
                         width=120, anchor="w").pack(side="left",padx=5)
@@ -1046,10 +1068,16 @@ def facultyScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch
             course, room, lab, *days = row
             rowFrame = ctk.CTkFrame(tableFrame)
             rowFrame.pack(fill="x", padx=20, pady=1)
-            values = [course, room, lab] + days
+
+            times = row[3:]
+
+            dayToTime = {t.split()[0]: t.split()[1] for t in times}
+            FixedTimes = [dayToTime.get(day, '') for day in daysName]
+
+            values = [course, room, lab] + FixedTimes
             for item in values:
-                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w").pack(side="left",
-                                                                                                      padx=5)
+                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), 
+                    width=120, anchor="w").pack(side="left", padx=5)
 
 def orderedSchedules(schedules, order):
     if not schedules:
