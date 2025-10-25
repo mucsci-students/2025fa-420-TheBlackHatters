@@ -80,6 +80,12 @@ class DataManager():
         #self.saveData(outPath = self.filePath)
 
     def removeRoom(self, roomName):
+        # Check if room is in use by any courses
+        courses = self.data["config"].get("courses", [])
+        for course in courses:
+            if roomName in course.get("room", []):
+                raise ValueError(f"Cannot remove room '{roomName}' as it is used by course '{course['course_id']}'")
+        
         rooms = self.data["config"]["rooms"]
         rooms.remove(roomName)
         #self.saveData(outPath = self.filePath)
@@ -100,6 +106,12 @@ class DataManager():
         #self.saveData(outPath = self.filePath)
 
     def removeLabs(self, labName):
+        # Check if lab is in use by any courses
+        courses = self.data["config"].get("courses", [])
+        for course in courses:
+            if labName in course.get("lab", []):
+                raise ValueError(f"Cannot remove lab '{labName}' as it is used by course '{course['course_id']}'")
+        
         labs = self.data["config"]["labs"]
         labs.remove(labName)
         #self.saveData(outPath = self.filePath)
@@ -113,7 +125,8 @@ class DataManager():
     def addCourse(self, course_dict):
         config_obj = self.data["config"]
         try:
-            add_course_to_config(config_obj, course_dict, strict_membership=True)
+            # Allow circular conflicts by setting strict_membership=False
+            add_course_to_config(config_obj, course_dict, strict_membership=False)
             print(f"Added course: {course_dict['course_id']}")
         except Exception as e:
             raise ValueError(str(e))
@@ -146,6 +159,15 @@ class DataManager():
 
             # Replace course only if validation passes
             courses[idx] = candidate.to_dict()
+
+            # If course ID changed, update all references in conflicts
+            if old_course_id != candidate.course_id:
+                for course in courses:
+                    if "conflicts" in course:
+                        if old_course_id in course["conflicts"]:
+                            course["conflicts"].remove(old_course_id)
+                            course["conflicts"].append(candidate.course_id)
+
             print(f"Updated course: {old_course_id} → {candidate.course_id}")
 
         except Exception as e:
@@ -226,6 +248,14 @@ class DataManager():
         #self.saveData(outPath = self.filePath)
 
     def removeFaculty(self, facName):
+        # Check if faculty is in use by any courses
+        courses = self.data["config"].get("courses", [])
+        for course in courses:
+            if facName in course.get("faculty", []):
+                raise ValueError(f"Cannot remove faculty '{facName}' as they are teaching course '{course['course_id']}'")
+        
         conFaculty = self.data["config"]["faculty"]
-        FacultyModel.Faculty.removeFaculty(conFaculty, facName)
+        result = FacultyModel.Faculty.removeFaculty(conFaculty, facName)
+        if result is None:
+            raise ValueError(f"Faculty member '{facName}' not found")
         #self.saveData(outPath = self.filePath)

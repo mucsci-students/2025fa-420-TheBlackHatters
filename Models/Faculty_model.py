@@ -31,7 +31,13 @@ class Faculty:
         
 
     def __str__(self):
-        return f"Faculty in the system: {self.faculty}."
+        return (f"Faculty member: {self.name}\n"
+                f"Credits: {self.minimum_credits}-{self.maximum_credits}\n"
+                f"Course Limit: {self.unique_course_limit}\n"
+                f"Times Available: {self.times}\n"
+                f"Course Preferences: {self.course_preferences}\n"
+                f"Room Preferences: {self.room_preferences}\n"
+                f"Lab Preferences: {self.lab_preferences}")
 
     # Checks if the provided name of a faculty member already exists in the JSON file.
     # Returns true if found, otherwise false.
@@ -88,3 +94,5 @@ class Faculty:
                 # faculty_name or subFaculty not iterable/compatible — skip this entry
                 pass
             i = i + 1
+        # If we get here, faculty wasn't found
+        return None  # Return None when faculty is not found
