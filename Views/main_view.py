@@ -302,7 +302,6 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         if data:
             course_data = data.get("course_preferences")
             if course_data != None:
-                print(course_data)
                 for course in course_data:
                     # Stores the weight for the course.
                     weight = course_data.get(course)
@@ -924,7 +923,7 @@ def dataCoursesRight(frame, controller, refresh, data=None):
 
 
 def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch, order = None):
-
+    schedules = orderedSchedules(schedules, "Default")
     # for each of the schedules we create a frame to put schedule in
     schFrame = ctk.CTkFrame(frame, fg_color="#1F1E1E")
     schFrame.pack(padx=(0, 10), pady=(0, 30), fill="x", expand=True)
@@ -1079,14 +1078,37 @@ def facultyScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch
                 ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), 
                     width=120, anchor="w").pack(side="left", padx=5)
 
+
+def sortSchedulesByTime(data):
+
+    # Priority for the days, 
+    dayOrder = {'MON': 0, 'TUE': 1, 'WED': 2, 'THU': 3, 'FRI': 4, 'SAT': 5, 'SUN': 6}
+
+    def getEarliestMeeting(schedule):
+        times = []
+        for entry in schedule[4:]:
+            try:
+                day, time_range = entry.split()
+                startTime = time_range.split('-')[0]
+                hour, minute = map(int, startTime.split(':'))
+                times.append((dayOrder[day], hour, minute))
+            except Exception:
+                continue
+        return min(times) if times else (float('inf'), float('inf'), float('inf'))
+
+    # sort using the funciton we give it, usingt he times 
+    return sorted(data, key=getEarliestMeeting)
+
+
 def orderedSchedules(schedules, order):
+    schedules = sortSchedulesByTime(schedules)
+    reoderedSchedules = []
     if not schedules:
-        return None
+        return schedules
 
     if order == "Default":
         return schedules
     else :
-        reoderedSchedules = []
         result = {}
         for row in schedules:
             course, faculty, room, lab, *days = row
@@ -1102,6 +1124,7 @@ def orderedSchedules(schedules, order):
                 result[faculty].append([course, room, lab] + days)
 
         reoderedSchedules.append(result)
+
     return reoderedSchedules
     
 
