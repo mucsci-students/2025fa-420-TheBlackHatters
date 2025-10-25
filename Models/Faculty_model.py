@@ -31,13 +31,25 @@ class Faculty:
         
 
     def __str__(self):
-        return (f"Faculty member: {self.name}\n"
-                f"Credits: {self.minimum_credits}-{self.maximum_credits}\n"
-                f"Course Limit: {self.unique_course_limit}\n"
-                f"Times Available: {self.times}\n"
-                f"Course Preferences: {self.course_preferences}\n"
-                f"Room Preferences: {self.room_preferences}\n"
-                f"Lab Preferences: {self.lab_preferences}")
+        # Defensive stringification: use getattr with defaults to avoid AttributeError
+        name = getattr(self, "name", None)
+        min_cr = getattr(self, "minimum_credits", None)
+        max_cr = getattr(self, "maximum_credits", None)
+        course_limit = getattr(self, "unique_course_limit", None)
+        times = getattr(self, "times", None)
+        course_prefs = getattr(self, "course_preferences", None)
+        room_prefs = getattr(self, "room_preferences", None)
+        lab_prefs = getattr(self, "lab_preferences", None)
+
+        return (
+            f"Faculty member: {name}\n"
+            f"Credits: {min_cr}-{max_cr}\n"
+            f"Course Limit: {course_limit}\n"
+            f"Times Available: {times}\n"
+            f"Course Preferences: {course_prefs}\n"
+            f"Room Preferences: {room_prefs}\n"
+            f"Lab Preferences: {lab_prefs}"
+        )
 
     # Checks if the provided name of a faculty member already exists in the JSON file.
     # Returns true if found, otherwise false.
