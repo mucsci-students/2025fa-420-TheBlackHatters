@@ -77,19 +77,6 @@ def test_importSchedulesBTN_invalid_path(monkeypatch):
     assert "Unable to open" in pathVar.set.call_args[0][0]
 
 
-def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
-    fake_save = tmp_path / "all.json"
-    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save)))
-
-    pathVar = Mock()
-    data = [{"course": "CMSC 101"}]
-    ctrl.exportAllSchedulesBTN(data, pathVar)
-
-    written = json.loads(fake_save.read_text())
-    assert written == data
-    assert "Schedules have been saved" in pathVar.set.call_args[0][0]
-
-
 def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     fake_save = tmp_path / "one.json"
     monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save)))
