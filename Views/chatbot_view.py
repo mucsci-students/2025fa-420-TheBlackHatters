@@ -8,7 +8,7 @@ class ChatbotView(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
 
-        # === Acquire config path from main app ===
+        # Acquire config path from main app
         app = self.winfo_toplevel()
         if hasattr(app, "configPath"):
             self.configPath = app.configPath
@@ -26,7 +26,7 @@ class ChatbotView(ctk.CTkFrame):
         # Initialize chatbot agent
         self.agent = ChatbotAgent(get_config_path)
 
-        # === Header Frame (replicates Edit Config layout) ===
+        # Header Frame (replicates Edit Config layout)
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
         header_frame.pack(fill="x", padx=20, pady=5)
 
@@ -39,7 +39,7 @@ class ChatbotView(ctk.CTkFrame):
         )
         import_btn.pack(side="left", padx=(0, 10))
 
-        # Path entry (readonly, same as Edit Config tab)
+        # Path entry
         path_entry = ctk.CTkEntry(
             header_frame,
             state="readonly",
@@ -57,7 +57,7 @@ class ChatbotView(ctk.CTkFrame):
         )
         export_btn.pack(side="left", padx=(0, 10))
 
-        # === Chat display (read-only) ===
+        # Chat display
         self.chat_display = ctk.CTkTextbox(self, width=700, height=400)
         try:
             self.chat_display.configure(font=("Menlo", 12))
@@ -66,7 +66,7 @@ class ChatbotView(ctk.CTkFrame):
         self.chat_display.pack(pady=10, padx=10, fill="both", expand=True)
         self.chat_display.configure(state="disabled")
 
-        # === Input row (entry + send button) ===
+        # Input row
         input_frame = ctk.CTkFrame(self, fg_color="transparent")
         input_frame.pack(fill="x", padx=10, pady=(0, 10))
 
@@ -77,7 +77,7 @@ class ChatbotView(ctk.CTkFrame):
         self.send_button = ctk.CTkButton(input_frame, text="Send", width=80, command=self.send_message)
         self.send_button.pack(side="right")
 
-        # === Initial greeting ===
+        # Initial greeting
         self._append_text(
             "Bot: Hi! I’m your schedule assistant.\n"
             "I can:\n"
@@ -87,19 +87,16 @@ class ChatbotView(ctk.CTkFrame):
             "Try: “View current config” or “Change CMSC 330 to not use Mac lab”.\n\n"
         )
 
-    # === Handle Enter key ===
     def _on_enter_pressed(self, event):
         self.send_message()
         return "break"
 
-    # === Append text safely (read-only display) ===
     def _append_text(self, text: str):
         self.chat_display.configure(state="normal")
         self.chat_display.insert("end", text)
         self.chat_display.see("end")
         self.chat_display.configure(state="disabled")
 
-    # === Send message ===
     def send_message(self):
         user_message = self.entry.get().strip()
         if not user_message:
@@ -109,7 +106,7 @@ class ChatbotView(ctk.CTkFrame):
 
         def worker():
             response = self.agent.query(user_message)
-            self.after(0, lambda: self._append_text(f"Bot:\n{response}\n\n"))
+            self.after(0, lambda: self._append_text(f"Bot:\n{response}\n\n\n"))
 
         threading.Thread(target=worker, daemon=True).start()
         self.entry.delete(0, "end")

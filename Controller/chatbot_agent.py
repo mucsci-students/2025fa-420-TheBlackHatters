@@ -13,8 +13,23 @@ from langgraph.prebuilt import create_react_agent
 
 from Controller.main_controller import DM
 
+import os
 
-# ---------------------- TOOL ARGUMENT SCHEMAS ----------------------
+# Ask for API key interactively if missing (for convenience in local dev)
+if not os.getenv("OPENAI_API_KEY"):
+    try:
+        from getpass import getpass
+        key = getpass("Enter your OpenAI API key: ").strip()
+        if key:
+            os.environ["OPENAI_API_KEY"] = key
+            print("[INFO] OpenAI API key set for this session.")
+        else:
+            print("[WARNING] No API key provided. The chatbot will not function.")
+    except Exception:
+        print("[ERROR] Could not prompt for API key. Please set OPENAI_API_KEY manually.")
+
+
+# Tool Argument schemas
 
 class KeyPathArgs(BaseModel):
     key_path: str = Field(
@@ -27,14 +42,7 @@ class NoArgs(BaseModel):
     pass
 
 
-# ---------------------- CHATBOT AGENT ----------------------
-
 class ChatbotAgent:
-    """
-    LangChain + LangGraph based chatbot for viewing and editing the current scheduler configuration.
-    Now fully integrated with the DataManager (DM) used by main_controller.
-    """
-
     def __init__(self, config_path_getter):
         self.get_config_path = config_path_getter
 
@@ -52,7 +60,7 @@ class ChatbotAgent:
         self.agent_executor = create_react_agent(self.model, self.tools)
         print("[DEBUG] ChatbotAgent initialized successfully.\n")
 
-    # ---------------------- TOOL IMPLEMENTATIONS ----------------------
+    # Tool Implementations
 
     def _tool_view_config(self):
         """Return a summarized view of the current configuration (no full details)."""
@@ -87,7 +95,7 @@ class ChatbotAgent:
                         summary_lines.append(f"  • {cid}")
                         seen.add(cid)
 
-            # --- Faculty (names only) ---
+            # Faculty (names only)
             faculty = config.get("faculty", [])
             summary_lines.append(f"\nFaculty ({len(faculty)} total):")
             if not faculty:
@@ -128,7 +136,7 @@ class ChatbotAgent:
             config = DM.data.get("config", {})
             target_clean = target.lower().strip()
 
-            # --- Clean input and remove filler words ---
+            # Clean input and remove filler words
             stopwords = [
                 "the", "faculty", "course", "details", "of", "for", "about",
                 "show", "me", "all", "information", "info", "available", "list", "view"
@@ -139,7 +147,7 @@ class ChatbotAgent:
 
             result_lines = []
 
-            # --- 1️⃣ Handle all-rooms queries ---
+            # Handle all-rooms queries
             if any(x in target.lower() for x in ["all rooms", "rooms", "room list"]):
                 rooms = config.get("rooms", [])
                 if not rooms:
@@ -149,7 +157,7 @@ class ChatbotAgent:
                     result_lines.append(f"• {r}")
                 return "\n".join(result_lines)
 
-            # --- 2️⃣ Handle all-labs queries ---
+            # Handle all-labs queries
             if any(x in target.lower() for x in ["all labs", "labs", "lab list"]):
                 labs = config.get("labs", [])
                 if not labs:
@@ -159,7 +167,7 @@ class ChatbotAgent:
                     result_lines.append(f"• {l}")
                 return "\n".join(result_lines)
 
-            # --- 3️⃣ Handle all-courses queries ---
+            # Handle all-courses queries
             if any(x in target.lower() for x in ["all courses", "courses", "course details"]):
                 courses = config.get("courses", [])
                 result_lines.append(f"Showing details for all {len(courses)} courses:\n")
@@ -174,7 +182,7 @@ class ChatbotAgent:
                     )
                 return "\n".join(result_lines)
 
-            # --- 4️⃣ Handle all-faculty queries ---
+            # Handle all-faculty queries
             if any(x in target.lower() for x in ["all faculty", "faculty", "faculty details"]):
                 faculty = config.get("faculty", [])
                 if not faculty:
@@ -185,7 +193,7 @@ class ChatbotAgent:
                     result_lines.append(f"• {name}")
                 return "\n".join(result_lines)
 
-            # --- 5️⃣ Specific course lookup (fuzzy) ---
+            # Specific course lookup (fuzzy)
             courses = config.get("courses", [])
             course_ids = [c.get("course_id", "").lower() for c in courses]
             close_match = difflib.get_close_matches(target_clean, course_ids, n=1, cutoff=0.6)
@@ -201,7 +209,7 @@ class ChatbotAgent:
                             f"Conflicts: {', '.join(c.get('conflicts', [])) or 'None'}"
                         )
 
-            # --- 6️⃣ Specific faculty lookup (fuzzy) ---
+            # Specific faculty lookup (fuzzy)
             faculty = config.get("faculty", [])
             faculty_names = [
                 (f.get("name") if isinstance(f, dict) else str(f)) for f in faculty
@@ -212,7 +220,7 @@ class ChatbotAgent:
                 match_index = faculty_lower.index(close_match[0])
                 return f"Faculty: {faculty_names[match_index]}"
 
-            # --- 7️⃣ Room or lab single-item fuzzy lookup ---
+            # Room or lab single-item fuzzy lookup
             all_rooms = [r.lower() for r in config.get("rooms", [])]
             all_labs = [l.lower() for l in config.get("labs", [])]
 
@@ -224,7 +232,7 @@ class ChatbotAgent:
             if match_lab:
                 return f"Lab: {match_lab[0].title()}"
 
-            # --- Default fallback ---
+            # Default fallback
             return f"No matching item found for '{target}'. Try 'all rooms', 'all labs', 'all courses', or a name."
 
         except Exception as e:
@@ -265,7 +273,7 @@ class ChatbotAgent:
             traceback.print_exc()
             return f"Error updating config: {e}"
 
-    # ---------------------- TOOL REGISTRATION ----------------------
+    # Tool registration
 
     def _create_tools(self) -> List[StructuredTool]:
         return [
@@ -291,19 +299,19 @@ class ChatbotAgent:
             ),
         ]
 
-    # ---------------------- QUERY ENTRYPOINT ----------------------
+    # Query endpoint
 
     def query(self, user_input: str) -> str:
         """Process a user message with system context and debug logging."""
         try:
             text = (user_input or "").strip()
 
-            # --- Direct detail commands ---
+            # Direct detail commands
             if text.lower().startswith("show details"):
                 target = re.sub(r"show details( of| for)?", "", text, flags=re.I).strip() or "all courses"
                 return self._tool_show_details(target)
 
-            # --- Greetings / small talk ---
+            # Greetings / small talk
             if re.fullmatch(r"(hi|hello|hey|howdy|yo|sup)\W*", text.lower()):
                 return (
                     "Hi! I can help with the scheduler configuration.\n"
@@ -328,18 +336,18 @@ class ChatbotAgent:
             elapsed = time.time() - start
             print(f"[DEBUG] Agent call completed in {elapsed:.2f}s")
 
-            # ---------------------- Universal Extractor ----------------------
+            # Universal Extractor
             response = None
 
             if isinstance(result, dict):
-                # 1️⃣ Direct top-level fields
+                # Direct top-level fields
                 for key in ["output", "return_values", "final_output"]:
                     if key in result and result[key]:
                         response = str(result[key])
                         print(f"[DEBUG] Found response in result['{key}']")
                         break
 
-                # 2️⃣ Search inside messages (covers ToolMessage & AIMessage)
+                # Search inside messages (covers ToolMessage & AIMessage)
                 if not response and "messages" in result:
                     for m in result["messages"]:
                         msg_dict = (
@@ -380,12 +388,12 @@ class ChatbotAgent:
                             if response:
                                 break
 
-                # 3️⃣ LangGraph “tool_calls” fallback
+                # LangGraph “tool_calls” fallback
                 if not response and "tool_calls" in result:
                     response = str(result["tool_calls"])
                     print("[DEBUG] Found response in result['tool_calls']")
 
-            # 4️⃣ Default fallback
+            # Default fallback
             if not response or not str(response).strip():
                 print("[DEBUG] Could not extract tool output; dumping message structure:")
                 from pprint import pprint
