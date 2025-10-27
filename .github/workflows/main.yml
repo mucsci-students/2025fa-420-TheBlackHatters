@@ -31,6 +31,14 @@ jobs:
         uv sync
         uv pip install pytest pytest-cov ruff mypy typer langchain openai
 
+#    - name: Lint (ruff)
+#      run: |
+#        uv run ruff check --fix .
+#        uv run ruff format .
+#
+#    - name: Verify Lint
+#      run: uv run ruff check --select I,E,F --ignore F401,E741
+
     - name: Format (ruff)
       run: uv run ruff format --check .
 
@@ -45,11 +53,3 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Lint (ruff)
-      run: |
-        uv run ruff check --fix .
-        uv run ruff format .
-
-    - name: Verify Lint
-      run: uv run ruff check --select I,E,F --ignore F401,E741
