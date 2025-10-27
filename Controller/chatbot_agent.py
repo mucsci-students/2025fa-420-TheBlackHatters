@@ -46,6 +46,16 @@ class ChatbotAgent:
     def __init__(self, config_path_getter):
         self.get_config_path = config_path_getter
 
+        # Check API key before initializing model
+        if not os.getenv("OPENAI_API_KEY"):
+            print("[ERROR] OPENAI_API_KEY is not set. The chatbot cannot be initialized.")
+            self.model = None
+            self.agent_executor = None
+            self.disabled = True
+            return
+        else:
+            self.disabled = False
+
         print("[DEBUG] Initializing ChatbotAgent with OpenAI model...")
         self.model = init_chat_model(
             "gpt-5-mini",
@@ -302,7 +312,9 @@ class ChatbotAgent:
     # Query endpoint
 
     def query(self, user_input: str) -> str:
-        """Process a user message with system context and debug logging."""
+        if getattr(self, "disabled", False):
+            return "The AI Chatbot is disabled because no OpenAI API key was set."
+
         try:
             text = (user_input or "").strip()
 
