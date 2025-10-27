@@ -1,10 +1,10 @@
 name: CI Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "develop", "main" ]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
     branches: [ "develop" ]
 
 permissions:
