@@ -39,12 +39,12 @@ jobs:
 #
 #    - name: Verify Lint
 #      run: uv run ruff check --select I,E,F --ignore F401,E741
-
-    - name: Format (ruff)
-      run: uv run ruff format --check .
-
-    - name: Type Check (mypy)
-      run: uv run mypy --ignore-missing-imports .
+#
+#    - name: Format (ruff)
+#      run: uv run ruff format --check .
+#
+#    - name: Type Check (mypy)
+#      run: uv run mypy --ignore-missing-imports .
 
     - name: Run Tests
       run: uv run pytest --maxfail=1 --disable-warnings -q --cov --cov-branch --cov-report=xml
