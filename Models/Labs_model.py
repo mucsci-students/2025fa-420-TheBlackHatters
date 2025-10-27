@@ -8,8 +8,8 @@
 
 class Lab: 
     def __init__(self, labs = None):
-        # Init, the labs should be a list [], 
-        self.labs = labs or []
+        # Init, the labs should be a list [], create a copy to ensure independence
+        self.labs = list(labs) if labs is not None else []
 
     def __str__(self):
         return f"Labs in the system: {self.labs}."
@@ -49,6 +49,6 @@ class Lab:
     
     def toJson(self):
         ## Not exactly to json, just ready do put into json
-        return self.labs
+        return list(self.labs)
 
 
