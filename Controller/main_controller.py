@@ -156,9 +156,8 @@ def importSchedulesBTN(pathEntaryVar):
     pathEntaryVar.set(filePath)
     return sch
 
-def exportAllSchedulesBTN(data, pathEntaryVar):
-    # exports all schedules :)
-
+def exportSchedulesBTN(data, pathEntaryVar):
+    # exports all schedule
     filePath = filedialog.asksaveasfilename(defaultextension=".json",
         filetypes=[("Text files", "*.json")])
     
@@ -167,16 +166,6 @@ def exportAllSchedulesBTN(data, pathEntaryVar):
             json.dump(data, f, indent= 4)
 
         pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
-
-def exportOneScheduleBTN(data, pathEntaryVar):
-    filePath = filedialog.asksaveasfilename(defaultextension=".json",
-        filetypes=[("Text files", "*.json")])
-    
-    if filePath != "":
-        with open(filePath , "w") as f:
-            json.dump(data, f, indent= 4)
-
-        pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
 
 # room controller 
 class RoomsController:
