@@ -1368,7 +1368,8 @@ class SchedulerApp(ctk.CTk):
         pathEntry = ctk.CTkEntry(importFrame, state="readonly", textvariable=self.configPath, width=500)
         pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
-        container = ctk.CTkFrame(frame)
+        # Use a scrollable container so many generated results / buttons remain reachable
+        container = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         container.pack(expand=True, fill="both", padx=10, pady=10)
 
         # limit entry
@@ -1379,14 +1380,16 @@ class SchedulerApp(ctk.CTk):
         
         limitEntry.pack(padx=5)
 
+        # Helper text explaining how generating multiple schedule instances works
+        ctk.CTkLabel(container, text="(When generating multiple schedule instances, the most recent generation will be at the bottom)", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(padx=(0,10))
         optFrame = ctk.CTkFrame(container, fg_color="transparent")
-        optFrame.pack(pady=10)
+        optFrame.pack(pady=0)
 
         optimizeList = [ "faculty_course","faculty_room","faculty_lab","same_room","same_lab","pack_rooms"]
         optimizeVars = {}  # store variables for each checkbox
 
         optionsFrame = ctk.CTkFrame(optFrame, fg_color="transparent")
-        optionsFrame.pack(padx=20, pady=10, fill="x")
+        optionsFrame.pack(padx=20, pady=0, fill="x")
 
         ctk.CTkLabel(optionsFrame, text="Optimization Options", font=("Arial", 18, "bold")).pack(anchor="w", pady=(0,5))
 
