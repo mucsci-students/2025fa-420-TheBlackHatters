@@ -351,7 +351,7 @@ def cli_menu():
         else:
             print("Invalid choice, try again.")
 
-def mainCourseController(courses_list, rooms_obj_or_list, labs_obj_or_list, faculty_list, config_path):
+def mainCourseController(courses_list, rooms_obj_or_list, labs_obj_or_list, faculty_list):
     global _courses_ref, _rooms_ref, _labs_ref, _faculty_names
     _courses_ref = courses_list
     if hasattr(rooms_obj_or_list, "rooms"):

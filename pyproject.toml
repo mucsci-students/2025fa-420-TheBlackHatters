@@ -7,5 +7,4 @@ requires-python = ">=3.12"
 dependencies = [
     "course-constraint-scheduler>=2.5.2",
     "customtkinter>=5.2.2",
-    "pytest>=8.4.2",
 ]
