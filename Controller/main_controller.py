@@ -156,9 +156,8 @@ def importSchedulesBTN(pathEntaryVar):
     pathEntaryVar.set(filePath)
     return sch
 
-def exportAllSchedulesBTN(data, pathEntaryVar):
-    # exports all schedules :)
-
+def exportSchedulesBTN(data, pathEntaryVar):
+    # exports all schedule
     filePath = filedialog.asksaveasfilename(defaultextension=".json",
         filetypes=[("Text files", "*.json")])
     
@@ -167,30 +166,6 @@ def exportAllSchedulesBTN(data, pathEntaryVar):
             json.dump(data, f, indent= 4)
 
         pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
-
-def exportOneScheduleBTN(data, pathEntaryVar, num=1):
-    """Export a single schedule selected by `num` (1-based index).
-
-    If `num` is not an integer in the valid range, an empty list will be written.
-    """
-    filePath = filedialog.asksaveasfilename(defaultextension=".json",
-        filetypes=[("Text files", "*.json")])
-
-    # Determine what to write: pick the (num-1)th schedule when valid, else []
-    to_write = []
-    try:
-        idx = int(num) - 1
-        if isinstance(data, list) and 0 <= idx < len(data):
-            to_write = data[idx]
-    except Exception:
-        # Any problem parsing/using num -> default to empty list
-        to_write = []
-
-    if filePath != "":
-        with open(filePath , "w") as f:
-            json.dump(to_write, f, indent=4)
-
-        pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
 
 # room controller 
 class RoomsController:
