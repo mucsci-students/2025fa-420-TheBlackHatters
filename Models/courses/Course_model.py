@@ -192,8 +192,10 @@ class Course:
                 raise ValueError("\n\n".join(msgs))  # double newline between blocks
 
         # --- Uniqueness check ---
-        if existing_courses is not None and ignore_index is None:
+        if existing_courses is not None:
             for i, c in enumerate(existing_courses or []):
+                if ignore_index is not None and i == ignore_index:
+                    continue
                 other_id = c.course_id if isinstance(c, Course) else str(c.get("course_id", "")).strip()
                 if other_id == self.course_id:
                     raise ValueError(f"Duplicate course ID '{self.course_id}' already exists (index {i}).")

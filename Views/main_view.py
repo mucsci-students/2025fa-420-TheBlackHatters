@@ -1399,9 +1399,6 @@ class SchedulerApp(ctk.CTk):
             checkbox.pack(anchor="w", pady=2)
             optimizeVars[opt] = var
 
-        progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
-        progress_bar.set(0)
-
         # These lines create a (for now) invisible progress bar
         progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
         progress_bar.set(0)
@@ -1432,13 +1429,14 @@ class SchedulerApp(ctk.CTk):
                 container.update_idletasks()
 
                 # Create a simple progress callback that updates UI
+                has_opt = bool(selectedOpts)
                 def progress_callback(current_step, total_steps):
                     progress_bar.set(current_step / total_steps)
                     
-                    if current_step == 1:
+                    if has_opt and current_step == 1:
                         status_label.configure(text="Creating optimization goals...")
                     else:
-                        schedule_num = current_step - 1
+                        schedule_num = current_step - (1 if has_opt else 0)
                         status_label.configure(text=f"Generating schedule {schedule_num}/{limit_int}")
                     
                     # Force UI update after each progress update
