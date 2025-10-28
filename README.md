@@ -37,7 +37,7 @@ The Solution: The MVC pattern addressed our problem. With this approach, we modu
 
 **2: Singleton**
 
-This project uses the Singleton design pattern to implement a data manager. The code can be found inside `Models/Data_manager.py`, and we use the DataManager in the `Controller/main_controller.py `file.
+This project uses the Singleton design pattern to implement a data manager. The code can be found inside `Models/Data_manager.py`, and we use the DataManager in the `Controller/main_controller.py` file.
 
 The Problem: Opening the same file from multiple points in the program slowed the system down since we were reading and parsing the same file multiple times and loading the same data repeatedly.
 
