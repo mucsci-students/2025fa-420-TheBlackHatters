@@ -43,7 +43,11 @@ class Course:
         if self.credits < 0:
             raise ValueError("Credits must be a non-negative integer.")
 
-        self.course_id = str(course_id).strip()
+        # Strip whitespace and validate course_id
+        cleaned_id = str(course_id).strip()
+        if not cleaned_id:
+            raise ValueError("Course ID cannot be empty or contain only whitespace.")
+        self.course_id = cleaned_id
         self.room = _clean_list(room or [])
         self.lab = _clean_list(lab or [])
         self.conflicts = _clean_list(conflicts or [])
@@ -84,9 +88,9 @@ class Course:
     # Edit functions
     def rename(self, new_course_id):
         new_id = str(new_course_id).strip()
-        if not new_course_id:
-            raise ValueError("new course_id cannot be null")
-        self.course_id = new_course_id
+        if not new_id:
+            raise ValueError("new course_id cannot be empty or contain only whitespace")
+        self.course_id = new_id
 
     def set_credits(self, n):
         try:
