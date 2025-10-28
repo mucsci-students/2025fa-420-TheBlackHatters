@@ -33,7 +33,7 @@ This project uses the MVC pattern to create the GUI for this project. The model 
 
 The Problem: We wanted to write maintainable code with good organization, and also build and test components easily so we could divide our tasks among team members.
 
-The Solution: The MVC model fixed our problem. With this method we modularized our project into three sections. This made development easier and faster as teammates could work on diffrent modules. This method also forced use to organization our code.
+The Solution: The MVC pattern addressed our problem. With this approach, we modularized the project into three sections. This made development easier and faster as teammates could work on different modules. This approach also forced us to organize our code.
 
 **2: Singleton**
 
