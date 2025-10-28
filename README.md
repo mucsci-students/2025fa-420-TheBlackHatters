@@ -49,7 +49,7 @@ This project uses the Decorator design pattern conceptually through the @pytest.
 
 The Problem: We needed a flexible way to add reusable setup data and configuration for multiple test functions without duplicating the same initialization code multiple times.
 
-The Solution: The @pytest.fixture decorator solved this problem by dynamically attaching shared setup data to each test that requires it. This allowed us to assign test functions with extra responsibilities such as like providing a sample configuration without modifying the tests themselves.
+The Solution: The @pytest.fixture decorator solved this problem by dynamically attaching shared setup data to each test that requires it. This allowed us to assign test functions extra responsibilities, such as providing a sample configuration, without modifying the tests themselves.
 
 **4: Observer**
 
