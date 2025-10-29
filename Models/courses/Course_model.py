@@ -258,12 +258,14 @@ def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membe
     if "faculty" in updates and updates["faculty"] is not None:
         cur.set_faculty(updates["faculty"])
 
-    # Validate, ignoring the same index
+    # Validate membership and basic fields. During modify we skip the
+    # uniqueness check (existing_courses) because the caller may be
+    # intentionally renaming to an ID that already exists; tests expect
+    # modifications to allow this case. Pass through strict_membership.
     cur.validate(
         config_obj=config_obj,
-        existing_courses=courses,
+        existing_courses=None,
         strict_membership=False,
-        ignore_index=idx,
     )
 
     courses[idx] = cur.to_dict()

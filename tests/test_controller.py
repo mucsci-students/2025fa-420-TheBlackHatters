@@ -83,7 +83,7 @@ def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
 
     pathVar = Mock()
     data = [{"course": "CMSC 101"}]
-    ctrl.exportAllSchedulesBTN(data, pathVar)
+    ctrl.exportSchedulesBTN(data, pathVar)
 
     written = json.loads(fake_save.read_text())
     assert written == data
@@ -96,7 +96,7 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
 
     pathVar = Mock()
     data = [[{"course": "CMSC 101"}], [{"course": "CMSC 102"}]]
-    ctrl.exportOneScheduleBTN(data, pathVar, num=2)
+    ctrl.exportSchedulesBTN(data, pathVar, num=2)
 
     written = json.loads(fake_save.read_text())
     assert written == [{"course": "CMSC 102"}]
@@ -109,7 +109,7 @@ def test_exportOneScheduleBTN_invalid_num(tmp_path, monkeypatch):
     data = [[{"course":"X"}],[{"course":"Y"}]]
     pathVar = Mock()
     import Controller.main_controller as ctrl
-    ctrl.exportOneScheduleBTN(data, pathVar, num="bad")
+    ctrl.exportSchedulesBTN(data, pathVar, num="bad")
     assert json.loads(fake.read_text()) == []
 
 
