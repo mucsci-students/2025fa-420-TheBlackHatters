@@ -77,6 +77,19 @@ def test_importSchedulesBTN_invalid_path(monkeypatch):
     assert "Unable to open" in pathVar.set.call_args[0][0]
 
 
+def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
+    fake_save = tmp_path / "all.json"
+    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save)))
+
+    pathVar = Mock()
+    data = [{"course": "CMSC 101"}]
+    ctrl.exportAllSchedulesBTN(data, pathVar)
+
+    written = json.loads(fake_save.read_text())
+    assert written == data
+    assert "Schedules have been saved" in pathVar.set.call_args[0][0]
+
+
 def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     fake_save = tmp_path / "one.json"
     monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save)))
@@ -88,6 +101,16 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     written = json.loads(fake_save.read_text())
     assert written == [{"course": "CMSC 102"}]
     assert "Your 1 Schedule" in pathVar.set.call_args[0][0]
+
+
+def test_exportOneScheduleBTN_invalid_num(tmp_path, monkeypatch):
+    fake = tmp_path/"out.json"
+    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", lambda **kwargs: str(fake))
+    data = [[{"course":"X"}],[{"course":"Y"}]]
+    pathVar = Mock()
+    import Controller.main_controller as ctrl
+    ctrl.exportOneScheduleBTN(data, pathVar, num="bad")
+    assert json.loads(fake.read_text()) == []
 
 
 # --- RoomsController ---
@@ -168,3 +191,16 @@ def test_coursecontroller_remove_raises(fake_refresh):
     ctrl.DM.removeCourse.side_effect = ValueError("not found")
     err = c.removeCourse("CMSC 999", fake_refresh)
     assert "not found" in err
+
+
+def test_editCourse_cascade_conflict_update():
+    from Models.Data_manager import DataManager
+    dm = DataManager()
+    dm.data = {"config": {"rooms": [], "labs": [], "courses": [], "faculty": []}}
+    dm.addCourse({"course_id": "B", "credits": 3, "conflicts": []})
+    dm.addCourse({"course_id": "A", "credits": 3, "conflicts": ["B"]})
+    dm.editCourse("B", {"course_id": "B2"})
+    courses = dm.getCourses()
+    a = next(c for c in courses if c["course_id"] == "A")
+    assert "B2" in a["conflicts"]
+    assert "B" not in a["conflicts"]
