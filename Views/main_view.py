@@ -1630,7 +1630,8 @@ class SchedulerApp(ctk.CTk):
         pathEntry = ctk.CTkEntry(importFrame, state="readonly", textvariable=self.configPath, width=500)
         pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
-        container = ctk.CTkFrame(frame)
+        # Use a scrollable container so many generated results / buttons remain reachable
+        container = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         container.pack(expand=True, fill="both", padx=10, pady=10)
 
         # limit entry
@@ -1641,14 +1642,16 @@ class SchedulerApp(ctk.CTk):
         
         limitEntry.pack(padx=5)
 
+        # Helper text explaining how generating multiple schedule instances works
+        ctk.CTkLabel(container, text="(When generating multiple schedule instances, the most recent generation will be at the bottom)", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(padx=(0,10))
         optFrame = ctk.CTkFrame(container, fg_color="transparent")
-        optFrame.pack(pady=10)
+        optFrame.pack(pady=0)
 
         optimizeList = [ "faculty_course","faculty_room","faculty_lab","same_room","same_lab","pack_rooms", "pack_labs" ]
         optimizeVars = {}  # store variables for each checkbox
 
         optionsFrame = ctk.CTkFrame(optFrame, fg_color="transparent")
-        optionsFrame.pack(padx=20, pady=10, fill="x")
+        optionsFrame.pack(padx=20, pady=0, fill="x")
 
         ctk.CTkLabel(optionsFrame, text="Optimization Options", font=("Arial", 18, "bold")).pack(anchor="w", pady=(0,5))
 
@@ -1657,9 +1660,6 @@ class SchedulerApp(ctk.CTk):
             checkbox = ctk.CTkCheckBox(optionsFrame, text=opt.replace("_", " ").title(), variable=var)
             checkbox.pack(anchor="w", pady=2)
             optimizeVars[opt] = var
-
-        progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
-        progress_bar.set(0)
 
         # These lines create a (for now) invisible progress bar
         progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
@@ -1683,30 +1683,72 @@ class SchedulerApp(ctk.CTk):
                 progress_bar.set(0)
                 progress_bar.configure(mode="determinate")
 
+                # Disable buttons during generation
+                genBtn.configure(state="disabled")
+                importBtn.configure(state="disabled")
+
+                # Update UI immediately
+                container.update_idletasks()
+
+                # Create a simple progress callback that updates UI
+                has_opt = bool(selectedOpts)
                 def progress_callback(current_step, total_steps):
                     progress_bar.set(current_step / total_steps)
-
-                    if current_step == 1:
+                    
+                    if has_opt and current_step == 1:
                         status_label.configure(text="Creating optimization goals...")
                     else:
-                        schedule_num = current_step - 1
+                        schedule_num = current_step - (1 if has_opt else 0)
                         status_label.configure(text=f"Generating schedule {schedule_num}/{limit_int}")
+                    
+                    # Force UI update after each progress update
                     container.update_idletasks()
 
-                def work():
-                    try:
-                        self.schedulesImported = generateSchedulesBtn(limit_int, selectedOpts, progress_callback)
-                        status_label.configure(text="All schedules generated successfully!")
-                    finally:
-                        progress_bar.set(1)
-                        progress_bar.pack_forget()
+                try:
+                    # Check if config file is loaded before starting generation
+                    if self.configPath.get() == "" or self.configPath.get() == ".json" or "Import Config File" in self.configPath.get():
+                        raise ValueError("No configuration file loaded. Please import a config file first!")
+                    # This will block the UI but show progress updates
+                    self.schedulesImported = generateSchedulesBtn(limit_int, selectedOpts, progress_callback)
+                    
+                    # Final updates
+                    status_label.configure(text="All schedules generated successfully!")
+                    progress_bar.set(1)
 
-                        ctk.CTkLabel(container, text="Click View Schedules to see them!", font=("Arial", 20, "bold")).pack(padx=(0, 10))
+                    generation_successful = True
+                except ValueError as e:
+                    # Handle the specific "no config file" error
+                    if "No configuration file" in str(e):
+                        status_label.configure(text="Error: No configuration file loaded!")
+                        status_label.configure(text_color="red")
+                        # You could also show a more detailed message
+                        ctk.CTkLabel(container, text="Please click 'Import Config' and select a valid config file", 
+                                    font=("Arial", 16), text_color="yellow").pack(padx=(0, 10))
+                    else:
+                        status_label.configure(text=f"Error: {str(e)}")
+                        status_label.configure(text_color="red")
+                    generation_successful = False
+                    
+                except Exception as e:
+                    status_label.configure(text=f"Error during generation: {str(e)}")
+                    status_label.configure(text_color="red")
+                    generation_successful = False
+                    
+                finally:
+                    # Hide progress bar and show completion UI
+                    progress_bar.pack_forget()
+                    
+                    # Re-enable buttons
+                    genBtn.configure(state="normal")
+                    importBtn.configure(state="normal")
+                    # Only show completion UI if generation was successful
+                    if generation_successful:
+                        # Show completion message and button
+                        ctk.CTkLabel(container, text="Click View Schedules to see them!", 
+                                    font=("Arial", 20, "bold")).pack(padx=(0, 10))
                         viewBtn = ctk.CTkButton(container, text="View Schedules", width=150,
-                                                command=onView)
+                                            command=onView)
                         viewBtn.pack(padx=(0, 10))
-
-                threading.Thread(target=work, daemon=True).start()
 
             else:
                 ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
