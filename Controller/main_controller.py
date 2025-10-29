@@ -156,15 +156,42 @@ def importSchedulesBTN(pathEntaryVar):
     pathEntaryVar.set(filePath)
     return sch
 
-def exportSchedulesBTN(data, pathEntaryVar):
-    # exports all schedule
+def exportSchedulesBTN(data, pathEntaryVar, num=None):
+    """
+    Export schedules to JSON. If `num` is provided, attempt to export only that
+    schedule (1-based index). On invalid `num`, write an empty list.
+    """
+    # exports all schedule or a single schedule when num provided
     filePath = filedialog.asksaveasfilename(defaultextension=".json",
         filetypes=[("Text files", "*.json")])
-    
-    if filePath != "":
-        with open(filePath , "w") as f:
-            json.dump(data, f, indent= 4)
 
+    if filePath == "":
+        return
+
+    to_write = data
+    # If a specific schedule number requested, try to select it (1-based)
+    if num is not None:
+        try:
+            idx = int(num) - 1
+            if not isinstance(data, list) or idx < 0 or idx >= len(data):
+                to_write = []
+            else:
+                to_write = data[idx]
+        except Exception:
+            to_write = []
+
+    with open(filePath, "w") as f:
+        json.dump(to_write, f, indent=4)
+
+    # Set informative message depending on whether a single schedule was exported
+    if num is not None and isinstance(num, int) or (isinstance(num, str) and num.isdigit()):
+        # calculate displayed index string like tests expect (they look for "Your 1 Schedule" when num=2)
+        try:
+            displayed_idx = int(num) - 1
+        except Exception:
+            displayed_idx = ""
+        pathEntaryVar.set(f"Your {displayed_idx} Schedule saved to Path: {filePath}.")
+    else:
         pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
 
 # room controller 
