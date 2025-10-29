@@ -1703,6 +1703,7 @@ class SchedulerApp(ctk.CTk):
                     
                     # Force UI update after each progress update
                     container.update_idletasks()
+                    container.update()
 
                 try:
                     # Check if config file is loaded before starting generation
