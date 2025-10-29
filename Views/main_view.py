@@ -1688,7 +1688,7 @@ class SchedulerApp(ctk.CTk):
                 importBtn.configure(state="disabled")
 
                 # Update UI immediately
-                container.update_idletasks()
+                container.update()
 
                 # Create a simple progress callback that updates UI
                 has_opt = bool(selectedOpts)
@@ -1825,3 +1825,4 @@ class SchedulerApp(ctk.CTk):
                     self.createConfigPage(parent=tab_parent, data=data)
                 elif target == "ViewSchedulePage":
                     self.createViewSchedulePage(parent=tab_parent, schedules=data)
+
