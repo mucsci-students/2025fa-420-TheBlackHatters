@@ -1,0 +1,56 @@
+name: CI Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "develop", "main" ]
+  pull_request:
+    branches: [ "develop" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: |
+        pip install uv
+        uv sync
+        uv pip install pytest pytest-cov ruff mypy typer langchain openai
+
+#    - name: Lint (ruff)
+#      run: |
+#        uv run ruff check --fix .
+#        uv run ruff format .
+#
+#    - name: Verify Lint
+#      run: uv run ruff check --select I,E,F --ignore F401,E741
+#
+#    - name: Format (ruff)
+#      run: uv run ruff format --check .
+#
+#    - name: Type Check (mypy)
+#      run: uv run mypy --ignore-missing-imports .
+
+    - name: Run Tests
+      run: uv run pytest --maxfail=1 --disable-warnings -q --cov --cov-branch --cov-report=xml
+
+    - name: Upload coverage reports to Codecov
+      if: success()
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

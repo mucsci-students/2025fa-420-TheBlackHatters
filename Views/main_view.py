@@ -1,6 +1,7 @@
 # Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
 from tkinter import StringVar, IntVar
+from Views.chatbot_view import ChatbotView
 from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
                                         importSchedulesBTN, exportSchedulesBTN,
@@ -1376,6 +1377,11 @@ class SchedulerApp(ctk.CTk):
         tabview.pack(expand=True, fill="both")
 
         tabview.add("Edit Config")
+
+        tabview.add("AI Chatbot")
+        chat_frame = ChatbotView(tabview.tab("AI Chatbot"))
+        chat_frame.pack(fill="both", expand=True)
+
         tabview.add("Run Scheduler")
         tabview.add("View Schedules")
 

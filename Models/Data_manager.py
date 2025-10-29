@@ -241,6 +241,18 @@ class DataManager():
     def getFaculty(self):
         return self.data["config"]["faculty"]
 
+    def getFacultyByName(self, name: str):
+        """Return a single faculty entry by name (case-insensitive), or None if not found."""
+        faculty_list = self.data.get("config", {}).get("faculty", [])
+        if not name or not isinstance(name, str):
+            return None
+
+        name_lower = name.strip().lower()
+        for f in faculty_list:
+            if isinstance(f, dict) and f.get("name", "").lower() == name_lower:
+                return f
+        return None
+
     def addFaculty(self, newFaculty):
         conFaculty = self.data["config"]["faculty"]
         FacultyModel.Faculty.addFaculty(conFaculty, newFaculty)
