@@ -1702,7 +1702,6 @@ class SchedulerApp(ctk.CTk):
                         status_label.configure(text=f"Generating schedule {schedule_num}/{limit_int}")
                     
                     # Force UI update after each progress update
-                    container.update_idletasks()
                     container.update()
 
                 try:
