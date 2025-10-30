@@ -14,7 +14,7 @@ def run_tests_cli():
     print("Choose a category of tests to run:\n")
     print("1. Run Model_tests")
     print("2. Run Controller Tests")
-    print("0. Back\n")
+    print("0. Exit\n")
 
     choice = input("Select option: ").strip()
 
