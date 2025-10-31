@@ -53,7 +53,7 @@ def parseJson(path):
     other = {
         "time_slot_config": fileData.get("time_slot_config", {}),
         "limit": fileData.get("limit", {}),
-        "optimizer_flags": fileData.get("optimizer_flags", {}),
+        "optimizer_flags": fileData.get("optimizer_flags", {})
     }
 
     # just return the others here as well.
@@ -99,7 +99,7 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
         },
         "time_slot_config": other.get("time_slot_config", {}),
         "limit": other.get("limit", int),
-        "optimizer_flags": other.get("optimizer_flags", {}),
+        "optimizer_flags": other.get("optimizer_flags", {})
     }
 
     with open(path, "w") as file:
@@ -265,7 +265,7 @@ def whatAction(rooms, labs, courses, faculty, other):
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "4":
             # courses
-            mainCourseController(courses, rooms, labs, faculty, filePath)
+            mainCourseController(courses, rooms, labs, faculty)
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "0":
             # Go back to selections.
