@@ -4,8 +4,8 @@
 # Last Modified: October 20, 2025
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
-# This is the main file that will intergrate all out models, 
-#       CLIs together. 
+# This is the main file that will intergrate all out models,
+#       CLIs together.
 #
 
 # Imports
@@ -35,19 +35,20 @@ filePath = "output/mainConfig.json"
 
 fileData = None
 
+
 # this is to parse the JSON file, putting each of the section into
-# their respective model 
+# their respective model
 def parseJson(path):
-    with open(path, 'r') as file:
+    with open(path, "r") as file:
         fileData = json.load(file)
 
     config = fileData.get("config", {})
 
     # everything inside config (bottom 4 everything we need, I believe)
-    Rooms = Room(config.get('rooms'))
-    Labs = Lab(config.get('labs'))
-    Courses = config.get('courses')
-    Faculty = config.get('faculty')
+    Rooms = Room(config.get("rooms"))
+    Labs = Lab(config.get("labs"))
+    Courses = config.get("courses")
+    Faculty = config.get("faculty")
 
     other = {
         "time_slot_config": fileData.get("time_slot_config", {}),
@@ -55,15 +56,16 @@ def parseJson(path):
         "optimizer_flags": fileData.get("optimizer_flags", {})
     }
 
-    # just return the others here as well. 
+    # just return the others here as well.
     return Rooms, Labs, Courses, Faculty, other
 
 
 def clearTerminal():
-    if os.name == 'nt':  
-        _ = os.system('cls')
-    else: 
-        _ = os.system('clear')
+    if os.name == "nt":
+        _ = os.system("cls")
+    else:
+        _ = os.system("clear")
+
 
 # welcome the user and provide the options for our shell.
 def welcomeMessage():
@@ -89,7 +91,7 @@ def welcomeMessage():
 # Saves the data to the config file.
 def saveConfig(path, rooms, labs, courses, faculty, other):
     newData = {
-        "config" : {
+        "config": {
             "rooms": rooms.rooms if hasattr(rooms, "rooms") else rooms,
             "labs": labs.labs,
             "courses": courses,
@@ -100,12 +102,13 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
         "optimizer_flags": other.get("optimizer_flags", {})
     }
 
-    with open(path, 'w') as file:
+    with open(path, "w") as file:
         json.dump(newData, file, indent=4)
 
     print("Changes have been saved! \n")
 
-def runScheduler():
+
+def runScheduler(otherData):
     while True:
         print("\n--- Scheduler Controller ---")
         print("1. Run Scheduler")
@@ -116,7 +119,9 @@ def runScheduler():
             return
 
         elif choice == "1":
-            configInput = input("Enter config file path (default: output/mainConfig.json): ")
+            configInput = input(
+                "Enter config file path (default: output/mainConfig.json): "
+            )
             if not configInput:
                 configInput = "output/mainConfig.json"
 
@@ -132,61 +137,93 @@ def runScheduler():
                     print("Please enter a valid integer.")
 
             while True:
-                format = input("Enter a format file csv or json (default: json): ").lower()
+                format = input(
+                    "Enter a format file csv or json (default: json): "
+                ).lower()
 
                 if not format:
-                    format = 'json'
+                    format = "json"
                     break
-                if format  == "json" or format == "csv":
+                if format == "json" or format == "csv":
                     break
-                else: 
+                else:
                     print("Please enter a valid format (csv or json): ")
-            
-            
+
             outputFile = input("Enter the name of the output file: ").lower()
 
-            while True: 
+            optimizeList = [
+                "faculty_course",
+                "faculty_room",
+                "faculty_lab",
+                "same_room",
+                "same_lab",
+                "pack_rooms",
+                "pack_labs",
+            ]
+            selectedOptimizeList = []
 
-                optimize = input("Do you want to optimize the schedules (y/n, Default: n): ").lower()
+            for opt in optimizeList:
+                while True:
+                    choice = (
+                        input(
+                            f"Do you want to apply '{opt}' optimization? (y/n, Default: n): "
+                        )
+                        .strip()
+                        .lower()
+                    )
 
-                if not optimize :
-                    optimize = 'n'
-                    break
-                if optimize == 'n' or optimize == 'y':
-                    break
-                else: 
-                    print("Please enter (y or n): ")
+                    if not choice:
+                        choice = "n"
+                    if choice in ("y", "n"):
+                        break
+                    print("Please enter 'y' or 'n'.")
+
+                if choice == "y":
+                    selectedOptimizeList.append(opt)
+
+            print("\nSelected optimizations:")
+            print(selectedOptimizeList if selectedOptimizeList else "None selected.")
+
+            # update config file with new opt, and limit
+            if os.path.exists(configInput):
+                with open(configInput, "r") as f:
+                    data = json.load(f)
+
+                # Update values
+                data["limit"] = limit
+                data["optimizer_flags"] = selectedOptimizeList
+
+                # Write back to the same file
+                with open(configInput, "w") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                print(f"Cannot open config File: {configInput}.\n")
+                return
 
             print("Running the schedule: \n")
-
             config = load_config_from_file(CombinedConfig, f"{configInput}")
 
             # Create scheduler
             scheduler = Scheduler(config)
-            
+
             all_schedules = []
             count = 0
 
             for schedule in scheduler.get_models():
-                count += 1
-                if count > limit:
-                    break
-
-                schedule_list = [course.as_csv().split(',') for course in schedule]
+                schedule_list = [course.as_csv().split(",") for course in schedule]
                 all_schedules.append(schedule_list)
 
                 # Convert schedule to list of CSV rows
-                schedule_list = [course.as_csv().split(',') for course in schedule]
+                schedule_list = [course.as_csv().split(",") for course in schedule]
                 all_schedules.append(schedule_list)
 
                 # Print live progress after each schedule
                 bar_length = 50
                 progress = int((count / limit) * bar_length)
-                bar = '█' * progress + '-' * (bar_length - progress)
+                bar = "█" * progress + "-" * (bar_length - progress)
                 print(f"Progress: |{bar}| {count}/{limit}")
 
             print("\nAll schedules generated!\n")
-
 
             if format == "json":
                 with open(f"output/{outputFile}.json", "w") as f:
@@ -197,13 +234,13 @@ def runScheduler():
                 with open(f"output/{outputFile}.csv", "w", newline="") as f:
                     writer = csv.writer(f)
                     for schedule_list in all_schedules:
-
                         writer.writerow([])
                         writer.writerows(schedule_list)
 
                 print(f"\nSchedules saved to output/{outputFile}.csv")
 
     # return
+
 
 def whatAction(rooms, labs, courses, faculty, other):
     while True:
@@ -223,7 +260,7 @@ def whatAction(rooms, labs, courses, faculty, other):
             mainRoomControler(rooms)
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "3":
-            ## Labs 
+            ## Labs
             mainLabControler(labs)
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "4":
@@ -234,6 +271,7 @@ def whatAction(rooms, labs, courses, faculty, other):
             # Go back to selections.
             break
 
+
 def configMessage():
     print("\n")
     print("Please select one option: \n")
@@ -243,12 +281,13 @@ def configMessage():
     print("4. View Current Config File\n")
     print("0. Back\n")
 
+
 def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
     while True:
         configMessage()
         choice = input("Enter choice: ")
         if choice == "1":
-        # Ask for an alternative Config file path
+            # Ask for an alternative Config file path
             print("Enter the file path: ")
             while True:
                 userPath = input()
@@ -271,26 +310,26 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
             ##Faculty
             whatAction(rooms, labs, courses, faculty, other)
         elif choice == "4":
-            # Display the current file: 
+            # Display the current file:
             displayConfig(rooms, labs, courses, faculty)
         elif choice == "0":
-            # return to main selection: 
+            # return to main selection:
             break
 
 
-
 def createEmptyJson(name):
-    with open('output/blank_template.json', 'r') as template:
+    with open("output/blank_template.json", "r") as template:
         data = json.load(template)
-    file_name = "output/"+name+".json"
+    file_name = "output/" + name + ".json"
     print(file_name)
-    with open(file_name, 'w') as f:
+    with open(file_name, "w") as f:
         json.dump(data, f, indent=4)
     return file_name
 
+
 def displayConfig(rooms, labs, courses, faculty):
-    #this Function will display the config File,
-    # in a human readable way. 
+    # this Function will display the config File,
+    # in a human readable way.
 
     print("\n=== Current Configuration ===\n")
 
@@ -357,13 +396,14 @@ def displayConfig(rooms, labs, courses, faculty):
         print(f"  {idx}. {name}")
         print(f"    Credits Range: {min_c}-{max_c}")
         print(f"    Unique Course Limit: {unique_limit}")
-        print(f"    Times:")
+        print("    Times:")
         _print_times(f.get("times", {}))
         _print_prefs("Course Preferences", f.get("course_preferences", {}))
         _print_prefs("Room Preferences", f.get("room_preferences", {}))
         _print_prefs("Lab Preferences", f.get("lab_preferences", {}))
         print()
     print("\n=============================\n")
+
 
 def runCLI():
     while True:
@@ -376,7 +416,7 @@ def runCLI():
             input("Press Enter to continue...")
         elif choice == "2":
             # Run Scheduler
-            runScheduler()
+            runScheduler(other)
             saveConfig(filePath, rooms, labs, courses, faculty, other)
             input("Press Enter to continue...")
         elif choice == "3":
@@ -393,20 +433,23 @@ def runCLI():
 
 
 # we won't be printing anything in the terminal when running GUI
-# Need to set this up for final product.. 
+# Need to set this up for final product..
 # Terminal output is still helpfull in developement.
 @contextmanager
 def suppressOutput():
     with open(os.devnull, "w") as devnull:
         old_stdout, old_stderr = sys.stdout, sys.stderr
-        sys.stdout, sys.stderr = devnull, devnull # Change output to null files not Terminal output
+        sys.stdout, sys.stderr = (
+            devnull,
+            devnull,
+        )  # Change output to null files not Terminal output
         try:
             yield
         finally:
-            sys.stdout, sys.stderr = old_stdout, old_stderr # reset 
+            sys.stdout, sys.stderr = old_stdout, old_stderr  # reset
 
 
-# main function where everything will start form. 
+# main function where everything will start form.
 @click.command()
 @click.option("--cli", is_flag=True, help="Run in command-line mode")
 @click.option("--tests", is_flag=True, help="Run tests instead")
@@ -417,7 +460,7 @@ def main(cli, tests):
         run_tests_cli()
     else:
         # Suppress any prints/outputs while GUI runs
-        # Use this after developement, final Commit for sprint. 
+        # Use this after developement, final Commit for sprint.
 
         ################# UNCOMMENT THIS PORTION ===========
         # with suppressOutput():
@@ -431,5 +474,6 @@ def main(cli, tests):
 
     quit()
 
-if __name__ == "__main__" :
+
+if __name__ == "__main__":
     main()
