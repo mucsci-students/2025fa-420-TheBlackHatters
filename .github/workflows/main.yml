@@ -59,7 +59,7 @@ jobs:
       run: uv run ruff check -e --ignore E741,F401 --output-format github
 
     - name: Run Formatter
-      run: uv run ruff format --check --output-format github; true
+      run: uv run ruff format --check --output-format github || true
     
     - name: Run Typechecker
       run: uv run ty check --exit-zero --output-format github
