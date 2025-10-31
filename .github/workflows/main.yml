@@ -32,20 +32,6 @@ jobs:
         uv sync
         uv pip install pytest pytest-cov ruff mypy typer langchain openai
 
-#    - name: Lint (ruff)
-#      run: |
-#        uv run ruff check --fix .
-#        uv run ruff format .
-#
-#    - name: Verify Lint
-#      run: uv run ruff check --select I,E,F --ignore F401,E741
-#
-#    - name: Format (ruff)
-#      run: uv run ruff format --check .
-#
-#    - name: Type Check (mypy)
-#      run: uv run mypy --ignore-missing-imports .
-
     - name: Run Tests
       run: uv run pytest --maxfail=1 --disable-warnings -q --cov --cov-branch --cov-report=xml
 
@@ -56,7 +42,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Run Linter
-      run: uv run ruff check -e --ignore E741,F401 --output-format github
+      run: uv run ruff check -e --output-format github
 
     - name: Run Formatter
       run: uv run ruff format --check --output-format github || true
