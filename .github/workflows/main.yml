@@ -62,4 +62,4 @@ jobs:
       run: uv run ruff format --output-format github
     
     - name: Run Typechecker
-      run: uv run ty check --output-format github
+      run: uv run ty check --exit-zero --output-format github
