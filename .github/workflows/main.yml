@@ -54,3 +54,12 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Run Linter
+      run: ruff check --ignore E741,F401 --output-format github
+
+    - name: Run Formatter
+      run: ruff format --check
+    
+    - name: Run Typechecker
+      run: ty check --output-format github
