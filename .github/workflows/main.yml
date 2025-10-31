@@ -56,10 +56,10 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Run Linter
-      run: ruff check --ignore E741,F401 --output-format github
+      run: uv run ruff check --ignore E741,F401 --output-format github
 
     - name: Run Formatter
-      run: ruff format --check
+      run: uv run ruff format --check
     
     - name: Run Typechecker
-      run: ty check --output-format github
+      run: uv run ty check --output-format github
