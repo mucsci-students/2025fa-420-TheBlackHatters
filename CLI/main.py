@@ -1,20 +1,18 @@
 # File Name: main.py
 
-# Author: Bhagi Dhakal, Fletcher Burton
-# Last Modified: September 21, 2025
-
+# Author: Bhagi Dhakal, Fletcher Burton, Liam Delaney
+# Last Modified: October 20, 2025
 #
 # Run Command: python3 -m CLI.main -- Make sure to be in root of the project
 # This is the main file that will intergrate all out models, 
 #       CLIs together. 
 #
 
-
 # Imports
-import os #very dangerous
+import sys, os
+from contextlib import contextmanager
 import json, csv
-import scheduler
-
+import click
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
 from Models.Room_model import Room
@@ -32,8 +30,7 @@ from Views.main_view import SchedulerApp
 from CLI.test_cli import run_tests_cli
 
 # output/input Path
-outputPath = "output/example1.json"
-inputPath = "output/mainConfig.json"
+filePath = "output/mainConfig.json"
 
 
 fileData = None
@@ -41,9 +38,6 @@ fileData = None
 # this is to parse the JSON file, putting each of the section into
 # their respective model 
 def parseJson(path):
-
-    # TODO: IF file is empty or difrent structur error and it will crash 
-    # we need to fix that...
     with open(path, 'r') as file:
         fileData = json.load(file)
 
@@ -57,7 +51,7 @@ def parseJson(path):
 
     other = {
         "time_slot_config": fileData.get("time_slot_config", {}),
-        "limits": fileData.get("limits", {}),
+        "limit": fileData.get("limit", {}),
         "optimizer_flags": fileData.get("optimizer_flags", {})
     }
 
@@ -71,26 +65,28 @@ def clearTerminal():
     else: 
         _ = os.system('clear')
 
-# welcome the user and the options for our shell..
+# welcome the user and provide the options for our shell.
 def welcomeMessage():
     clearTerminal()
+    print("=" * 50)
+    print("   Welcome to the Scheduling Config System!")
+    print("=" * 50)
 
-    # should be in its own function 
+    print("This program will parse your config files. ")
+    print("With this program you can modify your config files. ")
+    print("You will be able to add, modify, remove: ")
+    print("faculty, courses, labs, Rooms.")
+    print("Run and display the scheduler.")
+
     print("\n")
-    print("Please select one option: ")
-    print("1. View Current Config File")
-    print("2. Add, Modify, Delete Faculty")
-    print("3. Add, Modify, Delete Rooms")
-    print("4. Add, Modify, Delete Labs")
-    print("5. Add, Modify, Delete Courses")
-    print("6. Run Scheduler")
-    print("7. Display Saved Schedules")
-    print("8. Import Config")
-    print("9. Create Config")
-    print("0. Exit")
+    print("Please select one option:\n")
+    print("1. Configuration\n")
+    print("2. Run Scheduler\n")
+    print("3. Display Saved Schedules\n")
+    print("0. Exit\n")
 
 
-# easier function to save daate
+# Saves the data to the config file.
 def saveConfig(path, rooms, labs, courses, faculty, other):
     newData = {
         "config" : {
@@ -100,7 +96,7 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
             "faculty": faculty,
         },
         "time_slot_config": other.get("time_slot_config", {}),
-        "limits": other.get("limits", int),
+        "limit": other.get("limit", int),
         "optimizer_flags": other.get("optimizer_flags", {})
     }
 
@@ -115,7 +111,6 @@ def runScheduler():
         print("1. Run Scheduler")
         print("0. Back")
         choice = input("Select: ")
-
 
         if choice == "0":
             return
@@ -166,23 +161,31 @@ def runScheduler():
 
             config = load_config_from_file(CombinedConfig, f"{configInput}")
 
-            # # Create scheduler
+            # Create scheduler
             scheduler = Scheduler(config)
-
+            
             all_schedules = []
+            count = 0
 
-            for i, schedule in enumerate(scheduler.get_models()):
-                if i >= limit:
-                    break # stop if we reached the limit
+            for schedule in scheduler.get_models():
+                count += 1
+                if count > limit:
+                    break
 
-                schedule_list = []
-                for course in schedule:
-                    csv_line = course.as_csv()
-                    print(csv_line)
-
-                    schedule_list.append(csv_line.split(','))
-                    
+                schedule_list = [course.as_csv().split(',') for course in schedule]
                 all_schedules.append(schedule_list)
+
+                # Convert schedule to list of CSV rows
+                schedule_list = [course.as_csv().split(',') for course in schedule]
+                all_schedules.append(schedule_list)
+
+                # Print live progress after each schedule
+                bar_length = 50
+                progress = int((count / limit) * bar_length)
+                bar = '█' * progress + '-' * (bar_length - progress)
+                print(f"Progress: |{bar}| {count}/{limit}")
+
+            print("\nAll schedules generated!\n")
 
 
             if format == "json":
@@ -202,90 +205,88 @@ def runScheduler():
 
     # return
 
+def whatAction(rooms, labs, courses, faculty, other):
+    while True:
+        print("Please choose an option: \n")
+        print("1. Add, Modify, Delete Faculty\n")
+        print("2. Add, Modify, Delete Rooms\n")
+        print("3. Add, Modify, Delete Labs\n")
+        print("4. Add, Modify, Delete Courses\n")
+        print("0. Go Back\n")
+        choice = input("Enter choice: ")
+        if choice == "1":
+            ##Faculty
+            mainFacultyController(faculty)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "2":
+            ## Room
+            mainRoomControler(rooms)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "3":
+            ## Labs 
+            mainLabControler(labs)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "4":
+            # courses
+            mainCourseController(courses, rooms, labs, faculty)
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "0":
+            # Go back to selections.
+            break
+
+def configMessage():
+    print("\n")
+    print("Please select one option: \n")
+    print("1. Import Config\n")
+    print("2. Create New Config\n")
+    print("3. Edit config\n")
+    print("4. View Current Config File\n")
+    print("0. Back\n")
+
+def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
+    while True:
+        configMessage()
+        choice = input("Enter choice: ")
+        if choice == "1":
+        # Ask for an alternative Config file path
+            print("Enter the file path: ")
+            while True:
+                userPath = input()
+                # Checks if the provided path is valid
+                if os.path.exists(userPath):
+                    # If so, makes it the input path
+                    filePath = userPath
+                    print("Config Loaded Successfully")
+                    return
+                else:
+                    # If not, tells the user and asks for another path.
+                    print("Invalid path!")
+                    print("\n")
+                    print("Enter a valid file path: (i.e output/example.json)")
+        elif choice == "2":
+            # Gives a blank config
+            name = input("Enter the file name: (i.e newconfig)")
+            filePath = createEmptyJson(name)
+        elif choice == "3":
+            ##Faculty
+            whatAction(rooms, labs, courses, faculty, other)
+        elif choice == "4":
+            # Display the current file: 
+            displayConfig(rooms, labs, courses, faculty)
+        elif choice == "0":
+            # return to main selection: 
+            break
+
+
 
 def createEmptyJson(name):
-    data = {
-        "config": {
-            "rooms": [],
-            "labs": [],
-            "courses": [],
-            "faculty": []
-        },
-        "time_slot_config": {
-            "times": {
-                "MON": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "TUE": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "WED": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "THU": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ],
-                "FRI": [
-                    {
-                        "start": "08:00",
-                        "spacing": 60,
-                        "end": "18:00"
-                    }
-                ]
-            },
-            "classes": [
-                {
-                    "credits": 3,
-                    "meetings": [
-                        {
-                            "day": "MON",
-                            "duration": 50
-                        },
-                        {
-                            "day": "WED",
-                            "duration": 50
-                        },
-                        {
-                            "day": "FRI",
-                            "duration": 50
-                        }
-                    ]
-                }
-            ]
-        },
-        "limits": {},
-        "optimizer_flags": [
-            "faculty_course",
-            "faculty_room",
-            "faculty_lab",
-            "same_room",
-            "same_lab",
-            "pack_rooms"
-        ]
-    }
-    file_name = "output/{name}.json"
+    with open('output/blank_template.json', 'r') as template:
+        data = json.load(template)
+    file_name = "output/"+name+".json"
+    print(file_name)
     with open(file_name, 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
     return file_name
-
-
-
 
 def displayConfig(rooms, labs, courses, faculty):
     #this Function will display the config File,
@@ -364,121 +365,71 @@ def displayConfig(rooms, labs, courses, faculty):
         print()
     print("\n=============================\n")
 
-def runCLIorGUI():
-
-    print("=" * 50)
-    print("   Welcome to the Scheduling Config System!")
-    print("=" * 50)
-
-    print("This program will parse your config files. ")
-    print("With this program you can modify your config files. ")
-    print("You will be able to add, modify, remove: ")
-    print("faculty, courses, labs, Rooms.")
-    print("Run and display the scheduler.")
-
+def runCLI():
     while True:
-        clearTerminal()
-
-        print("Please choose an option: \n")
-        print("1: Run CLI \n")
-        print("2: Run GUI \n")
-        print("3: Run Tests \n")
-        print("0: Exit Program \n")
-        choice = input("Your choice: ")
-        if choice == '1':
-            welcomeMessage()
-            inputPath = "output/mainConfig.json"
-            
-            while True:
-                rooms, labs, courses, faculty, other = parseJson(inputPath)
-                welcomeMessage()
-                choice = input("Enter choice: ")
-                if choice == "1":
-                    # Display the current file: 
-                    displayConfig(rooms, labs, courses, faculty)
-                    input("Press Enter to continue...")
-                elif choice == "2":
-                    ##Faculty
-                    mainFacultyController(faculty)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "3":
-                    ## Room
-                    mainRoomControler(rooms)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "4":
-                    ## Labs 
-                    mainLabControler(labs)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "5":
-                    # courses
-                    mainCourseController(courses, rooms, labs, faculty, inputPath)
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "6":
-                    # Run Scheduler
-                    runScheduler()
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    input("Press Enter to continue...")
-                elif choice == "7":
-                    # Display saved schedules
-                    display_schedule()
-                    input("Press Enter to continue...")
-                elif choice == "8":
-                    # Ask for an alternative Config file path
-                    print("Enter the file path: ")
-                    inputPath = input()
-                    input("Press Enter to continue...")
-                elif choice == "9":
-                    # Gives a blank config
-                    name = input("Enter the file name: ")
-                    inputPath = createEmptyJson(name)
-                    input("Press Enter to continue...")
-                elif choice == "0":
-                    saveConfig(outputPath, rooms, labs, courses, faculty, other)
-                    print("Goodbye!")
-                    break
-                else:
-                    print("Option not yet implemented.")
-                    input("Press Enter to continue...")
-
-        elif choice == '2':
-            app = SchedulerApp()
-            app.mainloop()
-            quit()
-        elif choice == '3':
-            run_tests_cli()
-        elif choice == '0':
+        rooms, labs, courses, faculty, other = parseJson(filePath)
+        welcomeMessage()
+        choice = input("Enter choice: ")
+        if choice == "1":
+            ##Faculty
+            configurationPrompt(filePath, rooms, labs, courses, faculty, other)
+            input("Press Enter to continue...")
+        elif choice == "2":
+            # Run Scheduler
+            runScheduler()
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            input("Press Enter to continue...")
+        elif choice == "3":
+            # Display saved schedules
+            display_schedule()
+            input("Press Enter to continue...")
+        elif choice == "0":
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
             print("Goodbye!")
             break
-        else: 
-            print("Please type valid respond! ")
+        else:
+            print("Option not yet implemented.")
             input("Press Enter to continue...")
 
 
-
-    
+# we won't be printing anything in the terminal when running GUI
+# Need to set this up for final product.. 
+# Terminal output is still helpfull in developement.
+@contextmanager
+def suppressOutput():
+    with open(os.devnull, "w") as devnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = devnull, devnull # Change output to null files not Terminal output
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr # reset 
 
 
 # main function where everything will start form. 
-def main():
-    runCLIorGUI()
+@click.command()
+@click.option("--cli", is_flag=True, help="Run in command-line mode")
+@click.option("--tests", is_flag=True, help="Run tests instead")
+def main(cli, tests):
+    if cli:
+        runCLI()
+    elif tests:
+        run_tests_cli()
+    else:
+        # Suppress any prints/outputs while GUI runs
+        # Use this after developement, final Commit for sprint. 
+
+        ################# UNCOMMENT THIS PORTION ===========
+        # with suppressOutput():
+        #     app = SchedulerApp()
+        #     app.mainloop()
+        ################ UNCOMMENT THIS PORTION ===========
+
+        # This for developement, remove this, uncomment the top
+        app = SchedulerApp()
+        app.mainloop()
 
     quit()
 
-
-
-
-
-
-
 if __name__ == "__main__" :
     main()
-
-
-
-
-
-

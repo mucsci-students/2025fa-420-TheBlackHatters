@@ -1,12 +1,16 @@
 # Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
 from tkinter import StringVar, IntVar
+from Views.chatbot_view import ChatbotView
 from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
-                                        importSchedulesBTN, exportAllSchedulesBTN, exportOneScheduleBTN,
+                                        importSchedulesBTN, exportSchedulesBTN,
                                         CourseController)
 
-import threading
+import threading, math, re, random
+
+from datetime import datetime
+
 
 # should create controllers for other things too
 roomCtr = RoomsController()
@@ -302,7 +306,6 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         if data:
             course_data = data.get("course_preferences")
             if course_data != None:
-                print(course_data)
                 for course in course_data:
                     # Stores the weight for the course.
                     weight = course_data.get(course)
@@ -923,8 +926,8 @@ def dataCoursesRight(frame, controller, refresh, data=None):
     ).pack(side="bottom", padx=5, pady=10)
 
 
-def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
-
+def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch, createDropdown, order = None):
+    schedules = orderedSchedules(schedules, "Default")
     # for each of the schedules we create a frame to put schedule in
     schFrame = ctk.CTkFrame(frame, fg_color="#1F1E1E")
     schFrame.pack(padx=(0, 10), pady=(0, 30), fill="x", expand=True)
@@ -940,8 +943,12 @@ def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
     
     schedulesTitle.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
+    
+    dropdown = createDropdown(scheduleHeaderFrame)
+    dropdown.pack(side="left",padx=(0, 10),pady=(10, 0),fill="x",expand=False)
+
     ctk.CTkButton(scheduleHeaderFrame, text="Export", width=100, height=35,
-        command=lambda: exportOneScheduleBTN(schedules, pathEntaryVar)
+        command=lambda: exportSchedulesBTN(schedules, pathEntaryVar)
         ).pack(side="left",padx=(0, 10),pady=(10, 0),fill="x",expand=False)
 
     # Create the table frame inside schFrame
@@ -952,21 +959,33 @@ def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
     # Table header
     headerFrame = ctk.CTkFrame(tableFrame)
     headerFrame.pack(fill="x", pady=(0, 2))
-    columns = ["Course", "Faculty", "Room", "Lab", "Time"]
+    #columns = ["Course", "Faculty", "Room", "Lab", "Time"]
+    columns = ["Course", "Faculty", "Room", "Lab", "Mon", "Tue", "Wed", "Thu", "Fri"]
     for col in columns:
         lbl = ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w")
         lbl.pack(side="left", padx=5)
 
     # Table rows, and put in the data
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
     for row in schedules:
         rowFrame = ctk.CTkFrame(tableFrame)
         rowFrame.pack(fill="x", pady=1)
-        for item in row:
+
+        other = row[:4]
+        times = row[4:]
+
+        dayToTime = {t.split()[0]: t.split()[1] for t in times}
+        FixedTimes = [dayToTime.get(day, '') for day in days]
+
+        row = other + FixedTimes
+
+        for idx, item in enumerate(row):
             lbl = ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w")
             lbl.pack(side="left", padx=5)
 
-def roomLabsScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
+def roomLabsScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch, order, createDropdown):
     # for each of the schedules we create a frame to put schedule in
+    schedules = orderedSchedules(schedulesInstance, order)
     schFrame = ctk.CTkFrame(frame, fg_color="#1F1E1E")
     schFrame.pack(padx=(0, 10), pady=(0, 30), fill="x", expand=True)
 
@@ -981,8 +1000,11 @@ def roomLabsScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
     
     schedulesTitle.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
+    dropdown = createDropdown(scheduleHeaderFrame)
+    dropdown.pack(side="left",padx=(0, 10),pady=(10, 0),fill="x",expand=False)
+
     ctk.CTkButton(scheduleHeaderFrame, text="Export", width=100, height=35,
-        command=lambda: exportOneScheduleBTN(schedules, pathEntaryVar)
+        command=lambda: exportSchedulesBTN(schedulesInstance, pathEntaryVar)
         ).pack(side="left",padx=(0, 10),pady=(10, 0),fill="x",expand=False)
 
     tableFrame = ctk.CTkFrame(schFrame, fg_color="transparent", height=300) 
@@ -993,7 +1015,8 @@ def roomLabsScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
 
         headerFrame = ctk.CTkFrame(tableFrame)
         headerFrame.pack(fill="x", padx=20, pady=(0, 2))
-        columns = ["Course", "Faculty", "Lab", "Time"]
+        columns = ["Course", "Faculty", "Mon", "Tue", "Wed", "Thu", "Fri"]
+        daysName = ["MON", "TUE", "WED", "THU", "FRI"]
         for col in columns:
             ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w"
                         ).pack(side="left",padx=5)
@@ -1002,14 +1025,23 @@ def roomLabsScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
             course, faculty, lab, *days = row
             rowFrame = ctk.CTkFrame(tableFrame)
             rowFrame.pack(fill="x", padx=20, pady=1)
-            values = [course, faculty, lab] + days
+
+            times = row[2:]
+
+            dayToTime = {t.split()[0]: t.split()[1] for t in times}
+            FixedTimes = [dayToTime.get(day, '') for day in daysName]
+
+            values = [course, faculty] + FixedTimes
             for item in values:
-                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w").pack(side="left",
-                                                                                                      padx=5)
+                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), 
+                    width=120, anchor="w").pack(side="left",padx=5)
+
+                
 
 
-def facultyScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
+def facultyScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch, order, createDropdown):
     # for each of the schedules we create a frame to put schedule in
+    schedules = orderedSchedules(schedulesInstance, order)
     schFrame = ctk.CTkFrame(frame, fg_color="#1F1E1E")
     schFrame.pack(padx=(0, 10), pady=(0, 30), fill="x", expand=True)
 
@@ -1023,8 +1055,11 @@ def facultyScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
     
     schedulesTitle.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
-    ctk.CTkButton(scheduleHeaderFrame, text="Export JSON", width=100, height=35,
-        command=lambda idx=1: exportOneScheduleBTN(schedules, pathEntaryVar)
+    dropdown = createDropdown(scheduleHeaderFrame)
+    dropdown.pack(side="left",padx=(0, 10),pady=(10, 0),fill="x",expand=False)
+
+    ctk.CTkButton(scheduleHeaderFrame, text="Export", width=100, height=35,
+        command=lambda idx=1: exportSchedulesBTN(schedulesInstance, pathEntaryVar)
         ).pack(side="left",padx=(0, 10),pady=(10, 0),fill="x",expand=False)
 
     tableFrame = ctk.CTkFrame(schFrame, fg_color="transparent", height=300)  
@@ -1035,7 +1070,8 @@ def facultyScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
 
         headerFrame = ctk.CTkFrame(tableFrame)
         headerFrame.pack(fill="x", padx=20, pady=(0, 2))
-        columns = ["Course", "Room", "Lab", "Time"]
+        columns = ["Course", "Room (lab)", "Mon", "Tue", "Wed", "Thu", "Fri"]
+        daysName = ["MON", "TUE", "WED", "THU", "FRI"]
         for col in columns:
             ctk.CTkLabel(headerFrame, text=col, font=("Arial", 12, "bold"), 
                         width=120, anchor="w").pack(side="left",padx=5)
@@ -1044,10 +1080,243 @@ def facultyScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch):
             course, room, lab, *days = row
             rowFrame = ctk.CTkFrame(tableFrame)
             rowFrame.pack(fill="x", padx=20, pady=1)
-            values = [course, room, lab] + days
+
+            times = row[3:]
+
+            dayToTime = {t.split()[0]: t.split()[1] for t in times}
+            FixedTimes = [dayToTime.get(day, '') for day in daysName]
+
+            if lab in (None, "None"):
+                values = [course, room] + FixedTimes
+            else:
+                values = [course, room + " "+ lab] + FixedTimes
+
             for item in values:
-                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), width=120, anchor="w").pack(side="left",
-                                                                                                      padx=5)
+                ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), 
+                    width=120, anchor="w").pack(side="left", padx=5)
+
+
+def sortSchedulesByTime(data):
+    # Priority for the days, no classes on SAT, SUN but who knows.. 
+    dayOrder = {'MON': 0, 'TUE': 1, 'WED': 2, 'THU': 3, 'FRI': 4, 'SAT': 5, 'SUN': 6}
+    def getEarliestMeeting(schedule):
+        times = []
+        for entry in schedule[4:]:
+            try:
+                day, time_range = entry.split()
+                startTime = time_range.split('-')[0]
+                hour, minute = map(int, startTime.split(':'))
+                times.append((dayOrder[day], hour, minute))
+            except Exception:
+                continue
+        return min(times) if times else (float('inf'), float('inf'), float('inf'))
+
+    # sort using the funciton we give it, usingt he times 
+    return sorted(data, key=getEarliestMeeting)
+
+
+
+def filterDurations(times, dur):
+    valid = []
+    for t in times:
+        t = t.replace('^', '').strip()
+        try:
+            day, time_range = t.split(' ')
+            start, end = time_range.split('-')
+
+            fmt = "%H:%M"
+            start_time = datetime.strptime(start, fmt)
+            end_time = datetime.strptime(end, fmt)
+
+            duration = (end_time - start_time).seconds / 60
+            if duration == dur:
+                valid.append(t)
+        except ValueError:
+            continue 
+    return valid
+
+def orderedSchedules(schedules, order):
+    schedules = sortSchedulesByTime(schedules)
+    reoderedSchedules = []
+    if not schedules:
+        return schedules
+
+    if order == "Default":
+        return schedules
+    else :
+        result = {}
+        for row in schedules:
+            course, faculty, room, lab, *days = row
+            if order == "Rooms & Labs":
+                if room not in result:
+                    result[room] = []
+
+                result[room].append([course, faculty] + days)
+            elif order == "Faculty":
+                if faculty not in result:
+                    result[faculty] = []
+
+                result[faculty].append([course, room, lab] + days)
+
+        for row in schedules:
+            course, faculty, room, lab, *days = row
+            if order == "Rooms & Labs":
+                if lab not in (None, "None"):
+                    if lab not in result:
+                        result[lab] = []
+                    times = filterDurations(days, 110)
+                    result[lab].append([course, faculty] + times)
+
+        reoderedSchedules.append(result)
+
+    return reoderedSchedules
+    
+def plotWeeklyOrderSchedules(schedules, parentFrame, order):
+    schedules = orderedSchedules(schedules, order)
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+    dayOrder = {d: i for i, d in enumerate(days)}
+    hourHeight = 70
+    dayWidth = 170
+    leftMargin = 50
+
+    def parseMeeting(meeting):
+        try:
+            day, times = meeting.split()
+            times = times.replace('^', '')
+            startStr, endStr = times.split('-')
+            fmt = "%H:%M"
+            start = datetime.strptime(startStr, fmt)
+            end = datetime.strptime(endStr, fmt)
+            return day, start, end
+        except Exception:
+            return None, None, None
+
+    def getTimeRange(data):
+        times = []
+        time_pattern = re.compile(r'(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})')
+        for _class in data:
+            for item in _class:
+                match = time_pattern.search(item)
+                if match:
+                    start_h, start_m, end_h, end_m = map(int, match.groups())
+                    start = start_h + start_m / 60
+                    end = end_h + end_m / 60
+                    times.append((start, end))
+
+        if not times:
+            return None
+
+        earliest_start = min(t[0] for t in times)
+        latest_end = max(t[1] for t in times)
+        rounded_latest_end = math.ceil(latest_end)
+
+        return (int(earliest_start), rounded_latest_end)
+        
+    ctk.CTkLabel(parentFrame, text=f"By {order}:", width=120, height = 50, anchor="w", 
+        font=("Arial", 30, "bold")).pack(padx = 10, pady = 10)
+
+    for schedule_dict in schedules:
+        for room, classes in schedule_dict.items():
+            startHour, endHour = getTimeRange(classes)
+            canvasWidth = leftMargin + len(days) * dayWidth + 20
+            canvasHeight = (endHour - startHour) * hourHeight + 100
+
+            offset = 50
+
+            # Outer frame to center the room
+            outer_frame = ctk.CTkFrame(parentFrame, fg_color="transparent")
+            outer_frame.pack(pady=20)
+            
+            # Centered inner frame
+            room_frame = ctk.CTkFrame(outer_frame, fg_color="transparent")
+            room_frame.pack(anchor="n") 
+
+            # Label for room, centered
+            ctk.CTkLabel(room_frame, text=room, font=("Arial", 20, "bold")).pack(pady=5)
+
+            # Create canvas for this room/class
+            canvas = ctk.CTkCanvas(
+                room_frame, width=canvasWidth, height=canvasHeight, highlightthickness=0
+            )
+            canvas.pack(pady=10)
+
+            # Draw day headers
+            for i, day in enumerate(days):
+                x = leftMargin + i * dayWidth
+                canvas.create_text(x + dayWidth/2, 20, text=day, font=("Helvetica", 12, "bold"))
+
+            # Draw horizontal lines and time labels
+            for i in range(startHour, endHour+1):
+                # Bhagi's Wife helped..  :) 
+                y = (i - startHour) * hourHeight  + offset
+                canvas.create_text(leftMargin-5, y+10, text=f"{i:02d}:00", anchor="e", font=("Helvetica", 10))
+                canvas.create_line(leftMargin, y, leftMargin + len(days)*dayWidth, y, fill="#cccccc")
+
+            # Draw each class in this room
+            COLORLIST = [
+                "#6fa8dc","#93c47d","#f6b26b","#e06666","#8e7cc3",
+                "#d5b451","#76a5af","#c27ba0","#a4c2f4","#b6d7a8"
+            ]
+            counter = 1
+            for cls in classes:
+                course = cls[0]
+                professor = cls[1]
+                meetings = cls[2:]
+                if counter + 1 < 10:
+                    counter += 1
+                else: 
+                    counter = 0
+
+                PICKEDCOLOR = COLORLIST[counter]
+                for meeting in meetings:
+                    day, start, end = parseMeeting(meeting)
+                    if day not in dayOrder or not start or not end:
+                        continue
+                    
+                    x = leftMargin + dayOrder[day] * dayWidth + 5
+                    y = (start.hour + start.minute/60 - startHour) * hourHeight + offset
+                    height = (end - start).seconds / 3600 * hourHeight - 2
+
+                    # Rectangle for class
+                    rect = canvas.create_rectangle(
+                        x, y, x + dayWidth - 10, y + height,
+                        fill=PICKEDCOLOR
+                    )
+
+                    # Text inside class
+                    text = f"{course}\n{professor}\n{meeting.split()[1]}"
+                    canvas.create_text(
+                        x + (dayWidth - 10)/2, y + height/2,
+                        text=text, font=("Helvetica", 9), fill="white", justify="center"
+                    )
+
+
+
+def plotWeeklySchedule(schedules):
+    popup = ctk.CTkToplevel()
+    popup.title("Weekly Schedule")
+    popup.minsize(1200, 700)     
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("dark-blue")
+    popup.attributes("-fullscreen", True)
+
+    popup.bind("<Escape>", lambda e: popup.attributes("-fullscreen", False))
+
+    container = ctk.CTkScrollableFrame(popup, fg_color="transparent")
+    container.pack(fill="both", expand=True)
+
+    roomFrame  = ctk.CTkFrame(container, fg_color="transparent")
+    roomFrame.pack(expand = True, pady=10, padx = 10)
+
+    plotWeeklyOrderSchedules(schedules, roomFrame, "Rooms & Labs")
+
+    facultyFrame  = ctk.CTkFrame(container, fg_color="transparent")
+    facultyFrame.pack(expand = True, pady=(10, 50), padx = 10)
+
+    plotWeeklyOrderSchedules(schedules, facultyFrame, "Faculty")
+
+    popup.lift()
+    popup.focus_force()
 
 
 # this is the actual App
@@ -1077,6 +1346,9 @@ class SchedulerApp(ctk.CTk):
         # Choices: Default, Rooms & Labs, Faculty
         self.selectedOrderBy = "Default"
 
+        # Deafult for the pretty view, Table for table view.
+        self.selectedSchView = "Default"
+
         ## imported schedules
         self.schedulesImported = None
         self.schedulesImportedPath = StringVar()
@@ -1100,6 +1372,11 @@ class SchedulerApp(ctk.CTk):
         tabview.pack(expand=True, fill="both")
 
         tabview.add("Edit Config")
+
+        tabview.add("AI Chatbot")
+        chat_frame = ChatbotView(tabview.tab("AI Chatbot"))
+        chat_frame.pack(fill="both", expand=True)
+
         tabview.add("Run Scheduler")
         tabview.add("View Schedules")
 
@@ -1222,32 +1499,10 @@ class SchedulerApp(ctk.CTk):
         self.selectedOrderBy = choice
         self.refresh(target="ViewSchedulePage", data=sch)
 
+    def orderSchView(self, choice, sch):
+        self.selectedSchView = choice
+        self.refresh(target="ViewSchedulePage", data=sch)
 
-    def orderedSchedules(self, schedules):
-        if not schedules:
-            return None
-
-        if self.selectedOrderBy == "Default":
-            return schedules
-        else :
-            reoderedSchedules = []
-            result = {}
-            for row in schedules:
-                course, faculty, room, lab, *days = row
-                if self.selectedOrderBy == "Rooms & Labs":
-                    if room not in result:
-                        result[room] = []
-
-                    result[room].append([course, faculty, lab] + days)
-                elif self.selectedOrderBy == "Faculty":
-                    if faculty not in result:
-                        result[faculty] = []
-
-                    result[faculty].append([course, room, lab] + days)
-
-            reoderedSchedules.append(result)
-        return reoderedSchedules
-    
 
     # this will create the ViewSchedulePage
     # this view will be to strictly to view the schedules.
@@ -1268,6 +1523,7 @@ class SchedulerApp(ctk.CTk):
         def onImport():
             self.schedulesImported = importSchedulesBTN(self.schedulesImportedPath)
             if self.schedulesImported:
+                self.schIndex = 0
                 self.numOfSch = len(self.schedulesImported)
                 self.refresh(target="ViewSchedulePage", data=self.schedulesImported)
 
@@ -1275,12 +1531,13 @@ class SchedulerApp(ctk.CTk):
             self.numOfSch = len(self.schedulesImported)
             # clamp index in case it got out of range previously
             self.schIndex = self.schIndex % self.numOfSch  
-            scheduleOdered = self.orderedSchedules(self.schedulesImported[self.schIndex])
+            #scheduleOdered = orderedSchedules(self.schedulesImported[self.schIndex])
             self.deafultSchedules = self.schedulesImported
         else:
             self.numOfSch = len(schedules) if schedules else 0
             self.schIndex = 0
-            scheduleOdered = self.orderedSchedules(schedules) if schedules else []
+            self.deafultSchedules = schedules
+            #scheduleOdered = self.orderedSchedules(schedules) if schedules else []
 
         importBtn = ctk.CTkButton(importFrame, text="Import Schedules", width=150, command=onImport)
         importBtn.pack(side="left", padx=(0, 10))
@@ -1289,58 +1546,137 @@ class SchedulerApp(ctk.CTk):
         pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
         exportBtn = ctk.CTkButton(importFrame, text="Export All", width=150,
-            command=lambda: exportAllSchedulesBTN(self.deafultSchedules, self.schedulesImportedPath))
+            command=lambda: exportSchedulesBTN(self.deafultSchedules, self.schedulesImportedPath))
         
         exportBtn.pack(side="left", padx=(0, 10))  
 
         # new things here: this make the drop down label and  it self.
         dropDownFrame = ctk.CTkFrame(importFrame, fg_color="transparent")
         dropDownFrame.pack(side="right", padx=(0, 10))
-        dropDownLabel = ctk.CTkLabel(dropDownFrame, width=100, text="Order By: ", font=("Arial", 15, "bold"))
+        dropDownLabel = ctk.CTkLabel(dropDownFrame, width=100, text="View: ", font=("Arial", 15, "bold"))
         dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
         dropdown = ctk.CTkOptionMenu(dropDownFrame, width=150, 
-            values=["Default", "Rooms & Labs", "Faculty"],
-            command=lambda choice: self.orderByChoice(choice, scheduleOdered))
-        dropdown.set(self.selectedOrderBy)
+            values=["Default", "Table"],
+            command=lambda choice: self.orderSchView(choice, self.deafultSchedules))
+        dropdown.set(self.selectedSchView)
         dropdown.pack(side="left", padx=(0, 10), fill="x")
+
 
         # This the actaully for the schedule viewer now.
         # create the Frame to add the schedules to
         schedulesFrame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         schedulesFrame.pack(expand=True, fill="both", padx=10, pady=10)
 
-        if scheduleOdered != None and scheduleOdered != []:
-            if self.selectedOrderBy == "Default":
-                defaultScheduleViewer(schedulesFrame, scheduleOdered, self.schedulesImportedPath,self.schIndex, self.numOfSch)
-            elif self.selectedOrderBy == "Rooms & Labs":
-                roomLabsScheduleViewer(schedulesFrame, scheduleOdered, self.schedulesImportedPath, self.schIndex, self.numOfSch)
+        if self.deafultSchedules != None and self.deafultSchedules != {} and self.deafultSchedules != []:
+            if self.selectedSchView == "Table":
+                def createDropdown(parent):
+                    dropDownFrame = ctk.CTkFrame(parent, fg_color="transparent")
+                    dropDownFrame.pack(side="right", padx=(0, 10))
+                    dropDownLabel = ctk.CTkLabel(dropDownFrame, width=100, text="Order By: ", font=("Arial", 15, "bold"))
+                    dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
+                    dropdown = ctk.CTkOptionMenu(dropDownFrame, width=150, 
+                        values=["Default", "Rooms & Labs", "Faculty"],
+                        command=lambda choice: self.orderByChoice(choice, self.deafultSchedules))
+                    dropdown.set(self.selectedOrderBy)
+                    return dropdown
 
-            elif self.selectedOrderBy == "Faculty":
-                facultyScheduleViewer(schedulesFrame, scheduleOdered, self.schedulesImportedPath, self.schIndex, self.numOfSch)
+                if self.selectedOrderBy == "Default":
+                    defaultScheduleViewer(
+                        schedulesFrame, self.deafultSchedules[self.schIndex], 
+                        self.schedulesImportedPath,self.schIndex,
+                        self.numOfSch, createDropdown
+                    )
+                elif self.selectedOrderBy == "Rooms & Labs":
+                    roomLabsScheduleViewer(
+                        schedulesFrame, self.deafultSchedules[self.schIndex], 
+                        self.schedulesImportedPath, self.schIndex, 
+                        self.numOfSch, self.selectedOrderBy, createDropdown
+                        )
+                    
+                elif self.selectedOrderBy == "Faculty":
+                    facultyScheduleViewer(
+                        schedulesFrame, self.deafultSchedules[self.schIndex], 
+                        self.schedulesImportedPath, self.schIndex, 
+                        self.numOfSch, self.selectedOrderBy,createDropdown
+                        )
+            elif self.selectedSchView == "Default":
+                roomFrame  = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
+                roomFrame.pack(expand = True, pady=10, padx = 10)
+
+                plotWeeklyOrderSchedules(self.deafultSchedules[self.schIndex], roomFrame, "Rooms & Labs")
+
+                facultyFrame  = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
+                facultyFrame.pack(expand = True, pady=(10, 50), padx = 10)
+
+                plotWeeklyOrderSchedules(self.deafultSchedules[self.schIndex], facultyFrame, "Faculty")
+
 
         nextPrevious = ctk.CTkFrame(frame, fg_color="transparent")
         nextPrevious.pack(pady=10) 
 
         buttons_frame = ctk.CTkFrame(nextPrevious, fg_color="transparent")
         buttons_frame.pack(anchor="center")
-        state = "normal" if self.numOfSch > 0 else "disabled"
+
+        previousBTN = ctk.CTkButton(buttons_frame, text="Previous", width=150,
+            command=lambda: changeSchedule(-1))
+        nextBTN = ctk.CTkButton(buttons_frame, text="Next", width=150,
+            command=lambda: changeSchedule(1))
+        
+
+        def updateButtonStates():
+            if self.numOfSch <= 1:
+                previousBTN.configure(state="disabled")
+                nextBTN.configure(state="disabled")
+            else:
+                previousBTN.configure(state="normal" if self.schIndex > 0 else "disabled")
+                nextBTN.configure(state="normal" if self.schIndex < self.numOfSch - 1 else "disabled")
+
+        updateButtonStates()
 
         def changeSchedule(direction):
             if self.numOfSch == 0:
                 return
-            # direction = +1 for next, -1 for previous
-            self.schIndex = (self.schIndex + direction) % self.numOfSch  
-            print(self.schIndex)
+            
+            self.schIndex = (self.schIndex + direction)
+            if self.schIndex < 0:
+                self.schIndex = 0
+            elif self.schIndex >= self.numOfSch:
+                self.schIndex = self.numOfSch - 1
+            
+            jumpEntry.delete(0, "end")
+            jumpEntry.insert(0, str(self.schIndex + 1))
+            
+            updateButtonStates()
             self.refresh(target="ViewSchedulePage", data=None)
 
-        previousBTN = ctk.CTkButton(buttons_frame, text="Previous", width=150,
-            state = state, command=lambda: changeSchedule(-1))
+
+        def jumpToSchedule(event=None):
+            try:
+                index = int(jumpEntry.get()) - 1
+                if 0 <= index < self.numOfSch:
+                    self.schIndex = index
+                    #self.refresh(target="ViewSchedulePage", data=None)
+                else:
+                    jumpEntry.delete(0, "end")
+                    jumpEntry.insert(0, str(self.schIndex + 1))
+            except ValueError:
+                jumpEntry.delete(0, "end")
+                jumpEntry.insert(0, str(self.schIndex + 1))
+            
+            updateButtonStates()
+            self.refresh(target="ViewSchedulePage", data=None)
         previousBTN.pack(side="left", padx=(0, 10))
+        
+        jumpEntry = ctk.CTkEntry(buttons_frame, width=50)
+        jumpEntry.pack(side="left", padx=(5, 5))
+        jumpEntry.insert(0, str(self.schIndex + 1))  
+        jumpEntry.bind("<Return>", jumpToSchedule)
 
-
-        nextBTN = ctk.CTkButton(buttons_frame, text="Next", width=150,
-            state = state, command=lambda: changeSchedule(1))
+        ctk.CTkLabel(buttons_frame, text=f"of {self.numOfSch}" ).pack(side="left", padx=(5, 5))
         nextBTN.pack(side="left", padx=(10, 0))
+
+        
+
 
     def createSchedulerPage(self, parent = None):
         # should be able to understand this now
@@ -1366,7 +1702,8 @@ class SchedulerApp(ctk.CTk):
         pathEntry = ctk.CTkEntry(importFrame, state="readonly", textvariable=self.configPath, width=500)
         pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
-        container = ctk.CTkFrame(frame)
+        # Use a scrollable container so many generated results / buttons remain reachable
+        container = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         container.pack(expand=True, fill="both", padx=10, pady=10)
 
         # limit entry
@@ -1377,14 +1714,16 @@ class SchedulerApp(ctk.CTk):
         
         limitEntry.pack(padx=5)
 
+        # Helper text explaining how generating multiple schedule instances works
+        ctk.CTkLabel(container, text="(When generating multiple schedule instances, the most recent generation will be at the bottom)", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(padx=(0,10))
         optFrame = ctk.CTkFrame(container, fg_color="transparent")
-        optFrame.pack(pady=10)
+        optFrame.pack(pady=0)
 
-        optimizeList = [ "faculty_course","faculty_room","faculty_lab","same_room","same_lab","pack_rooms"]
+        optimizeList = [ "faculty_course","faculty_room","faculty_lab","same_room","same_lab","pack_rooms", "pack_labs" ]
         optimizeVars = {}  # store variables for each checkbox
 
         optionsFrame = ctk.CTkFrame(optFrame, fg_color="transparent")
-        optionsFrame.pack(padx=20, pady=10, fill="x")
+        optionsFrame.pack(padx=20, pady=0, fill="x")
 
         ctk.CTkLabel(optionsFrame, text="Optimization Options", font=("Arial", 18, "bold")).pack(anchor="w", pady=(0,5))
 
@@ -1394,17 +1733,18 @@ class SchedulerApp(ctk.CTk):
             checkbox.pack(anchor="w", pady=2)
             optimizeVars[opt] = var
 
+        # These lines create a (for now) invisible progress bar
         progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
         progress_bar.set(0)
-
         def onView():
             self.refresh(target="ViewSchedulePage", data=self.schedulesImported)
             if hasattr(self, 'tabview'):
                 self.tabview.set("View Schedules")
 
+        # Defines what happens when the generate button is clicked
         def onGenerate():
             selectedOpts = [key for key, var in optimizeVars.items() if var.get()]
-            print("Selected optimizations:", selectedOpts)
+            #print("Selected optimizations:", selectedOpts)
             limit_value = limitEntry.get()
             if limit_value.isdigit():
                 limit_int = int(limit_value)
@@ -1415,34 +1755,75 @@ class SchedulerApp(ctk.CTk):
                 progress_bar.set(0)
                 progress_bar.configure(mode="determinate")
 
+                # Disable buttons during generation
+                genBtn.configure(state="disabled")
+                importBtn.configure(state="disabled")
+
+                # Update UI immediately
+                container.update()
+
+                # Create a simple progress callback that updates UI
+                has_opt = bool(selectedOpts)
                 def progress_callback(current_step, total_steps):
                     progress_bar.set(current_step / total_steps)
-
-                    if current_step == 1:
+                    
+                    if has_opt and current_step == 1:
                         status_label.configure(text="Creating optimization goals...")
                     else:
-                        schedule_num = current_step - 1
+                        schedule_num = current_step - (1 if has_opt else 0)
                         status_label.configure(text=f"Generating schedule {schedule_num}/{limit_int}")
-                    container.update_idletasks()
+                    
+                    # Force UI update after each progress update
+                    container.update()
 
-                def work():
-                    try:
-                        self.schedulesImported = generateSchedulesBtn(limit_int, selectedOpts, progress_callback)
-                        status_label.configure(text="All schedules generated successfully!")
-                    finally:
-                        progress_bar.set(1)
-                        progress_bar.pack_forget()
+                try:
+                    # Check if config file is loaded before starting generation
+                    if self.configPath.get() == "" or self.configPath.get() == ".json" or "Import Config File" in self.configPath.get():
+                        raise ValueError("No configuration file loaded. Please import a config file first!")
+                    # This will block the UI but show progress updates
+                    self.schedulesImported = generateSchedulesBtn(limit_int, selectedOpts, progress_callback)
+                    
+                    # Final updates
+                    status_label.configure(text="All schedules generated successfully!")
+                    progress_bar.set(1)
 
-                        ctk.CTkLabel(container, text="Click View Schedules to see them!", font=("Arial", 20, "bold")).pack(padx=(0, 10))
+                    generation_successful = True
+                except ValueError as e:
+                    # Handle the specific "no config file" error
+                    if "No configuration file" in str(e):
+                        status_label.configure(text="Error: No configuration file loaded!")
+                        status_label.configure(text_color="red")
+                        # You could also show a more detailed message
+                        ctk.CTkLabel(container, text="Please click 'Import Config' and select a valid config file", 
+                                    font=("Arial", 16), text_color="yellow").pack(padx=(0, 10))
+                    else:
+                        status_label.configure(text=f"Error: {str(e)}")
+                        status_label.configure(text_color="red")
+                    generation_successful = False
+                    
+                except Exception as e:
+                    status_label.configure(text=f"Error during generation: {str(e)}")
+                    status_label.configure(text_color="red")
+                    generation_successful = False
+                    
+                finally:
+                    # Hide progress bar and show completion UI
+                    progress_bar.pack_forget()
+                    
+                    # Re-enable buttons
+                    genBtn.configure(state="normal")
+                    importBtn.configure(state="normal")
+                    # Only show completion UI if generation was successful
+                    if generation_successful:
+                        # Show completion message and button
+                        ctk.CTkLabel(container, text="Click View Schedules to see them!", 
+                                    font=("Arial", 20, "bold")).pack(padx=(0, 10))
                         viewBtn = ctk.CTkButton(container, text="View Schedules", width=150,
-                                                command=onView)
+                                            command=onView)
                         viewBtn.pack(padx=(0, 10))
-
-                threading.Thread(target=work, daemon=True).start()
-
             else:
                 ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
-                             text_color="red").pack(padx=(0, 10))
+                            text_color="red").pack(padx=(0, 10))
 
         genBtn = ctk.CTkButton(importFrame, text="Generate Schedules",
                              width=150, command=onGenerate)
@@ -1514,3 +1895,4 @@ class SchedulerApp(ctk.CTk):
                     self.createConfigPage(parent=tab_parent, data=data)
                 elif target == "ViewSchedulePage":
                     self.createViewSchedulePage(parent=tab_parent, schedules=data)
+

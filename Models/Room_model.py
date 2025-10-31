@@ -9,7 +9,8 @@
 class Room: 
     def __init__(self, rooms = None):
         # Init, the rooms should be a list [], 
-        self.rooms = rooms or []
+        # Make an internal copy so external mutations don't affect us
+        self.rooms = list(rooms) if rooms is not None else []
 
     def __str__(self):
         return f"Rooms in the system: {self.rooms}."
@@ -49,6 +50,7 @@ class Room:
     
     def toJson(self):
         ## Not exactly to json, just ready do put into json
-        return self.rooms
+        # Return a shallow copy to avoid exposing internal list by reference
+        return list(self.rooms)
 
 
