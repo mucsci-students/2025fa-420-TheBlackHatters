@@ -1679,28 +1679,14 @@ class SchedulerApp(ctk.CTk):
 
 
     def createSchedulerPage(self, parent = None):
-        # should be able to understand this now
         parent = parent or self
+        # should be able to understand this now
+        
         frame = ctk.CTkFrame(parent, fg_color="transparent")
-        #self.views["RunSchedulerPage"] = frame
+        self.views["RunSchedulerPage"] = frame
         frame.pack(expand=True, fill="both")
 
-        # For now, but shoud be in controller
-        self.configPath = StringVar()
-        if self.configPath.get() == "" or self.configPath.get() == ".json":
-            self.configPath.set("Import Config File and Generate schedules! ")
         limit = StringVar()
-
-        importFrame = ctk.CTkFrame(frame, fg_color="transparent")
-        importFrame.pack(fill="x", padx=20, pady=5)
-
-        importBtn = ctk.CTkButton(importFrame, text="Import Config", width=150,
-            command=lambda: configImportBTN(self.configPath))
-        
-        importBtn.pack(side="left", padx=(0, 10))
-
-        pathEntry = ctk.CTkEntry(importFrame, state="readonly", textvariable=self.configPath, width=500)
-        pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
         # Use a scrollable container so many generated results / buttons remain reachable
         container = ctk.CTkScrollableFrame(frame, fg_color="transparent")
@@ -1715,11 +1701,10 @@ class SchedulerApp(ctk.CTk):
         limitEntry.pack(padx=5)
 
         # Helper text explaining how generating multiple schedule instances works
-        ctk.CTkLabel(container, text="(When generating multiple schedule instances, the most recent generation will be at the bottom)", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(padx=(0,10))
         optFrame = ctk.CTkFrame(container, fg_color="transparent")
         optFrame.pack(pady=0)
 
-        optimizeList = [ "faculty_course","faculty_room","faculty_lab","same_room","same_lab","pack_rooms", "pack_labs" ]
+        optimizeList = [ "faculty_course","faculty_room","faculty_lab","same_room","same_lab","pack_rooms"]
         optimizeVars = {}  # store variables for each checkbox
 
         optionsFrame = ctk.CTkFrame(optFrame, fg_color="transparent")
@@ -1737,14 +1722,13 @@ class SchedulerApp(ctk.CTk):
         progress_bar = ctk.CTkProgressBar(container, width=400, progress_color = "green")
         progress_bar.set(0)
         def onView():
-            self.refresh(target="ViewSchedulePage", data=self.schedulesImported)
+            self.refresh(target="ViewSchedulePage", data = self.schedulesImported)
             if hasattr(self, 'tabview'):
                 self.tabview.set("View Schedules")
 
         # Defines what happens when the generate button is clicked
         def onGenerate():
             selectedOpts = [key for key, var in optimizeVars.items() if var.get()]
-            #print("Selected optimizations:", selectedOpts)
             limit_value = limitEntry.get()
             if limit_value.isdigit():
                 limit_int = int(limit_value)
@@ -1757,7 +1741,7 @@ class SchedulerApp(ctk.CTk):
 
                 # Disable buttons during generation
                 genBtn.configure(state="disabled")
-                importBtn.configure(state="disabled")
+                # importBtn.configure(state="disabled")
 
                 # Update UI immediately
                 container.update()
@@ -1775,7 +1759,6 @@ class SchedulerApp(ctk.CTk):
                     
                     # Force UI update after each progress update
                     container.update()
-
                 try:
                     # Check if config file is loaded before starting generation
                     if self.configPath.get() == "" or self.configPath.get() == ".json" or "Import Config File" in self.configPath.get():
@@ -1812,7 +1795,7 @@ class SchedulerApp(ctk.CTk):
                     
                     # Re-enable buttons
                     genBtn.configure(state="normal")
-                    importBtn.configure(state="normal")
+                    # importBtn.configure(state="normal")
                     # Only show completion UI if generation was successful
                     if generation_successful:
                         # Show completion message and button
@@ -1825,9 +1808,10 @@ class SchedulerApp(ctk.CTk):
                 ctk.CTkLabel(container, text="Please enter a valid number!", font=("Arial", 20, "bold"),
                             text_color="red").pack(padx=(0, 10))
 
-        genBtn = ctk.CTkButton(importFrame, text="Generate Schedules",
+        genBtn = ctk.CTkButton(container, text="Generate Schedules",
                              width=150, command=onGenerate)
         genBtn.pack(padx=(0, 10))
+
 
     def createTwoColumn(self, parent, popluateLeft=None, popluateRight=None):
         # This creates the look for the  confi page.
@@ -1859,29 +1843,27 @@ class SchedulerApp(ctk.CTk):
             popluateRight(rightInner)
 
     def refresh(self, target=None, data=None):
-            if target is None:
-                for name, view in list(self.views.items()):
-                    view.destroy()
+        if target is None:
+            for name, view in list(self.views.items()):
+                view.destroy()
+            self.views.clear()
 
-                self.views.clear()
-
-                self.createMainPage()
-                
+            self.createMainPage()
                 # Repack the main view
-                self.views["MainPage"].pack(expand=True, fill="both")
+            self.views["MainPage"].pack(expand=True, fill="both")
 
-            elif target in self.views:
-                self.views[target].destroy()
-                del self.views[target]
+        elif target in self.views:
+            self.views[target].destroy()
+            del self.views[target]
                 
-                tab_parent = None
-                if hasattr(self, 'tabview'):
-                    if target == "ConfigPage":
-                        tab_parent = self.tabview.tab("Edit Config")
-                    elif target == "RunSchedulerPage":
-                        tab_parent = self.tabview.tab("Run Scheduler")
-                    elif target == "ViewSchedulePage":
-                        tab_parent = self.tabview.tab("View Schedules")
+            tab_parent = None
+            if hasattr(self, 'tabview'):
+                if target == "ConfigPage":
+                    tab_parent = self.tabview.tab("Edit Config")
+                elif target == "RunSchedulerPage":
+                    tab_parent = self.tabview.tab("Run Scheduler")
+                elif target == "ViewSchedulePage":
+                    tab_parent = self.tabview.tab("View Schedules")
 
                 if tab_parent is None and target != "MainPage":
                     print(f"Error: Could not find tab parent for {target}")
@@ -1895,4 +1877,3 @@ class SchedulerApp(ctk.CTk):
                     self.createConfigPage(parent=tab_parent, data=data)
                 elif target == "ViewSchedulePage":
                     self.createViewSchedulePage(parent=tab_parent, schedules=data)
-
