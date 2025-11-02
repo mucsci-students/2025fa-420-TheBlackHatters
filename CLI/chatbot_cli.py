@@ -1,72 +1,87 @@
 # chatbot_cli.py
-from Controller.main_controller import RoomsController, LabsController, CourseController, FacultyController
+
+import json
+import os
+from Controller.chatbot_agent import ChatbotAgent
 from Models.Data_manager import DataManager
 
-def main():
-    print("Chatbot CLI for Schedule Manager")
-    print("Type 'exit' to quit.\n")
 
+def save_config(DM, path):
+    """Save the current DM.data structure back to disk."""
+    try:
+        with open(path, "w") as f:
+            json.dump(DM.data, f, indent=4)
+        print(f"Configuration saved to {path}")
+    except Exception as e:
+        print(f"Failed to save config: {e}")
+
+
+def main(cfg_path=None):
+    print("=" * 60)
+    print("Welcome to the Chatbot CLI for Schedule Manager")
+    print("=" * 60)
+    print("Type your commands in plain English!")
+    print("Examples:")
+    print("  • add a room called Roddy 1")
+    print("  • add a lab called Mac")
+    print("  • add a faculty named Hobbs with 4 min credits and 8 max credits")
+    print("  • add a course named CMSC 123 that's 5 credits.")
+    print("  • delete course CMSC 123")
+    print("\nType 'exit' or 'quit' to leave.\n")
+
+    # --- Use provided path or fallback ---
+    if not cfg_path:
+        cfg_path = "output/mainConfig.json"
+
+    # --- Load DataManager Config ---
     DM = DataManager()
-    labs_ctrl = LabsController()
-    rooms_ctrl = RoomsController()
-    courses_ctrl = CourseController()
-    faculty_ctrl = FacultyController()
 
+    if os.path.exists(cfg_path):
+        with open(cfg_path, "r") as f:
+            DM.data = json.load(f)
+        print(f"Config loaded from {cfg_path}")
+    else:
+        DM.data = {"config": {"rooms": [], "labs": [], "courses": [], "faculty": []}}
+        print("No config file found. Starting with an empty config.")
+
+    # --- Initialize chatbot agent ---
+    agent = ChatbotAgent(lambda: cfg_path)
+    agent.disabled = False
+
+    # --- CLI main loop ---
     while True:
-        user_input = input("Enter a query: ").strip()
-        if user_input.lower() == "exit":
-            print("Goodbye!")
-            break
-
-        response = handle_query(user_input, labs_ctrl, rooms_ctrl, courses_ctrl, faculty_ctrl)
-        print(response)
-
-def handle_query(query, labs_ctrl, rooms_ctrl, courses_ctrl, faculty_ctrl):
-    query_lower = query.lower()
-
-    # --- Add labs ---
-    if query_lower.startswith("add the following labs"):
-        names = [n.strip() for n in query.split(":")[1].split(",")]
-        responses = []
-        for lab in names:
-            labs_ctrl.addLab(lab, lambda _: None)
-            responses.append(f"Lab {lab} added successfully")
-        return "\n".join(responses)
-
-    # --- Rename lab ---
-    if "rename" in query_lower and "lab" in query_lower:
         try:
-            parts = query.split('"')
-            old, new = parts[1], parts[3]
-            if new in labs_ctrl.listLabs():
-                return f"Lab {new} already exists so it cannot be renamed from {old}"
-            labs_ctrl.editLab(old, new, lambda **_: None)
-            return f"Lab {old} renamed to {new} successfully"
-        except Exception:
-            return "Invalid rename command format."
+            user_input = input("\nYou: ").strip()
+            if user_input.lower() in ("exit", "quit"):
+                print("Goodbye!")
+                break
+            if not user_input:
+                continue
 
-    # --- Add courses ---
-    if query_lower.startswith("add the following courses"):
-        prefix = "CMSC"
-        names = [n.strip() for n in query.split(":")[1].split(",")]
-        responses = []
-        for course in names:
-            full_name = f"{prefix} {course}"
-            courses_ctrl.addCourse({"name": full_name}, lambda _: None)
-            responses.append(f"Course {full_name} added successfully")
-        return "\n".join(responses)
+            result = agent.query(user_input)
 
-    # --- Add rooms ---
-    if query_lower.startswith("add the following rooms"):
-        names = [n.strip() for n in query.split(":")[1].split(",")]
-        responses = []
-        for room in names:
-            rooms_ctrl.addRoom(room, lambda _: None)
-            responses.append(f"Room {room} added successfully")
-        return "\n".join(responses)
+            # --- Pretty-print response ---
+            if isinstance(result, dict):
+                print(f"\nChatbot: {result.get('response', 'No response.')}")
+                if result.get("payload"):
+                    print(json.dumps(result["payload"], indent=2))
 
-    # --- Fallback ---
-    return "Sorry, I didn't understand that command."
+                # --- Auto-save after successful modify ---
+                if (
+                    not result.get("error")
+                    and result.get("action") in ("add", "edit", "delete")
+                ):
+                    save_config(DM, cfg_path)
+
+            else:
+                print(f"\nChatbot: {result}")
+
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()

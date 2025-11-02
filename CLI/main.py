@@ -248,6 +248,7 @@ def whatAction(rooms, labs, courses, faculty, other):
         print("2. Add, Modify, Delete Rooms\n")
         print("3. Add, Modify, Delete Labs\n")
         print("4. Add, Modify, Delete Courses\n")
+        print("5. Chatbot Mode (natural language)\n")
         print("0. Go Back\n")
         choice = input("Enter choice: ")
         if choice == "1":
@@ -266,6 +267,14 @@ def whatAction(rooms, labs, courses, faculty, other):
             # courses
             mainCourseController(courses, rooms, labs, faculty)
             saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "5":
+            from CLI.chatbot_cli import main as chatbot_main
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            chatbot_main(filePath)
+
+            # reload changes made by chatbot
+            rooms, labs, courses, faculty, other = parseJson(filePath)
+            print("\nChatbot session ended. Configuration reloaded from disk.\n")
         elif choice == "0":
             # Go back to selections.
             break
