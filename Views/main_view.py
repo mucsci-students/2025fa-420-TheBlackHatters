@@ -1572,7 +1572,6 @@ class SchedulerApp(ctk.CTk):
                 if switch_tab and hasattr(tabview, "set"):
                     try:
                         tabview.set(switch_tab)
-                        print(f"[DEBUG] Switched tab tdo {switch_tab}")
                     except Exception as e:
                         print(f"[WARN] Could not switch tab to {switch_tab}: {e}")
 

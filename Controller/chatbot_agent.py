@@ -336,7 +336,6 @@ class ChatbotAgent:
         max_c = grab(max_patterns)
         uniq = grab(uniq_patterns)
 
-        print(f"[DEBUG] Extracted mins/max/uniq => min:{min_c} max:{max_c} uniq:{uniq}")
         return (min_c, max_c, uniq)
 
     @staticmethod
@@ -453,9 +452,6 @@ class ChatbotAgent:
                 if lab in labs_norm:
                     pairs[lab] = int(num)
 
-        # --- Debug output ---
-        print("[DEBUG] Lab pref slice:", repr(span))
-        print("[DEBUG] Lab pref matches:", json.dumps(pairs, indent=2))
         return pairs
 
     # -------------------------
@@ -587,7 +583,6 @@ class ChatbotAgent:
                 new_fac["lab_preferences"] = lp
 
                 try:
-                    print("[DEBUG] Faculty add payload:\n", json.dumps(new_fac, indent=2))
                     DM.addFaculty(new_fac)
                     return self._ok(f"Faculty '{new_fac['name']}' added (not yet saved).", "faculty", "add")
                 except Exception as e:
@@ -804,8 +799,6 @@ class ChatbotAgent:
                     new_fac["room_preferences"] = rp
                 if lp:
                     new_fac["lab_preferences"] = lp
-
-                print("[DEBUG] Faculty edit payload:\n", json.dumps(new_fac, indent=2))
 
                 # Commit to DM
                 fac_list = DM.data["config"]["faculty"]
