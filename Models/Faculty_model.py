@@ -31,25 +31,53 @@ class Faculty:
         
 
     def __str__(self):
-        return f"Faculty in the system: {self.faculty}."
+        # Defensive stringification: use getattr with defaults to avoid AttributeError
+        name = getattr(self, "name", None)
+        min_cr = getattr(self, "minimum_credits", None)
+        max_cr = getattr(self, "maximum_credits", None)
+        course_limit = getattr(self, "unique_course_limit", None)
+        times = getattr(self, "times", None)
+        course_prefs = getattr(self, "course_preferences", None)
+        room_prefs = getattr(self, "room_preferences", None)
+        lab_prefs = getattr(self, "lab_preferences", None)
+
+        return (
+            f"Faculty member: {name}\n"
+            f"Credits: {min_cr}-{max_cr}\n"
+            f"Course Limit: {course_limit}\n"
+            f"Times Available: {times}\n"
+            f"Course Preferences: {course_prefs}\n"
+            f"Room Preferences: {room_prefs}\n"
+            f"Lab Preferences: {lab_prefs}"
+        )
 
     # Checks if the provided name of a faculty member already exists in the JSON file.
     # Returns true if found, otherwise false.
     def facCheck(self, name):
         i=0
         for entry in self:
-            subFaculty = self[i].get('name')
-            if name in subFaculty:
-                return True
-            else:
-                i=i+1
+            # guard against entries without 'name' or with None
+            subFaculty = self[i].get('name') if isinstance(self[i], dict) else None
+            if subFaculty is None:
+                i = i + 1
+                continue
+            # only perform substring check for string types
+            try:
+                if name in subFaculty:
+                    return True
+            except TypeError:
+                # name or subFaculty not iterable/compatible — skip this entry
+                pass
+            i = i + 1
         return False
 
 
     # Prints a list of all current faculty entries.
     def viewFaculty(self):
         for entry in self:
-            print(entry,"\n")
+            # print each entry followed by a blank line (match existing tests expecting "\n\n")
+            print(entry)
+            print()
 
 
     # Adds the faculty to the JSON file by taking in the data of a faculty member
@@ -64,13 +92,19 @@ class Faculty:
         i=0
         for entry in self:
             # Specifically stores the 'name' section of the faculty list entry.
-            subFaculty = self[i].get('name')
-            # Checks if the name to be deleted is in that entry.
-            if faculty_name in subFaculty:
-                # If so, deletes that index.
-                rem = self[i]
-                del self[i]
-                return rem
-            else:
-                # otherwise, iterate and back to the top of loop.
-                i=i+1
+            subFaculty = self[i].get('name') if isinstance(self[i], dict) else None
+            # If there's no name on this entry, skip it
+            if subFaculty is None:
+                i = i + 1
+                continue
+            try:
+                if faculty_name in subFaculty:
+                    rem = self[i]
+                    del self[i]
+                    return rem
+            except TypeError:
+                # faculty_name or subFaculty not iterable/compatible — skip this entry
+                pass
+            i = i + 1
+        # If we get here, faculty wasn't found
+        return None  # Return None when faculty is not found

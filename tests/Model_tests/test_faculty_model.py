@@ -181,3 +181,65 @@ def test_str_method_returns_expected_format():
         assert isinstance(result, str)
     except AttributeError:
         pytest.skip("Known issue: __str__() references undefined 'self.faculty'.")
+
+# facCheck handles entries without 'name' key without raising:
+def test_facCheck_entry_without_name_key_returns_false():
+    fake = [{"foo": "bar"}, {"name": "Dr. X"}]
+    assert Faculty.facCheck(fake, "Dr. X") is True
+    assert Faculty.facCheck(fake, "Dr. Y") is False
+
+# facCheck with non-string search term:
+def test_facCheck_with_non_string_search_term():
+    """
+    facCheck() should handle non-string search terms gracefully by returning False
+    rather than raising TypeError, consistent with error handling in the method.
+    """
+    fake = [{"name": "123"}, {"name": 456}]
+    assert Faculty.facCheck(fake, 123) is False  # number search term
+    assert Faculty.facCheck(fake, None) is False  # None search term
+
+# addFaculty returns None and appends by reference:
+def test_addFaculty_returns_none_and_appends_by_reference():
+    lst = []
+    entry = {"name": "Dr. Ref"}
+    ret = Faculty.addFaculty(lst, entry)
+    assert ret is None
+    assert lst[0] is entry
+    entry["name"] = "Dr. Ref Modified"
+    assert lst[0]["name"] == "Dr. Ref Modified"
+
+# removeFaculty when 'name' value is None:
+def test_removeFaculty_entry_with_none_name_skips_and_returns_none():
+    fake = [{"name": None}, {"name": "Dr. Valid"}]
+    removed = Faculty.removeFaculty(fake, "Dr. Valid")
+    assert removed["name"] == "Dr. Valid"
+    assert any(e.get("name") is None for e in fake)
+
+# removeFaculty identical object instances:
+def test_removeFaculty_duplicate_same_object_removes_first_only():
+    entry = {"name": "Dr. Twin"}
+    fake = [entry, entry]
+    removed = Faculty.removeFaculty(fake, "Dr. Twin")
+    assert removed is entry
+    assert len(fake) == 1
+    assert fake[0] is entry
+
+# viewFaculty exact formatting:
+def test_viewFaculty_exact_formatting(capfd):
+    e = {"name": "X"}
+    fake = [e]
+    Faculty.viewFaculty(fake)
+    out, _ = capfd.readouterr()
+    assert out == f"{e}\n\n"
+
+# constructor preserves provided types and None:
+def test_constructor_preserves_types_and_none():
+    f = Faculty("N", None, None, None, None, None, None, None)
+    assert f.times is None
+    assert f.course_preferences is None
+
+# case sensitivity:
+def test_facCheck_is_case_sensitive():
+    fake = [{"name": "Dr. Smith"}]
+    assert Faculty.facCheck(fake, "dr. smith") is False
+    assert Faculty.facCheck(fake, "Dr. Smith") is True
