@@ -460,16 +460,10 @@ def main(cli, tests):
     else:
         # Suppress any prints/outputs while GUI runs
         # Use this after developement, final Commit for sprint.
+        with suppressOutput():
+            app = SchedulerApp()
+            app.mainloop()
 
-        ################# UNCOMMENT THIS PORTION ===========
-        # with suppressOutput():
-        #     app = SchedulerApp()
-        #     app.mainloop()
-        ################ UNCOMMENT THIS PORTION ===========
-
-        # This for developement, remove this, uncomment the top
-        app = SchedulerApp()
-        app.mainloop()
 
     quit()
 
