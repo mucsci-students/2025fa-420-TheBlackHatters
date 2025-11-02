@@ -268,6 +268,22 @@ class ChatbotAgent:
         return list(dict.fromkeys(results))
 
     @staticmethod
+    def _convert_to_24h(t: str) -> str:
+        """Convert strings like '9am', '14:30', '4 pm' into 24-hour format '09:00'."""
+        t = t.strip().lower()
+        m = re.match(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", t)
+        if not m:
+            return t  # already looks like 13:10 or malformed
+        hh = int(m.group(1))
+        mm = int(m.group(2) or 0)
+        ap = (m.group(3) or "").lower()
+        if ap == "pm" and hh != 12:
+            hh += 12
+        if ap == "am" and hh == 12:
+            hh = 0
+        return f"{hh:02d}:{mm:02d}"
+
+    @staticmethod
     def _parse_times_from_text(text: str) -> Dict[str, List[str]]:
         """
         Parse phrases like:
@@ -327,6 +343,65 @@ class ChatbotAgent:
 
         return results
 
+    @staticmethod
+    def _parse_lab_prefs(text: str) -> Dict[str, int]:
+        """
+        Extract lab preferences from text, supporting:
+          - "lab preference of the Mac lab weight of 1"
+          - "the Mac lab weight of 1"
+          - "Mac lab weight of 1"
+          - "weight of 3 for Windows lab"
+          - "AI lab = 2"
+          - "Data 5"
+        Returns {"Mac": 1, "Windows": 3, "Data": 5}
+        """
+        labs_norm = ["Linux", "Mac", "Windows", "AI", "Data", "GPU"]
+
+        # Narrow scope to lab preference clause if present
+        m_clause = re.search(
+            r"(lab\s+preferences?|lab\s+preference)\b(?::| of)?\s*(.+?)(?=(?:course\s+preferences?|course\s+preference|room\s+preferences?|room\s+preference)\b|$)",
+            text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        span = m_clause.group(2) if m_clause else text  # fallback to full text
+
+        pairs: Dict[str, int] = {}
+
+        # --- Patterns ---
+        # A. "<Lab> (lab)? weight of|= <num>" (handles "the Mac lab weight of 1")
+        pat_a = re.compile(
+            r"(?:the\s+)?(Linux|Mac|Windows|AI|Data|GPU)\b(?:\s+lab)?\s*(?:weight(?:\s+of)?|with a weight of|=)\s*(\d+)",
+            flags=re.IGNORECASE,
+        )
+
+        # B. "weight of|= <num> for <Lab>" (handles "weight of 1 for the Mac lab")
+        pat_b = re.compile(
+            r"(?:weight(?:\s+of)?|with a weight of|=)\s*(\d+)\s*(?:for|to)?\s*(?:the\s+)?(Linux|Mac|Windows|AI|Data|GPU)\b(?:\s+lab)?",
+            flags=re.IGNORECASE,
+        )
+
+        # C. Simple "<Lab> <num>" (handles "Mac 1" or "Mac lab 1")
+        pat_c = re.compile(
+            r"(?:the\s+)?(Linux|Mac|Windows|AI|Data|GPU)\b(?:\s+lab)?\s+(\d+)\b",
+            flags=re.IGNORECASE,
+        )
+
+        # --- Run matches ---
+        for rx in (pat_a, pat_b, pat_c):
+            for g in rx.finditer(span):
+                if rx is pat_b:
+                    num, lab = g.group(1), g.group(2)
+                else:
+                    lab, num = g.group(1), g.group(2)
+                lab = lab.capitalize()
+                if lab in labs_norm:
+                    pairs[lab] = int(num)
+
+        # --- Debug output ---
+        print("[DEBUG] Lab pref slice:", repr(span))
+        print("[DEBUG] Lab pref matches:", json.dumps(pairs, indent=2))
+        return pairs
+
     # -------------------------
     # ADD / EDIT / DELETE tools
     # -------------------------
@@ -348,7 +423,7 @@ class ChatbotAgent:
                     m = re.search(r"(?:room\s+|roddy\s+)?([A-Z][A-Za-z]+\s*\d+)", text, re.IGNORECASE)
                     name = m.group(1).strip() if m else None
                 if not name:
-                    return self._err("Please specify a room name to add.", category, "add")
+                    return self._err("Plpaease specify a room name to add.", category, "add")
                 try:
                     DM.addRoom(name)
                     return self._ok(f"Room '{name}' added (not yet saved).", category, "add")
@@ -388,43 +463,75 @@ class ChatbotAgent:
                 if "name" not in new_fac or not new_fac["name"]:
                     return self._err("Faculty must include a name.", "faculty", "add")
 
-                new_fac.setdefault("minimum_credits", self._find_number_after(text, "minimum credits") or 0)
-                new_fac.setdefault("maximum_credits", self._find_number_after(text, "maximum credits") or 12)
-                new_fac.setdefault("unique_course_limit", self._find_number_after(text, "unique course limit") or 1)
+                # Match "min credits" or "minimum credits"
+                min_c = re.search(r"\bmin(?:imum)?\s*credits?\s*(?:set to|is|=|of|to)?\s*(\d+)", text, re.IGNORECASE)
+                max_c = re.search(r"\bmax(?:imum)?\s*credits?\s*(?:set to|is|=|of|to)?\s*(\d+)", text, re.IGNORECASE)
+                uniq = re.search(r"\bunique\s*course\s*limit\s*(?:of|is|=|to)?\s*(\d+)", text, re.IGNORECASE)
+
+                new_fac.setdefault("minimum_credits", int(min_c.group(1)) if min_c else 0)
+                new_fac.setdefault("maximum_credits", int(max_c.group(1)) if max_c else 12)
+                new_fac.setdefault("unique_course_limit", int(uniq.group(1)) if uniq else 1)
 
                 # Times: if specified, put ONLY those days; others empty
                 parsed_times = self._parse_times_from_text(text)
+
+                # detect "monday from 9am to 5pm" style
+                if not parsed_times:
+                    for m in re.finditer(
+                            r"(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri)\s*(?:from)?\s*([0-9:apm\s]+)\s*(?:to|-)\s*([0-9:apm\s]+)",
+                            text, flags=re.IGNORECASE):
+                        day, start, end = m.groups()
+                        start_24 = self._convert_to_24h(start)
+                        end_24 = self._convert_to_24h(end)
+                        parsed_times.setdefault(day[:3].upper(), []).append(f"{start_24}-{end_24}")
+
                 if parsed_times:
-                    all_days = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
+                    all_days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
                     new_fac["times"] = {d: parsed_times.get(d, []) for d in all_days}
                 else:
                     # sensible default 9-5 M-F
-                    new_fac["times"] = {d: (["09:00-17:00"] if d in ["MON","TUE","WED","THU","FRI"] else []) for d in ["MON","TUE","WED","THU","FRI","SAT","SUN"]}
+                    new_fac["times"] = {
+                        d: (["09:00-17:00"] if d in ["MON", "TUE", "WED", "THU", "FRI"] else [])
+                        for d in ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+                    }
 
                 # Preferences (fully replace if provided in data; otherwise parse from text)
                 cp = data.get("course_preferences")
                 rp = data.get("room_preferences")
                 lp = data.get("lab_preferences")
 
+                # Course preferences — only matches true course-like patterns
                 if cp is None:
                     cp = {}
-                    # Parse entries like CMSC 362=5
-                    for m in re.finditer(r"\b([A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?)\s*=\s*(\d+)\b", text):
-                        cp[m.group(1).upper().replace("  ", " ")] = int(m.group(2))
+                    known_rooms = [r.lower() for r in cfg.get("rooms", [])]
+
+                    # Match course-like tokens (e.g., CMSC 362, BIO 120)
+                    for m in re.finditer(
+                            r"\b([A-Z]{2,}\s*\d{1,4}[A-Za-z]?)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
+                            text,
+                            re.IGNORECASE,
+                    ):
+                        course = m.group(1).strip()
+                        # Exclude if it matches a known room (case-insensitive)
+                        if not any(course.lower() == r for r in known_rooms):
+                            cp[course.upper().replace("  ", " ")] = int(m.group(2))
+
                 if rp is None:
                     rp = {}
-                    for m in re.finditer(r"\b([A-Z][A-Za-z]+\s*\d+)\s*=\s*(\d+)\b", text):
+                    for m in re.finditer(
+                            r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
+                            text, re.IGNORECASE):
                         rp[m.group(1)] = int(m.group(2))
+
                 if lp is None:
-                    lp = {}
-                    for m in re.finditer(r"\b(Linux|Mac|Windows|AI|Data|GPU)\b\s*=\s*(\d+)\b", text, re.IGNORECASE):
-                        lp[m.group(1).capitalize()] = int(m.group(2))
+                    lp = self._parse_lab_prefs(text)
 
                 new_fac["course_preferences"] = cp
                 new_fac["room_preferences"] = rp
                 new_fac["lab_preferences"] = lp
 
                 try:
+                    print("[DEBUG] Faculty add payload:\n", json.dumps(new_fac, indent=2))
                     DM.addFaculty(new_fac)
                     return self._ok(f"Faculty '{new_fac['name']}' added (not yet saved).", "faculty", "add")
                 except Exception as e:
@@ -573,13 +680,33 @@ class ChatbotAgent:
                 if not fac:
                     return self._err(f"Faculty '{identifier}' not found.", "faculty", "edit")
 
-                # Start from an empty replacement payload (we REPLACE dicts completely)
+                cfg = DM.data.get("config", {})
+                known_rooms = [r.lower() for r in cfg.get("rooms", [])]
+
+                # Start from a copy of the existing faculty
                 new_fac = fac.copy()
 
-                # numeric limits
-                min_c = self._find_number_after(text, "minimum credits")
-                max_c = self._find_number_after(text, "maximum credits")
-                uniq = self._find_number_after(text, "unique course limit")
+                # --- Faculty credit/limit extraction ---
+                min_c_match = re.search(
+                    r"\bmin(?:imum)?\s*credits?\b(?:\s*(?:set|is|are|equals|to|of|=)\s*)?(\d+)",
+                    text,
+                    re.IGNORECASE,
+                )
+                max_c_match = re.search(
+                    r"\bmax(?:imum)?\s*credits?\b(?:\s*(?:set|is|are|equals|to|of|=)\s*)?(\d+)",
+                    text,
+                    re.IGNORECASE,
+                )
+                uniq_match = re.search(
+                    r"\bunique\s*(?:course\s*)?limit\b(?:\s*(?:set|is|are|equals|to|of|=)\s*)?(\d+)",
+                    text,
+                    re.IGNORECASE,
+                )
+
+                min_c = int(min_c_match.group(1)) if min_c_match else None
+                max_c = int(max_c_match.group(1)) if max_c_match else None
+                uniq = int(uniq_match.group(1)) if uniq_match else None
+
                 if min_c is not None:
                     new_fac["minimum_credits"] = min_c
                 if max_c is not None:
@@ -587,30 +714,86 @@ class ChatbotAgent:
                 if uniq is not None:
                     new_fac["unique_course_limit"] = uniq
 
-                # Availability: replace entire times with ONLY days mentioned; rest empty
+                # --- Availability parsing ---
                 parsed_times = self._parse_times_from_text(text)
+                if not parsed_times:
+                    for m in re.finditer(
+                            r"(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri)\s*(?:from)?\s*([0-9:apm\s]+)\s*(?:to|-)\s*([0-9:apm\s]+)",
+                            text, flags=re.IGNORECASE):
+                        day, start, end = m.groups()
+                        start_24 = self._convert_to_24h(start)
+                        end_24 = self._convert_to_24h(end)
+                        parsed_times.setdefault(day[:3].upper(), []).append(f"{start_24}-{end_24}")
                 if parsed_times:
-                    all_days = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
+                    all_days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
                     new_fac["times"] = {d: parsed_times.get(d, []) for d in all_days}
 
-                # Preferences: fully replace if present (explicit or parsed)
-                cp = updates.get("course_preferences")
-                rp = updates.get("room_preferences")
-                lp = updates.get("lab_preferences")
+                # --- Preference clearing ---
+                if re.search(r"\bremove\s+all\s+preferences?\b", text, re.IGNORECASE):
+                    new_fac["course_preferences"] = {}
+                    new_fac["room_preferences"] = {}
+                    new_fac["lab_preferences"] = {}
+                else:
+                    if re.search(r"\bremove\s+course\s+preferences?\b", text, re.IGNORECASE):
+                        new_fac["course_preferences"] = {}
+                    if re.search(r"\bremove\s+room\s+preferences?\b", text, re.IGNORECASE):
+                        new_fac["room_preferences"] = {}
+                    if re.search(r"\bremove\s+lab\s+preferences?\b", text, re.IGNORECASE):
+                        new_fac["lab_preferences"] = {}
+                    # Remove specific lab preference (e.g. "remove lab preference Mac")
+                    rem_lab = re.search(r"\bremove\s+lab\s+preference\s+([A-Z][A-Za-z0-9]+)\b", text, re.IGNORECASE)
+                    if rem_lab:
+                        lab_name = rem_lab.group(1).capitalize()
+                        if "lab_preferences" in new_fac and lab_name in new_fac["lab_preferences"]:
+                            del new_fac["lab_preferences"][lab_name]
 
-                if cp is None:
-                    cp = {}
-                    for m in re.finditer(r"\b([A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?)\s*=\s*(\d+)\b", text):
-                        cp[m.group(1).upper().replace("  ", " ")] = int(m.group(2))
-                if rp is None:
-                    rp = {}
-                    for m in re.finditer(r"\b([A-Z][A-Za-z]+\s*\d+)\s*=\s*(\d+)\b", text):
-                        rp[m.group(1)] = int(m.group(2))
-                if lp is None:
-                    lp = {}
-                    for m in re.finditer(r"\b(Linux|Mac|Windows|AI|Data|GPU)\b\s*=\s*(\d+)\b", text, re.IGNORECASE):
-                        lp[m.group(1).capitalize()] = int(m.group(2))
+                # --- Course preferences ---
+                cp = {}
+                for m in re.finditer(
+                        r"\b([A-Z]{2,}\s*\d{1,4}[A-Za-z]?)\b\s*(?:weight|with a weight of|=|is\s+)?\s*(\d+)",
+                        text,
+                        re.IGNORECASE,
+                ):
+                    course = m.group(1).strip()
+                    if not any(course.lower() == r for r in known_rooms):
+                        cp[course.upper().replace("  ", " ")] = int(m.group(2))
 
+                # --- Room preferences ---
+                rp = {}
+                for m in re.finditer(
+                        r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=|is\s+)?\s*(\d+)",
+                        text, re.IGNORECASE):
+                    rp[m.group(1)] = int(m.group(2))
+
+                # --- Lab preferences ---
+                def parse_lab_prefs_from_text(txt: str) -> Dict[str, int]:
+                    labs_norm = ["Linux", "Mac", "Windows", "AI", "Data", "GPU"]
+                    m_clause = re.search(
+                        r"(lab\s+preferences?|lab\s+preference)\b(?::| of)?\s*(.+?)(?=(?:course\s+preferences?|room\s+preferences?|$))",
+                        txt, flags=re.IGNORECASE | re.DOTALL)
+                    span = m_clause.group(2) if m_clause else txt
+                    pairs = {}
+
+                    patterns = [
+                        r"\b(Linux|Mac|Windows|AI|Data|GPU)\b(?:['’]s)?(?:\s+lab)?\s*(?:weight|with a weight of|=|is\s+)?\s*(\d+)",
+                        r"(?:weight|with a weight of|=|is\s+)?\s*(\d+)\s*(?:for|to)?\s*(Linux|Mac|Windows|AI|Data|GPU)\b(?:\s+lab)?",
+                        r"\b(Linux|Mac|Windows|AI|Data|GPU)\b(?:\s+lab)?\s+(\d+)"
+                    ]
+
+                    for pat in patterns:
+                        for m in re.finditer(pat, span, flags=re.IGNORECASE):
+                            groups = m.groups()
+                            lab, num = (groups[0], groups[1]) if groups[0].isalpha() else (groups[1], groups[0])
+                            lab = lab.capitalize()
+                            if lab in labs_norm:
+                                pairs[lab] = int(num)
+                    print("[DEBUG] Lab pref slice:", repr(span))
+                    print("[DEBUG] Lab pref matches:", json.dumps(pairs, indent=2))
+                    return pairs
+
+                lp = parse_lab_prefs_from_text(text)
+
+                # --- Apply new prefs if found ---
                 if cp:
                     new_fac["course_preferences"] = cp
                 if rp:
@@ -618,13 +801,14 @@ class ChatbotAgent:
                 if lp:
                     new_fac["lab_preferences"] = lp
 
-                # Commit into DM.data directly (faculty is a list of dicts)
+                # --- Commit changes to DM ---
                 fac_list = DM.data["config"]["faculty"]
                 for i, fobj in enumerate(fac_list):
                     if isinstance(fobj, dict) and fobj.get("name", "").lower() == identifier.lower():
                         fac_list[i] = new_fac
                         break
 
+                print("[DEBUG] Faculty edit payload:\n", json.dumps(new_fac, indent=2))
                 return self._ok(f"Faculty '{identifier}' updated in memory.", "faculty", "edit", payload=new_fac)
 
             return self._err(f"Unknown category '{category}'.", category, "edit")
@@ -740,15 +924,25 @@ class ChatbotAgent:
     @staticmethod
     def _detect_category(text: str) -> Optional[str]:
         t = text.lower()
-        # Priority: course first, then faculty, then room, then lab
-        if any(w in t for w in ("course", "class", "cmsc", "edu", "bio", "math")):
-            return "course"
+
+        # Faculty-related (checked first)
         if any(w in t for w in ("faculty", "professor", "instructor", "teacher")):
             return "faculty"
+
+        # If "course preference" appears, that's still faculty-related context
+        if "course preference" in t:
+            return "faculty"
+
+        # Course identifiers / direct mentions
+        if any(w in t for w in ("cmsc", "edu", "bio", "math", "course", "class")):
+            return "course"
+
         if any(w in t for w in ("room", "roddy", "hall", "building")):
             return "room"
+
         if "lab" in t:
             return "lab"
+
         return None
 
     @staticmethod
