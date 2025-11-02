@@ -157,8 +157,7 @@ def runScheduler(otherData):
                 "faculty_lab",
                 "same_room",
                 "same_lab",
-                "pack_rooms",
-                "pack_labs",
+                "pack_rooms"
             ]
             selectedOptimizeList = []
 

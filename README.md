@@ -23,8 +23,9 @@ Must have at least UV version 0.8.22
 
 1. Clone the repository with `git clone <url>` to download the project. This will be your working directory.
 2. Run `uv sync` to download the requirements and create virtual environment.
-3. Run `dotenv -f .env set OPENAI_API_KEY <your OpenAI key>` to add your API key.
-4. Run `uv run --python 3.12 -m CLI.main` to start the program. (append -cli to access the CLI)
+3. Run `uv run --python 3.12 -m CLI.main` to start the program. Runs the GUI.
+4. Run `uv run --python 3.12 -m CLI.main --cli` to run the cli.
+5. Run `uv run --python 3.12 -m CLI.main --tests` to run the test cli.
 
 ## Design Patterns
 
