@@ -574,7 +574,10 @@ class ChatbotAgent:
                     for m in re.finditer(
                             r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
                             text, re.IGNORECASE):
-                        rp[m.group(1)] = int(m.group(2))
+                        room_name = m.group(1)
+                        # Avoid treating course IDs (like CMSC 4) as rooms
+                        if not re.match(r"^[A-Z]{2,}\s*\d{1,4}$", room_name):
+                            rp[room_name] = int(m.group(2))
 
                 if lp is None:
                     lp = self._parse_lab_prefs(text)
@@ -672,16 +675,23 @@ class ChatbotAgent:
 
                 new_name = updates.get("name")
                 if not new_name:
-                    m = re.search(r"(?:to|called|named|be called)\s+([A-Z][A-Za-z0-9]+(?:\s+\d+)?)",
-                                  self.last_user_input, re.IGNORECASE)
+                    # Handles: "to be called Windows", "to Windows", "called Windows", "rename lab Mac to Windows"
+                    m = re.search(
+                        r"\b(?:to\s+(?:be\s+called|called|named)|as|rename\s+(?:to|as)?|be\s+called)\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)",
+                        self.last_user_input,
+                        re.IGNORECASE,
+                    )
                     if m:
                         new_name = m.group(1).strip()
 
                 if not new_name:
                     return self._err("Provide 'name' to rename the lab.", category, "edit")
 
-                DM.editLabs(target, new_name)
-                return self._ok(f"Lab '{target}' renamed to '{new_name}' (not yet saved).", category, "edit")
+                try:
+                    DM.editLabs(target, new_name)
+                    return self._ok(f"Lab '{target}' renamed to '{new_name}' (not yet saved).", category, "edit")
+                except Exception as e:
+                    return self._err(f"Failed to rename lab '{target}': {e}", category, "edit")
             # COURSES
             if category in ("course", "courses"):
                 # Build updates from text if not provided
@@ -923,24 +933,47 @@ class ChatbotAgent:
 
     @staticmethod
     def _detect_category(text: str) -> Optional[str]:
-        t = text.lower()
+        """
+        Robustly detect whether the user is referring to a course, faculty, room, or lab.
+        Priority order:
+          1. Explicit phrasing ("add faculty", "edit room", etc.)
+          2. Faculty creation/edit (when describing a person or teaching load)
+          3. Course edits (when referring to course IDs or teaching assignments)
+          4. Room / Lab changes
+        """
 
-        # Faculty-related (checked first)
-        if any(w in t for w in ("faculty", "professor", "instructor", "teacher")):
+        t = text.lower().strip()
+
+        # --- Explicit phrasing wins outright ---
+        if re.search(r"\b(add|edit|update|delete|remove|create)\s+faculty\b", t):
             return "faculty"
-
-        # If "course preference" appears, that's still faculty-related context
-        if "course preference" in t:
-            return "faculty"
-
-        # Course identifiers / direct mentions
-        if any(w in t for w in ("cmsc", "edu", "bio", "math", "course", "class")):
+        if re.search(r"\b(add|edit|update|delete|remove|create)\s+(room|rooms)\b", t):
+            return "room"
+        if re.search(r"\b(add|edit|update|delete|remove|create)\s+(lab|labs)\b", t):
+            return "lab"
+        if re.search(r"\b(add|edit|update|delete|remove|create)\s+(course|class|courses)\b", t):
             return "course"
 
-        if any(w in t for w in ("room", "roddy", "hall", "building")):
-            return "room"
+        # --- Faculty-style intent ---
+        # Look for words that usually appear in faculty creation/update statements
+        if re.search(r"\b(min|max)\s*credits?\b", t) or re.search(r"\b(unique\s*course\s*limit)\b", t):
+            return "faculty"
+        if re.search(r"\b(course|room|lab)\s+preference\b", t):
+            return "faculty"
+        if re.search(r"\b(available|availability|teaches|schedule|office\s*hours?)\b", t):
+            return "faculty"
+        if re.search(r"\b(faculty|professor|instructor|teacher)\b", t):
+            return "faculty"
 
-        if "lab" in t:
+        # --- Course context ---
+        # Detect explicit course identifiers or credits tied to courses
+        if re.search(r"\b(cmsc|bio|math|edu|phys|course|class)\b", t):
+            return "course"
+
+        # --- Room / Lab cues ---
+        if re.search(r"\b(room|roddy|hall|building)\b", t):
+            return "room"
+        if re.search(r"\blab\b", t):
             return "lab"
 
         return None
@@ -960,28 +993,34 @@ class ChatbotAgent:
 
     @staticmethod
     def _extract_identifier(text: str, category: str) -> Optional[str]:
+        text = text.strip()
+
         if category == "course":
             return ChatbotAgent._find_first_course_id(text)
+
         if category == "faculty":
             names = ChatbotAgent._extract_faculty_names_from_text(text)
             return names[0] if names else None
+
         if category == "room":
-            m = re.search(r"(?:room\s+|roddy\s+)?([A-Z][A-Za-z]+\s*\d+)", text, re.IGNORECASE)
+            m = re.search(r"(?:room\s+)?([A-Z][A-Za-z]+\s*\d+)", text, re.IGNORECASE)
             return m.group(1).strip() if m else None
+
         if category == "lab":
-            # Match lab names after "lab" or before "lab" in sentences
-            # Handles: "delete the Windows lab", "remove lab Science Lab 3", "delete lab Linux"
-            m = re.search(
-                r"(?:lab\s+(?:called|named|is)?\s*([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*))"
-                r"|(?:the\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)\s+lab)",
-                text,
-                re.IGNORECASE,
-            )
-            if m:
-                # Use whichever capture group matched
-                name = m.group(1) or m.group(2)
-                return name.strip()
+            # --- Handle both "delete lab Mac" and "delete Mac lab" cleanly ---
+            # 1. "delete lab Mac" / "edit lab Mac to Windows"
+            m1 = re.search(r"\blab\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)", text, re.IGNORECASE)
+            # 2. "delete Mac lab" / "remove Windows lab"
+            m2 = re.search(r"\b([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)\s+lab\b", text, re.IGNORECASE)
+
+            # Prefer the one that is NOT the command word itself (like “delete”)
+            for m in [m1, m2]:
+                if m:
+                    name = m.group(1).strip()
+                    if name.lower() not in ("delete", "remove", "edit", "update", "add", "lab"):
+                        return name
             return None
+
         return None
 
     # -------------------------
