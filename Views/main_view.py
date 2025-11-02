@@ -1,13 +1,15 @@
 # Resources: https://customtkinter.tomschimansky.com/documentation/widgets 
 import customtkinter as ctk
-from tkinter import StringVar, IntVar
-from Views.chatbot_view import ChatbotView
+from tkinter import StringVar
+from Controller.chatbot_agent import ChatbotAgent
 from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
                                         importSchedulesBTN, exportSchedulesBTN,
                                         CourseController)
 
-import threading, math, re, random
+import math
+import re
+import random
 
 from datetime import datetime
 
@@ -189,7 +191,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         ctk.CTkLabel(rowAvailability, text="Availability (MON-FRI):", anchor="w", font=("Arial", 30, "bold")).pack(
             anchor="w", padx=10, pady=(2, 0))
         ctk.CTkLabel(rowAvailability,
-                     text=f"(Leave blank for 9:00-5:00, type \"n/a\" if they are not available on that day):",
+                     text="(Leave blank for 9:00-5:00, type \"n/a\" if they are not available on that day):",
                      anchor="w", font=("Arial", 15, "bold", "underline"), justify="left", text_color="cyan").pack(
             side="top", fill="x", pady=(0, 5))
 
@@ -808,7 +810,7 @@ def dataCoursesRight(frame, controller, refresh, data=None):
     def split_csv(s):
         return [x.strip() for x in s.split(",") if x.strip()] if s else []
 
-    # ✅ Handle both raw course dicts and {"course": ..., "index": ...}
+    # Handle both raw course dicts and {"course": ..., "index": ...}
     course = None
     target_index = None
     if isinstance(data, dict):
@@ -820,110 +822,148 @@ def dataCoursesRight(frame, controller, refresh, data=None):
     else:
         course = data
 
-    # --- UI fields ---
-    # Course ID
+    # --- Course ID ---
     row_id = ctk.CTkFrame(frame, fg_color="transparent")
-    row_id.pack(fill="x", pady=5, padx=5)
-    ctk.CTkLabel(row_id, text="Course ID:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
-        side="left", padx=10
-    )
+    row_id.pack(fill="x", pady=(5, 10), padx=5)
+    ctk.CTkLabel(row_id, text="Course ID:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(side="left", padx=10)
     entry_id = ctk.CTkEntry(row_id, placeholder_text="E.g: CMSC 140", font=("Arial", 30, "bold"))
     entry_id.pack(side="left", fill="x", expand=True)
 
-    # Credits
+    # --- Credits ---
     row_cr = ctk.CTkFrame(frame, fg_color="transparent")
-    row_cr.pack(fill="x", pady=5, padx=5)
-    ctk.CTkLabel(row_cr, text="Credits:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
-        side="left", padx=10
-    )
+    row_cr.pack(fill="x", pady=(5, 15), padx=5)
+    ctk.CTkLabel(row_cr, text="Credits:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(side="left", padx=10)
     entry_cr = ctk.CTkEntry(row_cr, placeholder_text="E.g: 4", font=("Arial", 30, "bold"))
     entry_cr.pack(side="left", fill="x", expand=True, padx=5)
 
-    # Rooms
-    row_rm = ctk.CTkFrame(frame, fg_color="transparent")
-    row_rm.pack(fill="x", pady=5, padx=5)
-    ctk.CTkLabel(row_rm, text="Rooms:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
-        side="left", padx=10
-    )
-    entry_rm = ctk.CTkEntry(row_rm, placeholder_text="E.g: Roddy 136, Roddy 140", font=("Arial", 30, "bold"))
-    entry_rm.pack(side="left", fill="x", expand=True, padx=5)
+    # --- Dropdown sources ---
+    all_rooms = roomCtr.listRooms()
+    all_labs = labCtr.listLabs()
+    all_courses = sorted({c["course_id"] for c in courseCtr.listCourses()})
+    all_faculty = sorted({f["name"] for f in facultyCtr.listFaculty()})
 
-    # Labs
-    row_lab = ctk.CTkFrame(frame, fg_color="transparent")
-    row_lab.pack(fill="x", pady=5, padx=5)
-    ctk.CTkLabel(row_lab, text="Labs:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
-        side="left", padx=10
-    )
-    entry_lab = ctk.CTkEntry(row_lab, placeholder_text="E.g: Linux, Mac", font=("Arial", 30, "bold"))
-    entry_lab.pack(side="left", fill="x", expand=True, padx=5)
+    def dropdown_section(parent, title, items, selected_list):
+        section = ctk.CTkFrame(parent, fg_color="transparent")
+        section.pack(fill="x", pady=(10, 15), padx=5)
 
-    # Conflicts
-    row_cf = ctk.CTkFrame(frame, fg_color="transparent")
-    row_cf.pack(fill="x", pady=5, padx=5)
-    ctk.CTkLabel(row_cf, text="Conflicts:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
-        side="left", padx=10
-    )
-    entry_cf = ctk.CTkEntry(row_cf, placeholder_text="E.g: CMSC 161, CMSC 162", font=("Arial", 30, "bold"))
-    entry_cf.pack(side="left", fill="x", expand=True, padx=5)
+        # Section title
+        ctk.CTkLabel(section, text=f"{title}:", anchor="w", font=("Arial", 30, "bold")).pack(anchor="w", padx=10,
+                                                                                             pady=(0, 5))
 
-    # Faculty
-    row_fc = ctk.CTkFrame(frame, fg_color="transparent")
-    row_fc.pack(fill="x", pady=5, padx=5)
-    ctk.CTkLabel(row_fc, text="Faculty:", width=140, anchor="w", font=("Arial", 30, "bold")).pack(
-        side="left", padx=10
-    )
-    entry_fc = ctk.CTkEntry(row_fc, placeholder_text="E.g: Hardy, Zoppetti", font=("Arial", 30, "bold"))
-    entry_fc.pack(side="left", fill="x", expand=True, padx=5)
+        row_vars = []
+        dropdown_menus = []
 
-    # --- Prefill when editing ---
+        # Container for all dropdowns (and button)
+        container = ctk.CTkFrame(section, fg_color="transparent")
+        container.pack(fill="x", padx=20, pady=2)
+
+        # Function to update available values across all dropdowns (remove duplicates)
+        def update_dropdowns(*args):
+            selected_values = {v.get() for v in row_vars if v.get() != "None"}
+            for var, menu in dropdown_menus:
+                current_value = var.get()
+                available = [item for item in items if item not in selected_values or item == current_value]
+                available.insert(0, "None")
+                menu.configure(values=available)
+
+        # Remove a dropdown row dynamically (when set to "None" and not the first)
+        def remove_dropdown(var):
+            for i, (v, menu) in enumerate(dropdown_menus):
+                if v == var:
+                    # Only allow removing if not the first dropdown
+                    if i != 0:
+                        menu.master.destroy()
+                        dropdown_menus.pop(i)
+                        row_vars.remove(v)
+                        update_dropdowns()
+                    break
+
+        # Helper to add new dropdown row
+        def add_dropdown(selected=None):
+            row = ctk.CTkFrame(container, fg_color="transparent")
+            row.pack(fill="x", padx=0, pady=2)
+
+            var = ctk.StringVar(value=selected or "None")
+
+            dropdown = ctk.CTkOptionMenu(
+                row,
+                variable=var,
+                values=["None"] + items,
+                width=200,
+                font=("Arial", 20),
+                dropdown_font=("Arial", 16),
+            )
+            dropdown.pack(side="left", padx=(0, 10), pady=2)
+
+            def on_change(*_):
+                update_dropdowns()
+                if var.get() == "None":
+                    remove_dropdown(var)
+
+            var.trace_add("write", on_change)
+            row_vars.append(var)
+            dropdown_menus.append((var, dropdown))
+
+            update_dropdowns()
+
+        # Add button (aligned with dropdowns, like Faculty Add Course)
+        add_label = "Add Faculty" if title == "Faculty" else f"Add {title[:-1]}"
+        ctk.CTkButton(
+            container,
+            text=add_label,
+            width=100,
+            height=30,
+            font=("Arial", 18, "bold"),
+            command=lambda: add_dropdown("None"),
+        ).pack(side="left", padx=(0, 10))
+
+        # Populate initial dropdowns
+        if selected_list:
+            for sel in selected_list:
+                add_dropdown(sel)
+        else:
+            add_dropdown("None")
+
+        return row_vars
+
+    # --- Dropdowns for all linked data ---
+    room_vars = dropdown_section(frame, "Rooms", all_rooms, course.get("room") if course else [])
+    lab_vars = dropdown_section(frame, "Labs", all_labs, course.get("lab") if course else [])
+    conflict_vars = dropdown_section(frame, "Course Conflicts", all_courses, course.get("conflicts") if course else [])
+    faculty_vars = dropdown_section(frame, "Faculty", all_faculty, course.get("faculty") if course else [])
+
+    # --- Prefill base course info ---
     if course:
         entry_id.insert(0, course.get("course_id", ""))
         entry_cr.insert(0, str(course.get("credits", "")))
-        entry_rm.insert(0, ", ".join(course.get("room", [])))
-        entry_lab.insert(0, ", ".join(course.get("lab", [])))
-        entry_cf.insert(0, ", ".join(course.get("conflicts", [])))
-        entry_fc.insert(0, ", ".join(course.get("faculty", [])))
 
-    # --- Error display ---
-    error_label = ctk.CTkLabel(
-        frame,
-        text="",
-        text_color="red",
-        font=("Arial", 20, "bold"),
-        wraplength=600,
-        anchor="center",
-        justify="center"
-    )
+    # --- Error label ---
+    error_label = ctk.CTkLabel(frame, text="", text_color="red", font=("Arial", 20, "bold"), wraplength=600)
     error_label.pack(pady=(10, 5))
 
     # --- Save logic ---
     def onSave():
         error_label.configure(text="")
-
         new_course = {
             "course_id": entry_id.get().strip(),
             "credits": entry_cr.get().strip(),
-            "room": split_csv(entry_rm.get()),
-            "lab": split_csv(entry_lab.get()),
-            "conflicts": split_csv(entry_cf.get()),
-            "faculty": split_csv(entry_fc.get()),
+            "room": [v.get() for v in room_vars if v.get() != "None"],
+            "lab": [v.get() for v in lab_vars if v.get() != "None"],
+            "conflicts": [v.get() for v in conflict_vars if v.get() != "None"],
+            "faculty": [v.get() for v in faculty_vars if v.get() != "None"],
         }
 
-        # Try add or edit
         if course:
             error = controller.editCourse(course.get("course_id"), new_course, refresh, target_index=target_index)
         else:
             error = controller.addCourse(new_course, refresh)
 
-        # Display any model error inline
         if error:
             error_label.configure(text=error)
 
     # --- Save button ---
-    ctk.CTkButton(
-        frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height=40,
-        command=onSave
-    ).pack(side="bottom", padx=5, pady=10)
+    ctk.CTkButton(frame, text="Save Changes", width=150, font=("Arial", 22, "bold"), height=45,
+                  command=onSave).pack(side="bottom", pady=15)
 
 
 def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch, order = None):
@@ -1377,11 +1417,6 @@ class SchedulerApp(ctk.CTk):
         tabview.pack(expand=True, fill="both")
 
         tabview.add("Edit Config")
-
-        tabview.add("AI Chatbot")
-        chat_frame = ChatbotView(tabview.tab("AI Chatbot"))
-        chat_frame.pack(fill="both", expand=True)
-
         tabview.add("Run Scheduler")
         tabview.add("View Schedules")
 
@@ -1498,6 +1533,62 @@ class SchedulerApp(ctk.CTk):
             lambda frame: dataLabsLeft(frame, labCtr, self.refresh),
             lambda frame: dataLabsRight(frame, labCtr, self.refresh, data if isinstance(data, str) else None)
         )
+
+        # One chatbot instance for the entire app
+        app = frame.winfo_toplevel()
+        if not hasattr(app, "chat_agent"):
+            app.chat_agent = ChatbotAgent(lambda: app.configPath.get())
+
+        chatbot_bar = ctk.CTkFrame(frame, fg_color="#2A2A2A")
+        chatbot_bar.pack(side="bottom", fill="x", padx=10, pady=(10, 10))
+
+        ctk.CTkLabel(
+            chatbot_bar,
+            text="Scheduler Assistant:",
+            font=("Arial", 18, "bold")
+        ).pack(side="left", padx=10)
+
+        chatbot_entry = ctk.CTkEntry(
+            chatbot_bar,
+            placeholder_text="Ask: add CMSC 140, change Hardy’s max credits, remove Linux lab...",
+            font=("Arial", 18),
+        )
+        chatbot_entry.pack(side="left", fill="x", expand=True, padx=(5, 10))
+        chatbot_entry.bind("<Return>", lambda e: handle_chat())
+
+        chatbot_button = ctk.CTkButton(chatbot_bar, text="Send", width=100, command=lambda: handle_chat())
+        chatbot_button.pack(side="right", padx=5)
+
+        def handle_chat():
+            text = chatbot_entry.get().strip()
+            if not text:
+                return
+            chatbot_entry.delete(0, "end")
+
+            print(f"[CHATBOT INPUT] {text}")
+            response = app.chat_agent.query(text)
+            print("[Chatbot Response]", response)
+
+            if isinstance(response, dict):
+                message = response.get("response", "")
+                print(message)
+
+                switch_tab = response.get("switch_tab")
+                if switch_tab and hasattr(tabview, "set"):
+                    try:
+                        tabview.set(switch_tab)
+                        print(f"[DEBUG] Switched tab tdo {switch_tab}")
+                    except Exception as e:
+                        print(f"[WARN] Could not switch tab to {switch_tab}: {e}")
+
+                # FIX: persist new tab before refresh
+                if switch_tab:
+                    app.selected_tabs["ConfigPage"] = switch_tab
+
+                app.refresh(target="ConfigPage")
+
+            else:
+                app.refresh(target="ConfigPage")
 
     # this is to store and return the choice to order the schedules
     def orderByChoice(self, choice, sch):
