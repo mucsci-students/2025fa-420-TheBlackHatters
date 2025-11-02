@@ -248,16 +248,21 @@ class ChatbotAgent:
     def _extract_conflicts_from_text(text: str, known_rooms: List[str] = None, known_labs: List[str] = None) -> List[
         str]:
         """
-        Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs.
+        Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs
+        and ignoring numeric-only or verb fragments like 'be 5'.
         """
         known_rooms = [r.lower() for r in (known_rooms or [])]
         known_labs = [l.lower() for l in (known_labs or [])]
 
+        # Match only tokens that have letters immediately followed by digits
         matches = re.findall(r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b", text)
         results = []
         for m in matches:
             lower_m = m.lower()
             if lower_m in known_rooms or lower_m in known_labs:
+                continue
+            # Skip nonsense like "be 5" or verbs before digits
+            if re.match(r"be\s*\d+", m, re.IGNORECASE):
                 continue
             results.append(m.strip())
         return list(dict.fromkeys(results))
