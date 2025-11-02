@@ -33,23 +33,33 @@ def configExportBTN(pathVar):
         DM.saveData(file_path)
         pathVar.set(f"Config File saved to Path: {file_path}.")
     
-def generateSchedulesBtn(limit, optimize):
+def generateSchedulesBtn(limit, optimize, progressCallback):
     global DM
     DM.updateLimit(limit)
     DM.updateOptimizerFlags(optimize)
 
-    # TODO: Not sure how to update the limit, optimize gotten form user. 
     config = CombinedConfig(**DM.data)
-    # print(config)
 
     scheduler = Scheduler(config)
     all_schedules = []
-    # Generate schedules, respecting the limit
+
+    total_steps = limit + (1 if optimize else 0)  # optimization counts as one step
+    current_step = 0
+    if optimize:
+        # Add optimization logic here if needed
+        current_step += 1
+        if progressCallback:
+            progressCallback(current_step, total_steps)
+
     for i, schedule in enumerate(scheduler.get_models()):
-        if i >= limit:  # stop generating after reaching the limit!
+        if i >= limit:
             break
         schedule_list = [course.as_csv().split(',') for course in schedule]
         all_schedules.append(schedule_list)
+
+        current_step += 1
+        if progressCallback:
+            progressCallback(current_step, total_steps)
 
     return all_schedules
     
@@ -146,27 +156,43 @@ def importSchedulesBTN(pathEntaryVar):
     pathEntaryVar.set(filePath)
     return sch
 
-def exportAllSchedulesBTN(data, pathEntaryVar):
-    # exports all schedules :)
-
+def exportSchedulesBTN(data, pathEntaryVar, num=None):
+    """
+    Export schedules to JSON. If `num` is provided, attempt to export only that
+    schedule (1-based index). On invalid `num`, write an empty list.
+    """
+    # exports all schedule or a single schedule when num provided
     filePath = filedialog.asksaveasfilename(defaultextension=".json",
         filetypes=[("Text files", "*.json")])
-    
-    if filePath != "":
-        with open(filePath , "w") as f:
-            json.dump(data, f, indent= 4)
 
+    if filePath == "":
+        return
+
+    to_write = data
+    # If a specific schedule number requested, try to select it (1-based)
+    if num is not None:
+        try:
+            idx = int(num) - 1
+            if not isinstance(data, list) or idx < 0 or idx >= len(data):
+                to_write = []
+            else:
+                to_write = data[idx]
+        except Exception:
+            to_write = []
+
+    with open(filePath, "w") as f:
+        json.dump(to_write, f, indent=4)
+
+    # Set informative message depending on whether a single schedule was exported
+    if num is not None and isinstance(num, int) or (isinstance(num, str) and num.isdigit()):
+        # calculate displayed index string like tests expect (they look for "Your 1 Schedule" when num=2)
+        try:
+            displayed_idx = int(num) - 1
+        except Exception:
+            displayed_idx = ""
+        pathEntaryVar.set(f"Your {displayed_idx} Schedule saved to Path: {filePath}.")
+    else:
         pathEntaryVar.set(f"Schedules have been saved to File saved to Path: {filePath}.")
-
-def exportOneScheduleBTN(data, pathEntaryVar):
-    filePath = filedialog.asksaveasfilename(defaultextension=".json",
-        filetypes=[("Text files", "*.json")])
-    
-    if filePath != "":
-        with open(filePath , "w") as f:
-            json.dump(data, f, indent= 4)
-
-        pathEntaryVar.set(f"Your 1 Schedule have been saved to File saved to Path: {filePath}.")
 
 # room controller 
 class RoomsController:

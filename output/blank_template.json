@@ -2,34 +2,8 @@
     "config": {
         "rooms": [],
         "labs": [],
-        "courses": [
-            {
-                "course_id": "",
-                "credits": 0,
-                "room": [],
-                "lab": [],
-                "conflicts": [],
-                "faculty": []
-            }
-        ],
-        "faculty": [
-            {
-                "name": "",
-                "maximum_credits": 0,
-                "minimum_credits": 0,
-                "unique_course_limit": 0,
-                "times": {
-                    "MON": [],
-                    "TUE": [],
-                    "WED": [],
-                    "THU": [],
-                    "FRI": []
-                },
-                "course_preferences": {},
-                "room_preferences": {},
-                "lab_preferences": {}
-            }
-        ]
+        "courses": [],
+        "faculty": []
     },
     "time_slot_config": {
         "times": {
@@ -89,7 +63,7 @@
             }
         ]
     },
-    "limits": 100,
+    "limits": {},
     "optimizer_flags": [
         "faculty_course",
         "faculty_room",
