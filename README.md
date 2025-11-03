@@ -12,7 +12,7 @@ Authors:
 
 # Course Constraint Scheduler Companion
 
-This is a tool built for the Course Constraint Scheduler that allows you to run the Scheduler, create and modify configuration files, and manage output files completely in the command line or a graphical interface.
+This is a tool built for the Course Constraint Scheduler that allows you to run the Scheduler, create and modify configuration files, and manage output files completely in the command line or a graphical interface. It also features AI to allow users to edit configurations with natural language.
 
 ## Installation Instructions
 
@@ -23,9 +23,10 @@ Must have at least UV version 0.8.22
 
 1. Clone the repository with `git clone <url>` to download the project. This will be your working directory.
 2. Run `uv sync` to download the requirements and create virtual environment.
-3. Run `uv run --python 3.12 -m CLI.main` to start the program. Runs the GUI.
-4. Run `uv run --python 3.12 -m CLI.main --cli` to run the cli.
-5. Run `uv run --python 3.12 -m CLI.main --tests` to run the test cli.
+3. Run `dotenv -f .env set OPENAI_API_KEY <your_api_key>` to set the OpenAI key.
+4. Run `uv run --python 3.12 -m CLI.main` to start the program. Runs the GUI.
+5. Run `uv run --python 3.12 -m CLI.main --cli` to run the cli.
+6. Run `uv run --python 3.12 -m CLI.main --tests` to run the test cli.
 
 ## Design Patterns
 
