@@ -57,6 +57,12 @@ class DataManager():
         with open(path, "w") as f:
             json.dump(self.data, f, indent=4)
 
+    def updateLimit(self,limit):
+        self.data['limit'] = limit
+    
+    def updateOptimizerFlags(self, flags):
+        self.data['optimizer_flags'] = flags
+
     # each method below will get the data from file:
     # Rooms CRUD(Create, Read, Update, Delete)
     def getRooms(self):
@@ -74,6 +80,12 @@ class DataManager():
         #self.saveData(outPath = self.filePath)
 
     def removeRoom(self, roomName):
+        # Prevent removing a room that's in use by any course
+        courses = self.data["config"].get("courses", [])
+        for course in courses:
+            if roomName in course.get("room", []):
+                raise ValueError(f"Cannot remove room '{roomName}' as it is used by course '{course['course_id']}'")
+
         rooms = self.data["config"]["rooms"]
         rooms.remove(roomName)
         #self.saveData(outPath = self.filePath)
@@ -94,6 +106,12 @@ class DataManager():
         #self.saveData(outPath = self.filePath)
 
     def removeLabs(self, labName):
+        # Prevent removing a lab that's in use by any course
+        courses = self.data["config"].get("courses", [])
+        for course in courses:
+            if labName in course.get("lab", []):
+                raise ValueError(f"Cannot remove lab '{labName}' as it is used by course '{course['course_id']}'")
+
         labs = self.data["config"]["labs"]
         labs.remove(labName)
         #self.saveData(outPath = self.filePath)
@@ -107,7 +125,8 @@ class DataManager():
     def addCourse(self, course_dict):
         config_obj = self.data["config"]
         try:
-            add_course_to_config(config_obj, course_dict, strict_membership=True)
+            # Allow forward references / circular conflicts when adding courses
+            add_course_to_config(config_obj, course_dict, strict_membership=False)
             print(f"Added course: {course_dict['course_id']}")
         except Exception as e:
             raise ValueError(str(e))
@@ -140,6 +159,14 @@ class DataManager():
 
             # Replace course only if validation passes
             courses[idx] = candidate.to_dict()
+
+            # Cascade rename: update any conflicts that referenced the old id
+            if old_course_id != candidate.course_id:
+                for course in courses:
+                    if "conflicts" in course and old_course_id in course["conflicts"]:
+                        # replace occurrences of old id with the new id
+                        course["conflicts"] = [candidate.course_id if x == old_course_id else x for x in course.get("conflicts", [])]
+
             print(f"Updated course: {old_course_id} → {candidate.course_id}")
 
         except Exception as e:
@@ -214,13 +241,32 @@ class DataManager():
     def getFaculty(self):
         return self.data["config"]["faculty"]
 
+    def getFacultyByName(self, name: str):
+        """Return a single faculty entry by name (case-insensitive), or None if not found."""
+        faculty_list = self.data.get("config", {}).get("faculty", [])
+        if not name or not isinstance(name, str):
+            return None
+
+        name_lower = name.strip().lower()
+        for f in faculty_list:
+            if isinstance(f, dict) and f.get("name", "").lower() == name_lower:
+                return f
+        return None
+
     def addFaculty(self, newFaculty):
         conFaculty = self.data["config"]["faculty"]
         FacultyModel.Faculty.addFaculty(conFaculty, newFaculty)
         #self.saveData(outPath = self.filePath)
 
-    def removeFaculty(self, faculty):
+    def removeFaculty(self, facName):
+        # Prevent removing faculty that's assigned to any course
+        courses = self.data["config"].get("courses", [])
+        for course in courses:
+            if facName in course.get("faculty", []):
+                raise ValueError(f"Cannot remove faculty '{facName}' as they are teaching course '{course['course_id']}'")
+
         conFaculty = self.data["config"]["faculty"]
-        facName = faculty.get("name")
-        FacultyModel.Faculty.removeFaculty(conFaculty, facName)
+        result = FacultyModel.Faculty.removeFaculty(conFaculty, facName)
+        if result is None:
+            raise ValueError(f"Faculty member '{facName}' not found")
         #self.saveData(outPath = self.filePath)
