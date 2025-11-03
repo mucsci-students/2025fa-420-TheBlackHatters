@@ -9,9 +9,11 @@
 #
 
 # Imports
-import sys, os
+import sys
+import os
 from contextlib import contextmanager
-import json, csv
+import json
+import csv
 import click
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
@@ -53,7 +55,7 @@ def parseJson(path):
     other = {
         "time_slot_config": fileData.get("time_slot_config", {}),
         "limit": fileData.get("limit", {}),
-        "optimizer_flags": fileData.get("optimizer_flags", {})
+        "optimizer_flags": fileData.get("optimizer_flags", {}),
     }
 
     # just return the others here as well.
@@ -99,7 +101,7 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
         },
         "time_slot_config": other.get("time_slot_config", {}),
         "limit": other.get("limit", int),
-        "optimizer_flags": other.get("optimizer_flags", {})
+        "optimizer_flags": other.get("optimizer_flags", {}),
     }
 
     with open(path, "w") as file:
@@ -157,7 +159,7 @@ def runScheduler(otherData):
                 "faculty_lab",
                 "same_room",
                 "same_lab",
-                "pack_rooms"
+                "pack_rooms",
             ]
             selectedOptimizeList = []
 
@@ -269,6 +271,7 @@ def whatAction(rooms, labs, courses, faculty, other):
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "5":
             from CLI.chatbot_cli import main as chatbot_main
+
             saveConfig(filePath, rooms, labs, courses, faculty, other)
             chatbot_main(filePath)
 
@@ -472,7 +475,6 @@ def main(cli, tests):
         with suppressOutput():
             app = SchedulerApp()
             app.mainloop()
-
 
     quit()
 

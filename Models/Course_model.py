@@ -7,6 +7,7 @@
 
 # Helpers
 
+
 def _clean_list(items):
     out, seen = [], set()
     for x in items or []:
@@ -16,12 +17,14 @@ def _clean_list(items):
             out.append(s)
     return out
 
+
 def _get_courses_list(config_obj):
     if not isinstance(config_obj, dict):
         raise ValueError("config_obj must be the INNER dict: config['config']")
     if "courses" not in config_obj or not isinstance(config_obj["courses"], list):
         config_obj["courses"] = []
     return config_obj["courses"]
+
 
 def _find_course_indexes(courses_list, course_id):
     """Return list of all indexes that match a course_id (may be empty)."""
@@ -32,13 +35,17 @@ def _find_course_indexes(courses_list, course_id):
             idxs.append(i)
     return idxs
 
-class Course:
-    def __init__(self, course_id, credits, room=None, lab=None, conflicts=None, faculty=None):
 
+class Course:
+    def __init__(
+        self, course_id, credits, room=None, lab=None, conflicts=None, faculty=None
+    ):
         try:
             self.credits = int(credits)
         except (ValueError, TypeError):
-            raise ValueError(f"Invalid credits value '{credits}'. Please enter a whole number.")
+            raise ValueError(
+                f"Invalid credits value '{credits}'. Please enter a whole number."
+            )
 
         if self.credits < 0:
             raise ValueError("Credits must be a non-negative integer.")
@@ -48,7 +55,7 @@ class Course:
         if not cleaned_id:
             raise ValueError("Course ID cannot be empty or contain only whitespace.")
         self.course_id = cleaned_id
-            
+
         self.room = _clean_list(room or [])
         self.lab = _clean_list(lab or [])
         self.conflicts = _clean_list(conflicts or [])
@@ -97,35 +104,59 @@ class Course:
         try:
             n = int(n)
         except (ValueError, TypeError):
-            raise ValueError(f"Invalid credits value '{n}'. Please enter a whole number.")
+            raise ValueError(
+                f"Invalid credits value '{n}'. Please enter a whole number."
+            )
         if n < 0:
             raise ValueError("Credits must be a non-negative integer.")
         self.credits = n
 
-    def set_rooms(self, rooms):        self.room = _clean_list(rooms)
-    def add_rooms(self, rooms):        self.room = _clean_list([*self.room, *(rooms or [])])
-    def remove_rooms(self, rooms):     self.room = [x for x in self.room if x not in set(_clean_list(rooms))]
+    def set_rooms(self, rooms):
+        self.room = _clean_list(rooms)
 
-    def set_labs(self, labs):          self.lab = _clean_list(labs)
-    def add_labs(self, labs):          self.lab = _clean_list([*self.lab, *(labs or [])])
-    def remove_labs(self, labs):       self.lab = [x for x in self.lab if x not in set(_clean_list(labs))]
+    def add_rooms(self, rooms):
+        self.room = _clean_list([*self.room, *(rooms or [])])
 
-    def set_conflicts(self, conflicts):  self.conflicts = _clean_list(conflicts)
-    def add_conflicts(self, conflicts):  self.conflicts = _clean_list([*self.conflicts, *(conflicts or [])])
-    def remove_conflicts(self, conflicts): self.conflicts = [x for x in self.conflicts if x not in set(_clean_list(conflicts))]
+    def remove_rooms(self, rooms):
+        self.room = [x for x in self.room if x not in set(_clean_list(rooms))]
 
-    def set_faculty(self, faculty):    self.faculty = _clean_list(faculty)
-    def add_faculty(self, faculty):    self.faculty = _clean_list([*self.faculty, *(faculty or [])])
-    def remove_faculty(self, faculty): self.faculty = [x for x in self.faculty if x not in set(_clean_list(faculty))]
+    def set_labs(self, labs):
+        self.lab = _clean_list(labs)
+
+    def add_labs(self, labs):
+        self.lab = _clean_list([*self.lab, *(labs or [])])
+
+    def remove_labs(self, labs):
+        self.lab = [x for x in self.lab if x not in set(_clean_list(labs))]
+
+    def set_conflicts(self, conflicts):
+        self.conflicts = _clean_list(conflicts)
+
+    def add_conflicts(self, conflicts):
+        self.conflicts = _clean_list([*self.conflicts, *(conflicts or [])])
+
+    def remove_conflicts(self, conflicts):
+        self.conflicts = [
+            x for x in self.conflicts if x not in set(_clean_list(conflicts))
+        ]
+
+    def set_faculty(self, faculty):
+        self.faculty = _clean_list(faculty)
+
+    def add_faculty(self, faculty):
+        self.faculty = _clean_list([*self.faculty, *(faculty or [])])
+
+    def remove_faculty(self, faculty):
+        self.faculty = [x for x in self.faculty if x not in set(_clean_list(faculty))]
 
     # Validation function (used for create & modify)
     def validate(
-            self,
-            *,
-            config_obj=None,  # inner dict: config['config']; for rooms/labs membership
-            existing_courses=None,  # list of dicts or Course objects; for uniqueness
-            strict_membership=False,  # True -> unknown rooms/labs raise
-            ignore_index=None  # when modifying, skip that index in uniqueness check
+        self,
+        *,
+        config_obj=None,  # inner dict: config['config']; for rooms/labs membership
+        existing_courses=None,  # list of dicts or Course objects; for uniqueness
+        strict_membership=False,  # True -> unknown rooms/labs raise
+        ignore_index=None,  # when modifying, skip that index in uniqueness check
     ):
         # --- Basic checks ---
         if not self.course_id:
@@ -165,9 +196,17 @@ class Course:
             # Conflicts (check against other course_ids) - relaxed validation
             if strict_membership:
                 available_conflicts = [str(c.get("course_id", "")) for c in cfg_courses]
-                bad_conflicts = [c for c in self.conflicts if c not in available_conflicts and c != self.course_id]
+                bad_conflicts = [
+                    c
+                    for c in self.conflicts
+                    if c not in available_conflicts and c != self.course_id
+                ]
                 if bad_conflicts:
-                    available = ", ".join(available_conflicts) if available_conflicts else "None defined"
+                    available = (
+                        ", ".join(available_conflicts)
+                        if available_conflicts
+                        else "None defined"
+                    )
                     msgs.append(
                         f"Unknown conflict course(s): {', '.join(bad_conflicts)}\n"
                         f"Available courses: {available}"
@@ -196,19 +235,32 @@ class Course:
         # --- Uniqueness check ---
         if existing_courses is not None and ignore_index is None:
             for i, c in enumerate(existing_courses or []):
-                other_id = c.course_id if isinstance(c, Course) else str(c.get("course_id", "")).strip()
+                other_id = (
+                    c.course_id
+                    if isinstance(c, Course)
+                    else str(c.get("course_id", "")).strip()
+                )
                 if other_id == self.course_id:
-                    raise ValueError(f"Duplicate course ID '{self.course_id}' already exists (index {i}).")
+                    raise ValueError(
+                        f"Duplicate course ID '{self.course_id}' already exists (index {i})."
+                    )
 
     # Helper function when creating
     @staticmethod
-    def build_and_validate(data, *, config_obj=None, existing_courses=None, strict_membership=False):
+    def build_and_validate(
+        data, *, config_obj=None, existing_courses=None, strict_membership=False
+    ):
         c = Course.from_dict(data)
-        c.validate(config_obj=config_obj, existing_courses=existing_courses, strict_membership=strict_membership)
+        c.validate(
+            config_obj=config_obj,
+            existing_courses=existing_courses,
+            strict_membership=strict_membership,
+        )
         return c
 
 
 # Config-level helpers (for the CLI to call)
+
 
 def add_course_to_config(config_obj, course_dict, *, strict_membership=True):
     """
@@ -216,11 +268,19 @@ def add_course_to_config(config_obj, course_dict, *, strict_membership=True):
     Raises ValueError if invalid or duplicate.
     """
     courses = _get_courses_list(config_obj)
-    course = Course.build_and_validate(course_dict, config_obj=config_obj, existing_courses=courses, strict_membership=strict_membership)
+    course = Course.build_and_validate(
+        course_dict,
+        config_obj=config_obj,
+        existing_courses=courses,
+        strict_membership=strict_membership,
+    )
     courses.append(course.to_dict())
     return course.to_dict()
 
-def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membership=True, target_index=None):
+
+def modify_course_in_config(
+    config_obj, course_id, *, updates=None, strict_membership=True, target_index=None
+):
     """
     Replace fields for a course by id or index.
     If multiple courses share the same course_id, and target_index is None,
@@ -239,7 +299,9 @@ def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membe
         if not idxs:
             raise ValueError(f"course not found: {course_id}")
         if len(idxs) > 1:
-            print(f"⚠️ Multiple '{course_id}' found; editing first instance (index {idxs[0]}).")
+            print(
+                f"⚠️ Multiple '{course_id}' found; editing first instance (index {idxs[0]})."
+            )
         idx = idxs[0]
 
     cur = Course.from_dict(courses[idx])
@@ -268,6 +330,7 @@ def modify_course_in_config(config_obj, course_id, *, updates=None, strict_membe
 
     courses[idx] = cur.to_dict()
     return courses[idx]
+
 
 def delete_course_from_config(config_obj, course_id):
     courses = _get_courses_list(config_obj)

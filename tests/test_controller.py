@@ -7,13 +7,14 @@
 
 import json
 import pytest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch
 
 with patch("Controller.main_controller.DataManager", Mock(return_value=Mock())):
     import Controller.main_controller as ctrl
 
 
 # --- Fixtures ---
+
 
 @pytest.fixture(autouse=True)
 def reset_dm(monkeypatch):
@@ -32,10 +33,14 @@ def fake_refresh():
 
 # --- File Import / Export ---
 
+
 def test_configImportBTN_loads_json_and_refreshes(monkeypatch, fake_refresh, tmp_path):
     fake_path = tmp_path / "config.json"
     fake_path.write_text("{}")
-    monkeypatch.setattr("Controller.main_controller.filedialog.askopenfilename", Mock(return_value=str(fake_path)))
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.askopenfilename",
+        Mock(return_value=str(fake_path)),
+    )
 
     pathVar = Mock()
     ctrl.configImportBTN(pathVar, refresh=fake_refresh)
@@ -47,7 +52,10 @@ def test_configImportBTN_loads_json_and_refreshes(monkeypatch, fake_refresh, tmp
 
 def test_configExportBTN_saves(monkeypatch, tmp_path):
     fake_save_path = tmp_path / "out.json"
-    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save_path)))
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.asksaveasfilename",
+        Mock(return_value=str(fake_save_path)),
+    )
 
     pathVar = Mock()
     ctrl.configExportBTN(pathVar)
@@ -61,7 +69,10 @@ def test_importSchedulesBTN_reads_valid_json(monkeypatch, tmp_path):
     file_path = tmp_path / "sch.json"
     file_path.write_text(json.dumps(data))
 
-    monkeypatch.setattr("Controller.main_controller.filedialog.askopenfilename", Mock(return_value=str(file_path)))
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.askopenfilename",
+        Mock(return_value=str(file_path)),
+    )
 
     pathVar = Mock()
     result = ctrl.importSchedulesBTN(pathVar)
@@ -70,7 +81,10 @@ def test_importSchedulesBTN_reads_valid_json(monkeypatch, tmp_path):
 
 
 def test_importSchedulesBTN_invalid_path(monkeypatch):
-    monkeypatch.setattr("Controller.main_controller.filedialog.askopenfilename", Mock(return_value="nonexistent.json"))
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.askopenfilename",
+        Mock(return_value="nonexistent.json"),
+    )
     pathVar = Mock()
     result = ctrl.importSchedulesBTN(pathVar)
     assert result is None
@@ -79,7 +93,10 @@ def test_importSchedulesBTN_invalid_path(monkeypatch):
 
 def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
     fake_save = tmp_path / "all.json"
-    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save)))
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.asksaveasfilename",
+        Mock(return_value=str(fake_save)),
+    )
 
     pathVar = Mock()
     data = [{"course": "CMSC 101"}]
@@ -92,7 +109,10 @@ def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
 
 def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     fake_save = tmp_path / "one.json"
-    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", Mock(return_value=str(fake_save)))
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.asksaveasfilename",
+        Mock(return_value=str(fake_save)),
+    )
 
     pathVar = Mock()
     data = [[{"course": "CMSC 101"}], [{"course": "CMSC 102"}]]
@@ -104,16 +124,21 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
 
 
 def test_exportOneScheduleBTN_invalid_num(tmp_path, monkeypatch):
-    fake = tmp_path/"out.json"
-    monkeypatch.setattr("Controller.main_controller.filedialog.asksaveasfilename", lambda **kwargs: str(fake))
-    data = [[{"course":"X"}],[{"course":"Y"}]]
+    fake = tmp_path / "out.json"
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.asksaveasfilename",
+        lambda **kwargs: str(fake),
+    )
+    data = [[{"course": "X"}], [{"course": "Y"}]]
     pathVar = Mock()
     import Controller.main_controller as ctrl
+
     ctrl.exportSchedulesBTN(data, pathVar, num="bad")
     assert json.loads(fake.read_text()) == []
 
 
 # --- RoomsController ---
+
 
 def test_roomscontroller_add_edit_remove(fake_refresh):
     c = ctrl.RoomsController()
@@ -138,6 +163,7 @@ def test_roomscontroller_remove_nonexistent(capfd, fake_refresh):
 
 # --- LabsController ---
 
+
 def test_labscontroller_add_edit_remove(fake_refresh):
     c = ctrl.LabsController()
     c.addLab("Linux", fake_refresh)
@@ -160,6 +186,7 @@ def test_labscontroller_remove_nonexistent(capfd, fake_refresh):
 
 
 # --- CourseController ---
+
 
 def test_coursecontroller_add_edit_remove_success(fake_refresh):
     c = ctrl.CourseController()
@@ -195,6 +222,7 @@ def test_coursecontroller_remove_raises(fake_refresh):
 
 def test_editCourse_cascade_conflict_update():
     from Models.Data_manager import DataManager
+
     dm = DataManager()
     dm.data = {"config": {"rooms": [], "labs": [], "courses": [], "faculty": []}}
     dm.addCourse({"course_id": "B", "credits": 3, "conflicts": []})

@@ -1,8 +1,8 @@
 from Models import Schedule
 
+
 # Display a saved schedule
 def display_schedule():
-    
     schedules = Schedule.list_schedules()  # get saved CSVs
     if not schedules:  # no files found
         print("No saved schedules found.")
@@ -17,7 +17,7 @@ def display_schedule():
     choice = input("\nEnter a number or file name: ").strip()
 
     # If user enters a number, convert to file name
-    if choice.isdigit():  
+    if choice.isdigit():
         index = int(choice) - 1  # adjust because list is 0-based
         if 0 <= index < len(schedules):
             filename = schedules[index]

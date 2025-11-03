@@ -15,6 +15,7 @@ class ChatbotView(ctk.CTkFrame):
         else:
             # fallback if opened independently
             from tkinter import StringVar
+
             self.configPath = StringVar()
             self.configPath.set(
                 "Start editing this new Config File or Import your own. Press export to save new changes."
@@ -35,7 +36,9 @@ class ChatbotView(ctk.CTkFrame):
             header_frame,
             text="Import Config",
             width=150,
-            command=lambda: configImportBTN(self.configPath, getattr(app, "refresh", None)),
+            command=lambda: configImportBTN(
+                self.configPath, getattr(app, "refresh", None)
+            ),
         )
         import_btn.pack(side="left", padx=(0, 10))
 
@@ -70,11 +73,15 @@ class ChatbotView(ctk.CTkFrame):
         input_frame = ctk.CTkFrame(self, fg_color="transparent")
         input_frame.pack(fill="x", padx=10, pady=(0, 10))
 
-        self.entry = ctk.CTkEntry(input_frame, placeholder_text="Ask the scheduler assistant…")
+        self.entry = ctk.CTkEntry(
+            input_frame, placeholder_text="Ask the scheduler assistant…"
+        )
         self.entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self.entry.bind("<Return>", self._on_enter_pressed)
 
-        self.send_button = ctk.CTkButton(input_frame, text="Send", width=80, command=self.send_message)
+        self.send_button = ctk.CTkButton(
+            input_frame, text="Send", width=80, command=self.send_message
+        )
         self.send_button.pack(side="right")
 
         # Initial greeting
