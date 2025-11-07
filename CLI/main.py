@@ -19,8 +19,9 @@ from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
-from CLI.room_cli import *
-from CLI.lab_cli import *
+# from CLI.room_cli import *
+from CLI.room_cli import mainRoomControler
+from CLI.lab_cli import mainLabControler
 from scheduler import (
     Scheduler,
     load_config_from_file,
@@ -305,7 +306,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
                 # Checks if the provided path is valid
                 if os.path.exists(userPath):
                     # If so, makes it the input path
-                    filePath = userPath
+                    #filePath = userPath ?  output/example.json
                     print("Config Loaded Successfully")
                     return
                 else:
@@ -316,7 +317,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
         elif choice == "2":
             # Gives a blank config
             name = input("Enter the file name: (i.e newconfig)")
-            filePath = createEmptyJson(name)
+            createEmptyJson(name)
         elif choice == "3":
             ##Faculty
             whatAction(rooms, labs, courses, faculty, other)
@@ -347,20 +348,20 @@ def displayConfig(rooms, labs, courses, faculty):
     # Rooms
     print("Rooms:")
     if hasattr(rooms, "rooms"):
-        for r in rooms.rooms:
-            print(f"  - {r}")
+        for room in rooms.rooms:
+            print(f"  - {room}")
     else:
-        for r in rooms:
-            print(f"  - {r}")
+        for room in rooms:
+            print(f"  - {room}")
 
     # Labs
     print("\nLabs:")
     if hasattr(labs, "labs"):
-        for l in labs.labs:
-            print(f"  - {l}")
+        for lab in labs.labs:
+            print(f"  - {lab}")
     else:
-        for l in labs:
-            print(f"  - {l}")
+        for lab in labs:
+            print(f"  - {lab}")
 
     # Courses
     print("\nCourses:")

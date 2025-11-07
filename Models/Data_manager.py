@@ -21,6 +21,16 @@ class DataManager:
         else:
             self.data = self.deafultData()
 
+    @staticmethod
+    def requireData(func):
+        # Creating a decorateor so i dont have to write if else to make ruff check happy :)
+        def wrapper(self, *args, **kwargs):
+            if self.data is None:
+                raise ValueError(f"Cannot call '{func.__name__}' — data is not loaded.")
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
     # we want to load if we have a file path
     def loadFile(self, filePath):
         self.filePath = filePath
@@ -51,28 +61,34 @@ class DataManager:
         with open(path, "w") as f:
             json.dump(self.data, f, indent=4)
 
+    @requireData
     def updateLimit(self, limit):
         self.data["limit"] = limit
 
+    @requireData
     def updateOptimizerFlags(self, flags):
         self.data["optimizer_flags"] = flags
 
     # each method below will get the data from file:
     # Rooms CRUD(Create, Read, Update, Delete)
+    @requireData
     def getRooms(self):
         return self.data["config"]["rooms"]
 
+    @requireData
     def addRoom(self, newRoom):
         self.data["config"]["rooms"].append(newRoom)
         # actally saves the data in file
         # self.saveData(outPath = self.filePath)
 
+    @requireData
     def editRoom(self, oldName, newName):
         rooms = self.data["config"]["rooms"]
         idx = rooms.index(oldName)
         rooms[idx] = newName
         # self.saveData(outPath = self.filePath)
 
+    @requireData
     def removeRoom(self, roomName):
         # Prevent removing a room that's in use by any course
         courses = self.data["config"].get("courses", [])
@@ -87,19 +103,23 @@ class DataManager:
         # self.saveData(outPath = self.filePath)
 
     # Labs CRUD
+    @requireData
     def getLabs(self):
         return self.data["config"]["labs"]
 
+    @requireData
     def addLab(self, newLab):
         self.data["config"]["labs"].append(newLab)
         # self.saveData(outPath = self.filePath)
 
+    @requireData
     def editLabs(self, oldName, newName):
         labs = self.data["config"]["labs"]
         idx = labs.index(oldName)
         labs[idx] = newName
         # self.saveData(outPath = self.filePath)
 
+    @requireData
     def removeLabs(self, labName):
         # Prevent removing a lab that's in use by any course
         courses = self.data["config"].get("courses", [])
@@ -114,11 +134,13 @@ class DataManager:
         # self.saveData(outPath = self.filePath)
 
     # Course CRUD
+    @requireData
     def getCourses(self):
         """Return the list of all valid courses, auto-cleaning invalid references."""
         self._clean_invalid_references()
         return self.data["config"].get("courses", [])
 
+    @requireData
     def addCourse(self, course_dict):
         config_obj = self.data["config"]
         try:
@@ -128,6 +150,7 @@ class DataManager:
         except Exception as e:
             raise ValueError(str(e))
 
+    @requireData
     def editCourse(self, old_course_id, updates, target_index=None):
         config_obj = self.data["config"]
 
@@ -175,6 +198,7 @@ class DataManager:
         except Exception as e:
             raise ValueError(str(e))
 
+    @requireData
     def removeCourse(self, course):
         cfg = self.data.get("config", {})
         try:
@@ -190,6 +214,7 @@ class DataManager:
         except Exception as e:
             raise ValueError(str(e))
 
+    @requireData
     def _clean_invalid_references(self):
         """
         Cleans all invalid references in course lists:
@@ -219,7 +244,7 @@ class DataManager:
 
             # Labs
             if "lab" in c:
-                valid_labs = [l for l in c["lab"] if l in existing_labs]
+                valid_labs = [labs for labs in c["lab"] if labs in existing_labs]
                 if len(valid_labs) != len(c["lab"]):
                     c["lab"] = valid_labs
                     changed = True
@@ -243,9 +268,11 @@ class DataManager:
         return changed
 
     # Faculty CRUD
+    @requireData
     def getFaculty(self):
         return self.data["config"]["faculty"]
 
+    @requireData
     def getFacultyByName(self, name: str):
         """Return a single faculty entry by name (case-insensitive), or None if not found."""
         faculty_list = self.data.get("config", {}).get("faculty", [])
@@ -258,11 +285,13 @@ class DataManager:
                 return f
         return None
 
+    @requireData
     def addFaculty(self, newFaculty):
         conFaculty = self.data["config"]["faculty"]
         FacultyModel.Faculty.addFaculty(conFaculty, newFaculty)
         # self.saveData(outPath = self.filePath)
 
+    @requireData
     def removeFaculty(self, facName):
         # Prevent removing faculty that's assigned to any course
         courses = self.data["config"].get("courses", [])
