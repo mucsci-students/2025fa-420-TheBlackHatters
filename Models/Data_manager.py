@@ -169,7 +169,7 @@ class DataManager:
             new_data = current.copy()
             new_data.update(updates)
 
-            from Models.courses.Course_model import Course
+            from Models.Course_model import Course
 
             candidate = Course.from_dict(new_data)
 
