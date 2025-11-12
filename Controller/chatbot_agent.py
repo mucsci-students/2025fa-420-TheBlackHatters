@@ -527,7 +527,7 @@ class ChatbotAgent:
                     name = m.group(1).strip() if m else None
                 if not name:
                     return self._err(
-                        "Plpaease specify a room name to add.", category, "add"
+                        "Please specify a room name to add.", category, "add"
                     )
                 try:
                     DM.addRoom(name)
