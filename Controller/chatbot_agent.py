@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import StructuredTool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent as create_react_agent
 
 from Controller.main_controller import DM  # DataManager singleton
 
@@ -177,7 +177,8 @@ class ChatbotAgent:
     def _tool_show_details(self, target: str = ""):
         # Kept simple for now
         try:
-            cfg = DM.data.get("config", {})
+            cfg = getattr(DM, "data", {}) or {}
+            cfg = cfg.get("config", {})
             t = (target or "").strip().lower()
             if t in ("rooms", "room"):
                 return {"rooms": cfg.get("rooms", [])}
@@ -267,7 +268,9 @@ class ChatbotAgent:
 
     @staticmethod
     def _extract_conflicts_from_text(
-        text: str, known_rooms: List[str] = None, known_labs: List[str] = None
+            text: str,
+            known_rooms: Optional[List[str]] = None,
+            known_labs: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs

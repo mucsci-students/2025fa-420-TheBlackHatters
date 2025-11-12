@@ -45,7 +45,7 @@ def test_configImportBTN_loads_json_and_refreshes(monkeypatch, fake_refresh, tmp
     pathVar = Mock()
     ctrl.configImportBTN(pathVar, refresh=fake_refresh)
 
-    ctrl.DM.loadFile.assert_called_once_with(str(fake_path))
+    ctrl.DM.loadFile.assert_called_once_with(str(fake_path))  # type: ignore[attr-defined]
     fake_refresh.assert_called_once_with("ConfigPage")
     pathVar.set.assert_called_once_with(str(fake_path))
 
@@ -60,7 +60,7 @@ def test_configExportBTN_saves(monkeypatch, tmp_path):
     pathVar = Mock()
     ctrl.configExportBTN(pathVar)
 
-    ctrl.DM.saveData.assert_called_once_with(str(fake_save_path))
+    ctrl.DM.saveData.assert_called_once_with(str(fake_save_path))  # type: ignore[attr-defined]
     assert "Config File saved" in pathVar.set.call_args[0][0]
 
 

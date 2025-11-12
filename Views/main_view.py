@@ -18,7 +18,7 @@ import math
 import re
 
 from datetime import datetime
-
+from typing import Any
 
 # should create controllers for other things too
 roomCtr = RoomsController()
@@ -1860,10 +1860,9 @@ class SchedulerApp(ctk.CTk):
         )
 
         # One chatbot instance for the entire app
-        app = frame.winfo_toplevel()
+        app: Any = frame.winfo_toplevel()
         if not hasattr(app, "chat_agent"):
-            app.chat_agent = ChatbotAgent(lambda: app.configPath.get())
-
+            app.chat_agent = ChatbotAgent(lambda: app.configPath.get())  # type: ignore[attr-defined]
         chatbot_bar = ctk.CTkFrame(frame, fg_color="#2A2A2A")
         chatbot_bar.pack(side="bottom", fill="x", padx=10, pady=(10, 10))
 
@@ -1891,7 +1890,7 @@ class SchedulerApp(ctk.CTk):
             chatbot_entry.delete(0, "end")
 
             print(f"[CHATBOT INPUT] {text}")
-            response = app.chat_agent.query(text)
+            response = app.chat_agent.query(text)  # type: ignore[attr-defined]
             print("[Chatbot Response]", response)
 
             if isinstance(response, dict):
@@ -1907,13 +1906,10 @@ class SchedulerApp(ctk.CTk):
 
                 # FIX: persist new tab before refresh
                 if switch_tab:
-                    app.selected_tabs["ConfigPage"] = switch_tab
-
-                app.refresh(target="ConfigPage")
-
+                    app.selected_tabs["ConfigPage"] = switch_tab  # type: ignore[attr-defined]
+                app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
             else:
-                app.refresh(target="ConfigPage")
-
+                app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
     # this is to store and return the choice to order the schedules
     def orderByChoice(self, choice, sch):
         self.selectedOrderBy = choice

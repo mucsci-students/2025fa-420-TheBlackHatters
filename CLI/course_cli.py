@@ -2,12 +2,12 @@
 # Author: Ben Richardson, Fletcher Burton
 # Last Modified: September 21, 2025
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from Models.Course_model import Course
 
 courses = {}
 conflicts = {}
-_courses_ref = None
+_courses_ref: List[Dict[str, Any]] = []
 _rooms_ref: List[str] = []
 _labs_ref: List[str] = []
 _faculty_names: List[str] = []
@@ -42,6 +42,14 @@ def _find_course_indexes(course_name: str) -> List[int]:
     return idxs
 
 
+def _get_course(idx: int):
+    if not isinstance(_courses_ref, list):
+        return None
+    if 0 <= idx < len(_courses_ref):
+        return _courses_ref[idx]
+    return None
+
+
 def _pick_course_index_for_modify(name: str) -> int:
     idxs = _find_course_indexes(name)
     if not idxs:
@@ -50,7 +58,9 @@ def _pick_course_index_for_modify(name: str) -> int:
         return idxs[0]
     print(f"Multiple '{name}' found:")
     for n, i in enumerate(idxs, 1):
-        cd = _courses_ref[i]
+        cd = _get_course(i)
+        if not cd:
+            continue
         rooms = ", ".join(cd.get("room", [])) or "(none)"
         labs = ", ".join(cd.get("lab", [])) or "(none)"
         fac = ", ".join(cd.get("faculty", [])) or "(none)"
@@ -90,7 +100,10 @@ def _print_single_course(name: str, idx: Optional[int] = None):
     if idx == -1:
         print("Course not found.")
         return
-    c = _courses_ref[idx]
+    c = _get_course(idx)
+    if not c:
+        print("Course not found.")
+        return
     rooms = ", ".join(c.get("room", [])) or "(none)"
     labs = ", ".join(c.get("lab", [])) or "(none)"
     faculty = ", ".join(c.get("faculty", [])) or "(none)"
@@ -174,7 +187,10 @@ def modify_course():
     if idx == -1:
         print("Course not found.")
         return
-    current = _courses_ref[idx]
+    current = _get_course(idx)
+    if not current:
+        print("Course not found.")
+        return
     cur_rooms = ", ".join(current.get("room", [])) or "(none)"
     cur_labs = ", ".join(current.get("lab", [])) or "(none)"
     cur_fac = ", ".join(current.get("faculty", [])) or "(none)"
@@ -229,7 +245,9 @@ def delete_course():
     if len(idxs) > 1:
         print(f"Multiple '{name}' found:")
         for n, i in enumerate(idxs, 1):
-            cd = _courses_ref[i]
+            cd = _get_course(i)
+            if not cd:
+                continue
             rooms = ", ".join(cd.get("room", [])) or "(none)"
             labs = ", ".join(cd.get("lab", [])) or "(none)"
             fac = ", ".join(cd.get("faculty", [])) or "(none)"
@@ -271,7 +289,7 @@ def add_conflict():
         print("Invalid conflict name.")
         return
     try:
-        cur = Course.from_dict(_courses_ref[idx])
+        cur = Course.from_dict(_get_course(idx))
         cur.add_conflicts([conflict_name])
         cur.validate(strict_membership=False)
         _courses_ref[idx] = cur.to_dict()
@@ -288,7 +306,10 @@ def modify_conflict():
     if idx == -1:
         print("Course not found.")
         return
-    cur_dict = _courses_ref[idx]
+    cur_dict = _get_course(idx)
+    if not cur_dict:
+        print("Course not found.")
+        return
     current_conflicts = list(cur_dict.get("conflicts", []))
     if not current_conflicts:
         print("No conflicts found.")
@@ -325,7 +346,10 @@ def delete_conflict():
     if idx == -1:
         print("Course not found.")
         return
-    cur_dict = _courses_ref[idx]
+    cur_dict = _get_course(idx)
+    if not cur_dict:
+        print("Course not found.")
+        return
     current_conflicts = list(cur_dict.get("conflicts", []))
     if not current_conflicts:
         print("No conflicts found.")
@@ -385,7 +409,9 @@ def cli_menu():
             else:
                 # if duplicates, just show all conflicts from each match
                 for j, idx in enumerate(idxs, 1):
-                    cur = _courses_ref[idx]
+                    cur = _get_course(idx)
+                    if not cur:
+                        continue
                     lst = cur.get("conflicts", [])
                     if len(idxs) > 1:
                         print(f"Instance {j}:")
@@ -405,7 +431,7 @@ def mainCourseController(
     courses_list, rooms_obj_or_list, labs_obj_or_list, faculty_list
 ):
     global _courses_ref, _rooms_ref, _labs_ref, _faculty_names
-    _courses_ref = courses_list
+    _courses_ref = list(courses_list or [])
     if hasattr(rooms_obj_or_list, "rooms"):
         _rooms_ref = list(rooms_obj_or_list.rooms or [])
     else:

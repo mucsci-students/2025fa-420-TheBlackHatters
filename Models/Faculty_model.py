@@ -1,10 +1,9 @@
 # File Name: Faculty_model.py
 
 # Author: Liam Delaney, Nicholas DiPace
-# Last Modified: September 29, 2025
+# Last Modified: November 11, 2025
 
-
-class Faculty:
+class Faculty(list):
     faculty_name = None
     maximum_credits = None
     minimum_credits = None
@@ -26,7 +25,7 @@ class Faculty:
         room_preferences,
         lab_preferences,
     ):
-        # init, faculty should be a list of faculty objects.
+        super().__init__()  # initialize list parent
         self.name = faculty_name
         self.maximum_credits = maximum_credits
         self.minimum_credits = minimum_credits
@@ -57,15 +56,18 @@ class Faculty:
             f"Lab Preferences: {lab_prefs}"
         )
 
-    # Checks if the provided name of a faculty member already exists in the JSON file.
-    # Returns true if found, otherwise false.
-    def facCheck(self, name):
+    # -------------------------------
+    # Static helper methods for lists
+    # -------------------------------
+
+    @staticmethod
+    def facCheck(faculty_list, name):
+        """Check if any faculty entry contains the given name substring."""
         i = 0
-        for entry in self:
-            # guard against entries without 'name' or with None
-            subFaculty = self[i].get("name") if isinstance(self[i], dict) else None
+        for entry in faculty_list:
+            subFaculty = entry.get("name") if isinstance(entry, dict) else None
             if subFaculty is None:
-                i = i + 1
+                i += 1
                 continue
             # only perform substring check for string types
             try:
@@ -74,40 +76,37 @@ class Faculty:
             except TypeError:
                 # name or subFaculty not iterable/compatible — skip this entry
                 pass
-            i = i + 1
+            i += 1
         return False
 
-    # Prints a list of all current faculty entries.
-    def viewFaculty(self):
-        for entry in self:
-            # print each entry followed by a blank line (match existing tests expecting "\n\n")
+    @staticmethod
+    def viewFaculty(faculty_list):
+        """Print all faculty entries, each followed by a blank line."""
+        for entry in faculty_list:
             print(entry)
             print()
 
-    # Adds the faculty to the JSON file by taking in the data of a faculty member
-    # Assumes checks are already done.
-    def addFaculty(self, new_faculty):
-        self.append(new_faculty)
+    @staticmethod
+    def addFaculty(faculty_list, new_faculty):
+        """Append a new faculty entry to the list."""
+        faculty_list.append(new_faculty)
 
-    # Finds a faculty based on their name and deletes them from the JSON file.
-    # Faculty is a list of faculty, so we iterate through to find the index for deletion.
-    def removeFaculty(self, faculty_name):
+    @staticmethod
+    def removeFaculty(faculty_list, faculty_name):
+        """Remove and return the first matching faculty entry by name substring."""
         i = 0
-        for entry in self:
-            # Specifically stores the 'name' section of the faculty list entry.
-            subFaculty = self[i].get("name") if isinstance(self[i], dict) else None
-            # If there's no name on this entry, skip it
+        for entry in faculty_list:
+            subFaculty = entry.get("name") if isinstance(entry, dict) else None
             if subFaculty is None:
-                i = i + 1
+                i += 1
                 continue
             try:
                 if faculty_name in subFaculty:
-                    rem = self[i]
-                    del self[i]
+                    rem = faculty_list[i]
+                    del faculty_list[i]
                     return rem
             except TypeError:
                 # faculty_name or subFaculty not iterable/compatible — skip this entry
                 pass
-            i = i + 1
-        # If we get here, faculty wasn't found
-        return None  # Return None when faculty is not found
+            i += 1
+        return None
