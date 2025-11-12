@@ -3,7 +3,7 @@
 # Last Modified: September 21, 2025
 
 from typing import List, Optional
-from Models.courses.Course_model import Course
+from Models.Course_model import Course
 
 courses = {}
 conflicts = {}

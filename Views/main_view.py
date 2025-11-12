@@ -146,13 +146,13 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     rowFacultyType.pack(fill="x", pady=5)
 
     # Label for the faculty type
-    facultyLabel = ctk.CTkLabel(
+    ctk.CTkLabel(
         rowFacultyType,
         text="Is the faculty full-time or adjunct?",
         font=("Arial", 25, "bold"),
     ).pack(side="left", padx=10, pady=5)
     # Full-time button
-    fullSelection = ctk.CTkRadioButton(
+    ctk.CTkRadioButton(
         rowFacultyType,
         text="Full-time",
         variable=facultyType,
@@ -161,7 +161,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         command=onFacultyTypeChange,
     ).pack(side="left", padx=10)
     # Adjunct button
-    adjunctSelection = ctk.CTkRadioButton(
+    ctk.CTkRadioButton(
         rowFacultyType,
         text="Adjunct",
         variable=facultyType,
@@ -173,7 +173,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     # if we have data given here we just display the data
     # for example when someone clicks edit.
     if data:
-        if data != None:
+        if data is not None:
             nameEntry.insert(0, data.get("name", ""))
 
     # This is to display the credit things
@@ -362,7 +362,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     ).pack(anchor="w", padx=5, pady=(0, 5))
 
     # Lets the user add additonal course rows if desired.
-    addCourseButton = ctk.CTkButton(
+    ctk.CTkButton(
         rowCourse,
         text="Add Course",
         width=30,
@@ -411,7 +411,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     # Decide how many dropdown rows to create
     if data:
         course_data = data.get("course_preferences")
-        if course_data != None:
+        if course_data is not None:
             for course in course_data:
                 # Stores the weight for the course.
                 weight = course_data.get(course)
@@ -479,7 +479,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
         justify="left",
     ).pack(anchor="w", padx=5, pady=(0, 5))
 
-    addRoomButton = ctk.CTkButton(
+    ctk.CTkButton(
         rowRoom,
         text="Add Room",
         width=30,
@@ -525,7 +525,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
     if data:
         room_data = data.get("room_preferences")
-        if room_data != None:
+        if room_data is not None:
             for room in room_data:
                 # Stores the weight for the course.
                 weight = room_data.get(room)
@@ -577,7 +577,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     ).pack(anchor="w", padx=5, pady=(0, 5))
 
     # Allows user to add additional lab entries if needed.
-    addLabButton = ctk.CTkButton(
+    ctk.CTkButton(
         rowLab,
         text="Add Lab",
         width=30,
@@ -617,7 +617,7 @@ def dataFacultyRight(frame, controller, refresh, data=None):
     # Creates Lab entry for each Lab in the Faculty Data, otherwise creates two.
     if data:
         lab_data = data.get("lab_preferences")
-        if lab_data != None:
+        if lab_data is not None:
             for lab in lab_data:
                 # Stores the weight for the course.
                 weight = lab_data.get(lab)
@@ -965,10 +965,10 @@ def dataLabsLeft(frame, controller, refresh, data=None):
             text="Delete",
             width=30,
             height=20,
-            command=lambda l=lab: onDelete(l),
+            command=lambda lab_item=lab: onDelete(lab_item),
         ).pack(side="left", padx=5)
         ctk.CTkButton(
-            rowFrame, text="Edit", width=30, height=20, command=lambda l=lab: onEdit(l)
+            rowFrame, text="Edit", width=30, height=20, command=lambda lab_item=lab: onEdit(lab_item)
         ).pack(side="left", padx=5)
 
 
@@ -1630,7 +1630,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                     height = (end - start).seconds / 3600 * hourHeight - 2
 
                     # Rectangle for class
-                    rect = canvas.create_rectangle(
+                    canvas.create_rectangle(
                         x, y, x + dayWidth - 10, y + height, fill=PICKEDCOLOR
                     )
 
@@ -2002,8 +2002,8 @@ class SchedulerApp(ctk.CTk):
         schedulesFrame.pack(expand=True, fill="both", padx=10, pady=10)
 
         if (
-            self.deafultSchedules != None
-            and self.deafultSchedules != {}
+            self.deafultSchedules is not None
+                and self.deafultSchedules != {}
             and self.deafultSchedules != []
         ):
             if self.selectedSchView == "Table":

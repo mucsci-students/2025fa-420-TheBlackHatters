@@ -254,9 +254,9 @@ class ChatbotAgent:
     def _extract_labs_from_text(text: str, known_labs: List[str]) -> List[str]:
         res = []
         lower = text.lower()
-        for l in known_labs:
-            if l.lower() in lower:
-                res.append(l)
+        for lab_name in known_labs:
+            if lab_name.lower() in lower:
+                res.append(lab_name)
         # Also allow single tokens like "Linux", "Mac"
         for m in re.findall(r"\b[A-Z][a-zA-Z0-9]+\b", text):
             if m in ("Lab", "Room"):
@@ -274,7 +274,7 @@ class ChatbotAgent:
         and ignoring numeric-only or verb fragments like 'be 5'.
         """
         known_rooms = [r.lower() for r in (known_rooms or [])]
-        known_labs = [l.lower() for l in (known_labs or [])]
+        known_labs = [lab.lower() for lab in (known_labs or [])]
 
         # Match only tokens that have letters immediately followed by digits
         matches = re.findall(r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b", text)
@@ -782,7 +782,7 @@ class ChatbotAgent:
             if category in ("lab", "labs"):
                 labs = cfg.get("labs", [])
                 target = next(
-                    (l for l in labs if l.lower() == identifier.lower()), None
+                    (lab for lab in labs if lab.lower() == identifier.lower()), None
                 )
                 if not target:
                     return self._err(f"Lab '{identifier}' not found.", category, "edit")
@@ -1002,7 +1002,7 @@ class ChatbotAgent:
                 try:
                     labs = DM.data["config"].get("labs", [])
                     target = next(
-                        (l for l in labs if l.lower() == identifier.lower()), None
+                        (lab for lab in labs if lab.lower() == identifier.lower()), None
                     )
                     if not target:
                         return self._err(

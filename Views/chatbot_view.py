@@ -22,7 +22,8 @@ class ChatbotView(ctk.CTkFrame):
             )
 
         # Function to retrieve current config path
-        get_config_path = lambda: self.configPath.get()
+        def get_config_path():
+            return self.configPath.get()
 
         # Initialize chatbot agent
         self.agent = ChatbotAgent(get_config_path)

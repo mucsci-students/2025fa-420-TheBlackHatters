@@ -3,7 +3,7 @@ import Models.Faculty_model as FacultyModel
 
 # This will manage all of the data for the whole config file.
 
-from Models.courses.Course_model import (
+from Models.Course_model import (
     add_course_to_config,
     delete_course_from_config,
 )

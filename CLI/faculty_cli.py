@@ -54,7 +54,7 @@ def addFacultyCLI(Faculty):
         print("Hello Client!")
 
     # Checks if faculty is already in system.
-    if FacultyModel.Faculty.facCheck(Faculty, faculty_name) == True:
+    if FacultyModel.Faculty.facCheck(Faculty, faculty_name):
         print("Faculty is already in system!")
         return
 
@@ -254,7 +254,7 @@ def editFacultyCLI(Faculty):
         print("Error! You entered nothing!")
         return
     # Checks if the faculty is in the system.
-    if FacultyModel.Faculty.facCheck(Faculty, faculty_to_edit) == False:
+    if not FacultyModel.Faculty.facCheck(Faculty, faculty_to_edit):
         print("Faculty does not exist!")
         return
     else:
@@ -477,7 +477,7 @@ def removeFacultyCLI(Faculty):
     name_to_remove = input()
 
     if (
-        FacultyModel.Faculty.facCheck(Faculty, name_to_remove) == False
+        not FacultyModel.Faculty.facCheck(Faculty, name_to_remove)
         or name_to_remove.replace(" ", "") == ""
     ):
         print("Faculty does not exist!")

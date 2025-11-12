@@ -1,7 +1,7 @@
 # Run with pytest -q from inside tests/Model_tests directory.
 
 import pytest
-from Models.courses.Course_model import (
+from Models.Course_model import (
     Course,
     add_course_to_config,
     modify_course_in_config,
