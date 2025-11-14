@@ -1400,6 +1400,10 @@ class SchedulerApp(ctk.CTk):
         # we will keep our views to dispaly here
         self.views = {}
 
+        # UNDO/REDO SYSTEM
+        self.undo_stack = []  # Stores additions to undo
+        self.redo_stack = []  # Stores undone actions to redo
+
         self.createMainPage()
         self.views["MainPage"].pack(expand=True, fill="both")
 
@@ -1430,6 +1434,18 @@ class SchedulerApp(ctk.CTk):
         self.createSchedulerPage(parent = tabview.tab("Run Scheduler"))
         self.createViewSchedulePage(parent = tabview.tab("View Schedules"))
 
+        # Creates undo/redo buttons
+        undoButton = ctk.CTkButton(frame, text = "Undo")
+        undoButton.pack(padx = (10, 15), pady = (0, 10), side = "left")
+        redoButton = ctk.CTkButton(frame, text = "Redo")
+        redoButton.pack(padx = (0, 5), pady = (0, 10), side = "left")
+
+        # Store button references
+        self.undo_button = undoButton
+        self.redo_button = redoButton
+
+        # Update initial button states
+        self.update_undo_redo_buttons()
 
     # this will create the config Page to modify/create new file
     def createConfigPage(self,  parent=None , data=None):
