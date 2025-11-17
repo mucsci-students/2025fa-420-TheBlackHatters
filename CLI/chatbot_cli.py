@@ -67,9 +67,10 @@ def main(cfg_path=None):
                     print(json.dumps(result["payload"], indent=2))
 
                 # --- Auto-save after successful modify ---
-                if (
-                    not result.get("error")
-                    and result.get("action") in ("add", "edit", "delete")
+                if not result.get("error") and result.get("action") in (
+                    "add",
+                    "edit",
+                    "delete",
                 ):
                     save_config(DM, cfg_path)
 

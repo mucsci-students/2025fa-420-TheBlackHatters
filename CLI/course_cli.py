@@ -2,19 +2,20 @@
 # Author: Ben Richardson, Fletcher Burton
 # Last Modified: September 21, 2025
 
-import sys
-from typing import List, Optional
-from Models.courses.Course_model import Course
+from typing import List, Optional, Dict, Any
+from Models.Course_model import Course
 
 courses = {}
 conflicts = {}
-_courses_ref = None
+_courses_ref: List[Dict[str, Any]] = []
 _rooms_ref: List[str] = []
 _labs_ref: List[str] = []
 _faculty_names: List[str] = []
 
+
 def _first_or_empty(v):
     return v[0] if isinstance(v, list) and v else ""
+
 
 def _refresh_local_view_from_ref():
     courses.clear()
@@ -31,6 +32,7 @@ def _refresh_local_view_from_ref():
             "room": _first_or_empty(c.get("room", [])),
         }
 
+
 def _find_course_indexes(course_name: str) -> List[int]:
     name = (course_name or "").strip()
     idxs = []
@@ -38,6 +40,15 @@ def _find_course_indexes(course_name: str) -> List[int]:
         if str(c.get("course_id", "")).strip() == name:
             idxs.append(i)
     return idxs
+
+
+def _get_course(idx: int):
+    if not isinstance(_courses_ref, list):
+        return None
+    if 0 <= idx < len(_courses_ref):
+        return _courses_ref[idx]
+    return None
+
 
 def _pick_course_index_for_modify(name: str) -> int:
     idxs = _find_course_indexes(name)
@@ -47,20 +58,25 @@ def _pick_course_index_for_modify(name: str) -> int:
         return idxs[0]
     print(f"Multiple '{name}' found:")
     for n, i in enumerate(idxs, 1):
-        cd = _courses_ref[i]
+        cd = _get_course(i)
+        if not cd:
+            continue
         rooms = ", ".join(cd.get("room", [])) or "(none)"
         labs = ", ".join(cd.get("lab", [])) or "(none)"
         fac = ", ".join(cd.get("faculty", [])) or "(none)"
-        print(f"  {n}. credits={cd.get('credits','')}, rooms=[{rooms}], labs=[{labs}], faculty=[{fac}]")
+        print(
+            f"  {n}. credits={cd.get('credits', '')}, rooms=[{rooms}], labs=[{labs}], faculty=[{fac}]"
+        )
     sel = input(f"Select 1-{len(idxs)}: ").strip()
     try:
         k = int(sel)
         if 1 <= k <= len(idxs):
-            return idxs[k-1]
+            return idxs[k - 1]
     except Exception:
         pass
     print("Invalid selection.")
     return -1
+
 
 def _print_courses_list():
     if not _courses_ref:
@@ -72,7 +88,10 @@ def _print_courses_list():
         rooms = ", ".join(c.get("room", [])) or "(none)"
         labs = ", ".join(c.get("lab", [])) or "(none)"
         faculty = ", ".join(c.get("faculty", [])) or "(none)"
-        print(f"  {name}: credits={c.get('credits','')}, rooms=[{rooms}], labs=[{labs}], faculty=[{faculty}]")
+        print(
+            f"  {name}: credits={c.get('credits', '')}, rooms=[{rooms}], labs=[{labs}], faculty=[{faculty}]"
+        )
+
 
 def _print_single_course(name: str, idx: Optional[int] = None):
     if idx is None:
@@ -81,17 +100,21 @@ def _print_single_course(name: str, idx: Optional[int] = None):
     if idx == -1:
         print("Course not found.")
         return
-    c = _courses_ref[idx]
+    c = _get_course(idx)
+    if not c:
+        print("Course not found.")
+        return
     rooms = ", ".join(c.get("room", [])) or "(none)"
     labs = ", ".join(c.get("lab", [])) or "(none)"
     faculty = ", ".join(c.get("faculty", [])) or "(none)"
     conflicts_list = ", ".join(c.get("conflicts", [])) or "(none)"
     print(f"{name}:")
-    print(f"  credits: {c.get('credits','')}")
+    print(f"  credits: {c.get('credits', '')}")
     print(f"  rooms: {rooms}")
     print(f"  lab: {labs}")
     print(f"  faculty: {faculty}")
     print(f"  conflicts: {conflicts_list}")
+
 
 def _parse_allowed_list(raw: str, allowed: List[str]) -> List[str]:
     vals = [x.strip() for x in (raw or "").split(",") if x.strip()]
@@ -99,7 +122,9 @@ def _parse_allowed_list(raw: str, allowed: List[str]) -> List[str]:
         return []
     bad = [v for v in vals if v not in allowed]
     if bad:
-        raise ValueError(f"invalid entries: {', '.join(bad)}; allowed: {', '.join(allowed)}")
+        raise ValueError(
+            f"invalid entries: {', '.join(bad)}; allowed: {', '.join(allowed)}"
+        )
     seen = set()
     out = []
     for v in vals:
@@ -108,21 +133,33 @@ def _parse_allowed_list(raw: str, allowed: List[str]) -> List[str]:
             out.append(v)
     return out
 
-def _list_and_get_allowed(label: str, allowed: List[str], prompt: str, allow_blank_keep: bool = False) -> Optional[List[str]]:
+
+def _list_and_get_allowed(
+    label: str, allowed: List[str], prompt: str, allow_blank_keep: bool = False
+) -> Optional[List[str]]:
     print(f"{label}: {', '.join(allowed) if allowed else '(none)'}")
     raw = input(prompt).strip()
     if allow_blank_keep and raw == "":
         return None
     return _parse_allowed_list(raw, allowed) if raw else []
 
+
 def add_course():
     name = input("Enter course name: ").strip()
     if _find_course_indexes(name):
         print("Note: duplicate course name exists; adding another entry.")
     credits = input("Enter course credits: ").strip()
-    rooms = _list_and_get_allowed("Available rooms", _rooms_ref, "Enter room(s) (comma separated) [optional]: ")
-    labs = _list_and_get_allowed("Available labs", _labs_ref, "Enter labs (comma separated) [optional]: ")
-    faculty = _list_and_get_allowed("Available faculty", _faculty_names, "Enter faculty (comma separated) [optional]: ")
+    rooms = _list_and_get_allowed(
+        "Available rooms", _rooms_ref, "Enter room(s) (comma separated) [optional]: "
+    )
+    labs = _list_and_get_allowed(
+        "Available labs", _labs_ref, "Enter labs (comma separated) [optional]: "
+    )
+    faculty = _list_and_get_allowed(
+        "Available faculty",
+        _faculty_names,
+        "Enter faculty (comma separated) [optional]: ",
+    )
     try:
         new_course = Course.build_and_validate(
             {
@@ -138,9 +175,10 @@ def add_course():
         _courses_ref.append(new_course.to_dict())
         _refresh_local_view_from_ref()
         print(f"Course {name} added successfully!")
-        _print_single_course(name, idx=len(_courses_ref)-1)
+        _print_single_course(name, idx=len(_courses_ref) - 1)
     except Exception as e:
         print(f"Error: {e}")
+
 
 def modify_course():
     _print_courses_list()
@@ -149,15 +187,35 @@ def modify_course():
     if idx == -1:
         print("Course not found.")
         return
-    current = _courses_ref[idx]
+    current = _get_course(idx)
+    if not current:
+        print("Course not found.")
+        return
     cur_rooms = ", ".join(current.get("room", [])) or "(none)"
     cur_labs = ", ".join(current.get("lab", [])) or "(none)"
     cur_fac = ", ".join(current.get("faculty", [])) or "(none)"
-    print(f"Current data: {{'credits': '{current.get('credits','')}', 'rooms': '{cur_rooms}', 'lab': '{cur_labs}', 'faculty': '{cur_fac}'}}")
+    print(
+        f"Current data: {{'credits': '{current.get('credits', '')}', 'rooms': '{cur_rooms}', 'lab': '{cur_labs}', 'faculty': '{cur_fac}'}}"
+    )
     credits = input("Enter new course credits (leave blank to keep current): ").strip()
-    rooms = _list_and_get_allowed("Available rooms", _rooms_ref, "Enter room(s) (comma separated; leave blank to keep current): ", allow_blank_keep=True)
-    labs = _list_and_get_allowed("Available labs", _labs_ref, "Enter labs (comma separated; leave blank to keep current): ", allow_blank_keep=True)
-    faculty = _list_and_get_allowed("Available faculty", _faculty_names, "Enter faculty (comma separated; leave blank to keep current): ", allow_blank_keep=True)
+    rooms = _list_and_get_allowed(
+        "Available rooms",
+        _rooms_ref,
+        "Enter room(s) (comma separated; leave blank to keep current): ",
+        allow_blank_keep=True,
+    )
+    labs = _list_and_get_allowed(
+        "Available labs",
+        _labs_ref,
+        "Enter labs (comma separated; leave blank to keep current): ",
+        allow_blank_keep=True,
+    )
+    faculty = _list_and_get_allowed(
+        "Available faculty",
+        _faculty_names,
+        "Enter faculty (comma separated; leave blank to keep current): ",
+        allow_blank_keep=True,
+    )
     try:
         cur = Course.from_dict(current)
         if credits:
@@ -176,6 +234,7 @@ def modify_course():
     except Exception as e:
         print(f"Error: {e}")
 
+
 def delete_course():
     _print_courses_list()
     name = input("Enter course name to delete: ").strip()
@@ -186,16 +245,20 @@ def delete_course():
     if len(idxs) > 1:
         print(f"Multiple '{name}' found:")
         for n, i in enumerate(idxs, 1):
-            cd = _courses_ref[i]
+            cd = _get_course(i)
+            if not cd:
+                continue
             rooms = ", ".join(cd.get("room", [])) or "(none)"
             labs = ", ".join(cd.get("lab", [])) or "(none)"
             fac = ", ".join(cd.get("faculty", [])) or "(none)"
-            print(f"  {n}. credits={cd.get('credits','')}, rooms=[{rooms}], labs=[{labs}], faculty=[{fac}]")
+            print(
+                f"  {n}. credits={cd.get('credits', '')}, rooms=[{rooms}], labs=[{labs}], faculty=[{fac}]"
+            )
         sel = input(f"Select 1-{len(idxs)}: ").strip()
         try:
             k = int(sel)
             if 1 <= k <= len(idxs):
-                idx = idxs[k-1]
+                idx = idxs[k - 1]
             else:
                 print("Invalid selection.")
                 return
@@ -207,9 +270,10 @@ def delete_course():
     try:
         removed = _courses_ref.pop(idx)
         _refresh_local_view_from_ref()
-        print(f"Course {removed.get('course_id','(unnamed)')} deleted successfully!")
+        print(f"Course {removed.get('course_id', '(unnamed)')} deleted successfully!")
     except Exception as e:
         print(f"Error: {e}")
+
 
 def add_conflict():
     _print_courses_list()
@@ -218,14 +282,14 @@ def add_conflict():
     if idx == -1:
         print("Course not found.")
         return
-    all_course_names = [str(c.get("course_id","")).strip() for c in _courses_ref]
+    all_course_names = [str(c.get("course_id", "")).strip() for c in _courses_ref]
     print(f"Available course names: {', '.join(all_course_names)}")
     conflict_name = input("Enter conflicting course name: ").strip()
     if conflict_name not in all_course_names:
         print("Invalid conflict name.")
         return
     try:
-        cur = Course.from_dict(_courses_ref[idx])
+        cur = Course.from_dict(_get_course(idx))
         cur.add_conflicts([conflict_name])
         cur.validate(strict_membership=False)
         _courses_ref[idx] = cur.to_dict()
@@ -234,6 +298,7 @@ def add_conflict():
     except Exception as e:
         print(f"Error: {e}")
 
+
 def modify_conflict():
     _print_courses_list()
     course_name = input("Enter course name whose conflict you want to modify: ").strip()
@@ -241,7 +306,10 @@ def modify_conflict():
     if idx == -1:
         print("Course not found.")
         return
-    cur_dict = _courses_ref[idx]
+    cur_dict = _get_course(idx)
+    if not cur_dict:
+        print("Course not found.")
+        return
     current_conflicts = list(cur_dict.get("conflicts", []))
     if not current_conflicts:
         print("No conflicts found.")
@@ -249,7 +317,7 @@ def modify_conflict():
     print("Conflicts:")
     for c in current_conflicts:
         print(f"  {c}")
-    all_course_names = [str(c.get("course_id","")).strip() for c in _courses_ref]
+    all_course_names = [str(c.get("course_id", "")).strip() for c in _courses_ref]
     print(f"Available course names: {', '.join(all_course_names)}")
     old_name = input("Enter existing conflict name to change: ").strip()
     if old_name not in current_conflicts:
@@ -270,6 +338,7 @@ def modify_conflict():
     except Exception as e:
         print(f"Error: {e}")
 
+
 def delete_conflict():
     _print_courses_list()
     course_name = input("Enter course name to delete a conflict from: ").strip()
@@ -277,7 +346,10 @@ def delete_conflict():
     if idx == -1:
         print("Course not found.")
         return
-    cur_dict = _courses_ref[idx]
+    cur_dict = _get_course(idx)
+    if not cur_dict:
+        print("Course not found.")
+        return
     current_conflicts = list(cur_dict.get("conflicts", []))
     if not current_conflicts:
         print("No conflicts found.")
@@ -298,6 +370,7 @@ def delete_conflict():
         _print_single_course(course_name, idx=idx)
     except Exception as e:
         print(f"Error: {e}")
+
 
 def cli_menu():
     _refresh_local_view_from_ref()
@@ -336,7 +409,9 @@ def cli_menu():
             else:
                 # if duplicates, just show all conflicts from each match
                 for j, idx in enumerate(idxs, 1):
-                    cur = _courses_ref[idx]
+                    cur = _get_course(idx)
+                    if not cur:
+                        continue
                     lst = cur.get("conflicts", [])
                     if len(idxs) > 1:
                         print(f"Instance {j}:")
@@ -351,9 +426,12 @@ def cli_menu():
         else:
             print("Invalid choice, try again.")
 
-def mainCourseController(courses_list, rooms_obj_or_list, labs_obj_or_list, faculty_list):
+
+def mainCourseController(
+    courses_list, rooms_obj_or_list, labs_obj_or_list, faculty_list
+):
     global _courses_ref, _rooms_ref, _labs_ref, _faculty_names
-    _courses_ref = courses_list
+    _courses_ref = list(courses_list or [])
     if hasattr(rooms_obj_or_list, "rooms"):
         _rooms_ref = list(rooms_obj_or_list.rooms or [])
     else:
@@ -362,5 +440,9 @@ def mainCourseController(courses_list, rooms_obj_or_list, labs_obj_or_list, facu
         _labs_ref = list(labs_obj_or_list.labs or [])
     else:
         _labs_ref = list(labs_obj_or_list or [])
-    _faculty_names = [f.get("name","") for f in (faculty_list or []) if isinstance(f, dict) and f.get("name")]
+    _faculty_names = [
+        f.get("name", "")
+        for f in (faculty_list or [])
+        if isinstance(f, dict) and f.get("name")
+    ]
     cli_menu()
