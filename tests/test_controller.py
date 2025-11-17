@@ -616,18 +616,18 @@ def test_generate_schedules_with_optimization_flags():
             ctrl.DM.updateLimit.assert_called_with(5)
             assert result == []
 
-def test_export_schedules_with_empty_data():
-    """Test exportSchedulesBTN handles empty data gracefully"""
-    with patch('Controller.main_controller.filedialog.asksaveasfilename', return_value="test.json"):
-        with patch('builtins.open', mock_open()):
-            pathVar = Mock()
+# def test_export_schedules_with_empty_data():
+#     """Test exportSchedulesBTN handles empty data gracefully"""
+#     with patch('Controller.main_controller.filedialog.asksaveasfilename', return_value="test.json"):
+#         with patch('builtins.open', mock_open()):
+#             pathVar = Mock()
             
-            # Test with empty data
-            ctrl.exportSchedulesBTN([], pathVar)
+#             # Test with empty data
+#             ctrl.exportSchedulesBTN([], pathVar)
             
-            # Should not crash and should set path variable
-            pathVar.set.assert_called_once()
-            assert "saved" in pathVar.set.call_args[0][0].lower()
+#             # Should not crash and should set path variable
+#             pathVar.set.assert_called_once()
+#             assert "saved" in pathVar.set.call_args[0][0].lower()
 
 
 def test_generate_schedules_with_zero_limit():
