@@ -24,7 +24,7 @@ courseCtr = CourseController()
 # right now we are not using the data varabale and just working with dummy data. 
 # frame: the place we are going to put all out stuff.
 # facultyData: will contain the faculty data for all faculty..  
-def dataFacultyLeft(frame, controller, refresh, facultyData=None):
+def dataFacultyLeft(frame, controller, refresh, facultyData=None, app_instance = None):
     # we create a container to put everything inside, this container lives inside the frame
     # with .pack we display the continer on the screen(fill="both": fills the x and y direction,
     # expand=True: allows it to expand when we change the screen size. padx/y = 5: adds 5px padding on all sides :)
@@ -42,6 +42,19 @@ def dataFacultyLeft(frame, controller, refresh, facultyData=None):
 
 
     def onDelete(facName):
+        # Find the faculty data BEFORE deleting
+        facList = facultyCtr.listFaculty()
+        faculty_data = None
+        for faculty in facList:
+            if faculty["name"] == facName:
+                faculty_data = faculty
+                break
+        
+        # Record the deletion BEFORE actually deleting
+        if app_instance and faculty_data:
+            app_instance.record_faculty_deletion(faculty_data)
+        
+        # Then perform the deletion
         controller.removeFaculty(facName, refresh)
 
     def onEdit(faculty):
@@ -72,7 +85,7 @@ def dataFacultyLeft(frame, controller, refresh, facultyData=None):
 # This function will populate the right side of the page. (If you don't understand left and right load the program and go into config file. Should make sence once you see it!)
 # this function kinda of acts like a form for user to fill.
 # we need to display the current data if user pressed edit on button before or just get an empty one
-def dataFacultyRight(frame, controller, refresh, data=None):
+def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None):
     #Checks if the data being passed in is a string (will break things if so, so stops it)
     #if isinstance(data, str):
     #    pass
@@ -600,25 +613,32 @@ def dataFacultyRight(frame, controller, refresh, data=None):
 
         # The actions that will happen when save changes is pressed - either calling edit faculty or add faculty.
         def onSave():
-            #Gets the values from all entries
+            # Gets the values from all entries
             result = returnFacultyData()
-            #Checks if there was a problem, if so does nothing.
+            # Checks if there was a problem, if so does nothing.
             if result[0]:
-                #Grabs the new faculty data.
+                # Grabs the new faculty data.
                 newFaculty = result[1]
                 if data:
-                    #Stores the original name for the data for proper replacement when editing in case the name has changed.
+                    # Stores the original name for the data for proper replacement when editing in case the name has changed.
                     facName = data.get("name")
+                    # Store old faculty data for undo BEFORE editing
+                    old_faculty_data = data
                     controller.editFaculty(newFaculty, facName, refresh)
+                    # Record the edit action after successful edit
+                    if app_instance:
+                        app_instance.record_faculty_edit(old_faculty_data, newFaculty)
                 else:
                     controller.addFaculty(newFaculty, refresh)
+                    # Record the addition action after successful add
+                    if app_instance:
+                        app_instance.record_faculty_addition(newFaculty)
 
         
         # this is the save buttion that will save changes when we add a new faculty and when we modify existing
         ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: onSave()).pack(side="bottom", padx=5)
 
-# this function will fill in the data on the right side of the two column
-def dataRoomRight(frame, controller, refresh, data=None):
+def dataRoomRight(frame, controller, refresh, data=None, app_instance=None):
     # rooms = controller.listRooms()
     # we should know what this does by now.
     # we make a frame to lay things on top
@@ -638,22 +658,24 @@ def dataRoomRight(frame, controller, refresh, data=None):
         name = nameEntry.get()
         if name.strip():
             if data:
+                # EDITING EXISTING ROOM
                 controller.editRoom(data, name, refresh)
+                # Record the edit action
+                if app_instance:
+                    app_instance.record_room_edit(data, name)
             else:
+                # ADDING NEW ROOM
                 controller.addRoom(name, refresh)
+                # Record the addition action
+                if app_instance:
+                    app_instance.record_room_addition(name)
         else:
             ctk.CTkLabel(frame, text="Please Input Valid Room Name! ", width=120, anchor="w", font=("Arial", 30, "bold"), text_color = "red").grid(row=0, column=0,padx=10, pady=2)
-
-
-    # TODO: Need to add command properly.
 
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height=40, command=onSave).pack(
         side="bottom", padx=5)
 
-
-# This function is to popluate the left side of the screen.
-# pretty much same things as above.
-def dataRoomLeft(frame, controller, refresh, data=None):
+def dataRoomLeft(frame, controller, refresh, data=None, app_instance=None):
     # frame to put everything in
     container = ctk.CTkFrame(frame, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
@@ -668,6 +690,11 @@ def dataRoomLeft(frame, controller, refresh, data=None):
                   ).pack(side="top", padx=5)
 
     def onDelete(room):
+        # Record the deletion BEFORE actually deleting
+        if app_instance:
+            app_instance.record_room_deletion(room)
+        
+        # Then perform the deletion
         controller.removeRoom(room, refresh)
 
     def onEdit(room):
@@ -777,7 +804,7 @@ def dataLabsLeft(frame, controller, refresh, data=None, app_instance = None):
                       ).pack(side="left", padx=5)
 
 
-def dataCoursesLeft(frame, controller, refresh, data=None):
+def dataCoursesLeft(frame, controller, refresh, data=None, app_instance=None): 
     container = ctk.CTkFrame(frame, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -788,6 +815,13 @@ def dataCoursesLeft(frame, controller, refresh, data=None):
                   command=lambda: onAdd()).pack(side="top", padx=5)
 
     def onDelete(course):
+        # Store course data for undo BEFORE deleting
+        course_data = course
+        # Record the deletion BEFORE actually deleting
+        if app_instance:
+            app_instance.record_course_deletion(course_data)
+        
+        # Then perform the deletion
         controller.removeCourse(course, refresh)
 
     def onEdit(course, index):
@@ -814,7 +848,7 @@ def dataCoursesLeft(frame, controller, refresh, data=None):
         ).pack(side="left", padx=5)
 
 
-def dataCoursesRight(frame, controller, refresh, data=None):
+def dataCoursesRight(frame, controller, refresh, data=None, app_instance = None):
     def split_csv(s):
         return [x.strip() for x in s.split(",") if x.strip()] if s else []
 
@@ -962,9 +996,17 @@ def dataCoursesRight(frame, controller, refresh, data=None):
         }
 
         if course:
+            # Store old course data for undo BEFORE editing
+            old_course_data = course
             error = controller.editCourse(course.get("course_id"), new_course, refresh, target_index=target_index)
+            if not error and app_instance:
+                # Record the edit action after successful edit
+                app_instance.record_course_edit(old_course_data, new_course, target_index)
         else:
             error = controller.addCourse(new_course, refresh)
+            if not error and app_instance:
+                # Record the addition action after successful add
+                app_instance.record_course_addition(new_course)
 
         if error:
             error_label.configure(text=error)
@@ -1415,6 +1457,17 @@ class SchedulerApp(ctk.CTk):
         self.createMainPage()
         self.views["MainPage"].pack(expand=True, fill="both")
 
+    def record_action(self, action_type, data):
+        """Record any action for undo/redo"""
+        action = {
+            'type': action_type,
+            'data': data
+        }
+        
+        self.undo_stack.append(action)
+        self.redo_stack.clear()  # Clear redo stack when new action is performed
+        self.update_undo_redo_buttons()
+
     def update_undo_redo_buttons(self):
         """Enable/disable buttons based on stack states"""
         self.undo_button.configure(state="normal" if self.undo_stack else "disabled")
@@ -1431,10 +1484,28 @@ class SchedulerApp(ctk.CTk):
                 self._undo_lab_edit(action)
             elif action['type'] == 'lab_deletion':
                 self._undo_lab_deletion(action)
+            elif action['type'] == 'course_addition':
+                self._undo_course_addition(action)
+            elif action['type'] == 'course_edit':
+                self._undo_course_edit(action)
+            elif action['type'] == 'course_deletion':
+                self._undo_course_deletion(action)
+            elif action['type'] == 'faculty_addition':
+                self._undo_faculty_addition(action)
+            elif action['type'] == 'faculty_edit':
+                self._undo_faculty_edit(action)
+            elif action['type'] == 'faculty_deletion':
+                self._undo_faculty_deletion(action)
+            elif action['type'] == 'room_addition':
+                self._undo_room_addition(action)
+            elif action['type'] == 'room_edit':
+                self._undo_room_edit(action)
+            elif action['type'] == 'room_deletion':
+                self._undo_room_deletion(action)
             
             # Add to redo stack
             self.redo_stack.append(action)
-            self.update_undo_redo_buttons()
+            self.update_undo_redo_buttons()  # Remove the .clear() from this line
 
     def redo(self):
         """Redo the last undone action"""
@@ -1447,21 +1518,28 @@ class SchedulerApp(ctk.CTk):
                 self._redo_lab_edit(action)
             elif action['type'] == 'lab_deletion':
                 self._redo_lab_deletion(action)
+            elif action['type'] == 'course_addition':
+                self._redo_course_addition(action)
+            elif action['type'] == 'course_edit':
+                self._redo_course_edit(action)
+            elif action['type'] == 'course_deletion':
+                self._redo_course_deletion(action)
+            elif action['type'] == 'faculty_addition':
+                self._redo_faculty_addition(action)
+            elif action['type'] == 'faculty_edit':
+                self._redo_faculty_edit(action)
+            elif action['type'] == 'faculty_deletion':
+                self._redo_faculty_deletion(action)
+            elif action['type'] == 'room_addition':
+                self._redo_room_addition(action)
+            elif action['type'] == 'room_edit':
+                self._redo_room_edit(action)
+            elif action['type'] == 'room_deletion':
+                self._redo_room_deletion(action)
             
             # Add back to undo stack
             self.undo_stack.append(action)
             self.update_undo_redo_buttons()
-
-    def record_action(self, action_type, data):
-        """Record any action for undo/redo"""
-        action = {
-            'type': action_type,
-            'data': data
-        }
-        
-        self.undo_stack.append(action)
-        self.redo_stack.clear()  # Clear redo stack when new action is performed
-        self.update_undo_redo_buttons()
 
     # Lab-specific undo/redo methods
     def _undo_lab_addition(self, action):
@@ -1514,6 +1592,174 @@ class SchedulerApp(ctk.CTk):
     def record_lab_deletion(self, lab_name):
         """Record a lab deletion for undo/redo"""
         self.record_action('lab_deletion', {'lab_name': lab_name})
+
+    # Course-specific undo/redo methods
+    def _undo_course_addition(self, action):
+        """Undo a course addition"""
+        course_data = action['data']['course_data']
+        courseCtr.removeCourse(course_data['course_id'], refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_course_addition(self, action):
+        """Redo a course addition"""
+        course_data = action['data']['course_data']
+        courseCtr.addCourse(course_data, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_course_edit(self, action):
+        """Undo a course edit"""
+        old_course_data = action['data']['old_course_data']
+        course_id = old_course_data['course_id']
+        courseCtr.editCourse(course_id, old_course_data, refresh=None, target_index=action['data'].get('target_index'))  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_course_edit(self, action):
+        """Redo a course edit"""
+        new_course_data = action['data']['new_course_data']
+        course_id = new_course_data['course_id']
+        courseCtr.editCourse(course_id, new_course_data, refresh=None, target_index=action['data'].get('target_index'))  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_course_deletion(self, action):
+        """Undo a course deletion"""
+        course_data = action['data']['course_data']
+        courseCtr.addCourse(course_data, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_course_deletion(self, action):
+        """Redo a course deletion"""
+        course_data = action['data']['course_data']
+        courseCtr.removeCourse(course_data['course_id'], refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    # Convenience methods for recording course actions
+    def record_course_addition(self, course_data):
+        """Record a course addition for undo/redo"""
+        self.record_action('course_addition', {'course_data': course_data})
+
+    def record_course_edit(self, old_course_data, new_course_data, target_index=None):
+        """Record a course edit for undo/redo"""
+        self.record_action('course_edit', {
+            'old_course_data': old_course_data,
+            'new_course_data': new_course_data,
+            'target_index': target_index
+        })
+
+    def record_course_deletion(self, course_data):
+        """Record a course deletion for undo/redo"""
+        self.record_action('course_deletion', {'course_data': course_data})
+    
+    # Faculty-specific undo/redo methods
+    def _undo_faculty_addition(self, action):
+        """Undo a faculty addition"""
+        faculty_data = action['data']['faculty_data']
+        facultyCtr.removeFaculty(faculty_data['name'], refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_faculty_addition(self, action):
+        """Redo a faculty addition"""
+        faculty_data = action['data']['faculty_data']
+        facultyCtr.addFaculty(faculty_data, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_faculty_edit(self, action):
+        """Undo a faculty edit"""
+        old_faculty_data = action['data']['old_faculty_data']
+        old_name = old_faculty_data['name']
+        # For faculty edits, we need to remove the new one and add back the old one
+        new_name = action['data']['new_faculty_data']['name']
+        facultyCtr.removeFaculty(new_name, refresh=None)
+        facultyCtr.addFaculty(old_faculty_data, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_faculty_edit(self, action):
+        """Redo a faculty edit"""
+        new_faculty_data = action['data']['new_faculty_data']
+        old_name = action['data']['old_faculty_data']['name']
+        # For faculty edits, we need to remove the old one and add back the new one
+        facultyCtr.removeFaculty(old_name, refresh=None)
+        facultyCtr.addFaculty(new_faculty_data, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_faculty_deletion(self, action):
+        """Undo a faculty deletion"""
+        faculty_data = action['data']['faculty_data']
+        facultyCtr.addFaculty(faculty_data, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_faculty_deletion(self, action):
+        """Redo a faculty deletion"""
+        faculty_data = action['data']['faculty_data']
+        facultyCtr.removeFaculty(faculty_data['name'], refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    # Convenience methods for recording faculty actions
+    def record_faculty_addition(self, faculty_data):
+        """Record a faculty addition for undo/redo"""
+        self.record_action('faculty_addition', {'faculty_data': faculty_data})
+
+    def record_faculty_edit(self, old_faculty_data, new_faculty_data):
+        """Record a faculty edit for undo/redo"""
+        self.record_action('faculty_edit', {
+            'old_faculty_data': old_faculty_data,
+            'new_faculty_data': new_faculty_data
+        })
+
+    def record_faculty_deletion(self, faculty_data):
+        """Record a faculty deletion for undo/redo"""
+        self.record_action('faculty_deletion', {'faculty_data': faculty_data})
+
+    # Room-specific undo/redo methods
+    def _undo_room_addition(self, action):
+        """Undo a room addition"""
+        room_name = action['data']['room_name']
+        roomCtr.removeRoom(room_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_room_addition(self, action):
+        """Redo a room addition"""
+        room_name = action['data']['room_name']
+        roomCtr.addRoom(room_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_room_edit(self, action):
+        """Undo a room edit"""
+        old_name = action['data']['old_name']
+        new_name = action['data']['new_name']
+        roomCtr.editRoom(new_name, old_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_room_edit(self, action):
+        """Redo a room edit"""
+        old_name = action['data']['old_name']
+        new_name = action['data']['new_name']
+        roomCtr.editRoom(old_name, new_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_room_deletion(self, action):
+        """Undo a room deletion"""
+        room_name = action['data']['room_name']
+        roomCtr.addRoom(room_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_room_deletion(self, action):
+        """Redo a room deletion"""
+        room_name = action['data']['room_name']
+        roomCtr.removeRoom(room_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    # Convenience methods for recording room actions
+    def record_room_addition(self, room_name):
+        """Record a room addition for undo/redo"""
+        self.record_action('room_addition', {'room_name': room_name})
+
+    def record_room_edit(self, old_name, new_name):
+        """Record a room edit for undo/redo"""
+        self.record_action('room_edit', {'old_name': old_name, 'new_name': new_name})
+
+    def record_room_deletion(self, room_name):
+        """Record a room deletion for undo/redo"""
+        self.record_action('room_deletion', {'room_name': room_name})
 
     def createMainPage(self):
         # Create and store the main container
@@ -1631,23 +1877,23 @@ class SchedulerApp(ctk.CTk):
 
         self.createTwoColumn(
             tabview.tab("Faculty"),
-            lambda frame: dataFacultyLeft(frame, facultyCtr, self.refresh),
-            lambda frame: dataFacultyRight(frame, facultyCtr, self.refresh, faculty_data)
+            lambda frame: dataFacultyLeft(frame, facultyCtr, self.refresh, app_instance = self),
+            lambda frame: dataFacultyRight(frame, facultyCtr, self.refresh, faculty_data, app_instance = self)
             #Holding this
         )
 
         # Courses tab — only gets course data
         self.createTwoColumn(
             tabview.tab("Courses"),
-            lambda frame: dataCoursesLeft(frame, courseCtr, self.refresh),
-            lambda frame: dataCoursesRight(frame, courseCtr, self.refresh, course_data)
+            lambda frame: dataCoursesLeft(frame, courseCtr, self.refresh, app_instance = self),
+            lambda frame: dataCoursesRight(frame, courseCtr, self.refresh, course_data, app_instance = self)
         )
 
         # Rooms and Labs should never get structured dicts like {"course": ..., "index": ...}
         self.createTwoColumn(
             tabview.tab("Rooms"),
-            lambda frame: dataRoomLeft(frame, roomCtr, self.refresh),
-            lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data if isinstance(data, str) else None)
+            lambda frame: dataRoomLeft(frame, roomCtr, self.refresh, app_instance=self),
+            lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data if isinstance(data, str) else None, app_instance=self)
         )
 
         # In createConfigPage method, update the Labs tab:

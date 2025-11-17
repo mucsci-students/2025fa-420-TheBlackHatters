@@ -255,47 +255,54 @@ class FacultyController:
     def listFaculty(self):
         return DM.getFaculty()
     
-    def addFaculty(self, newFaculty, refresh):
+    def addFaculty(self, newFaculty, refresh=None):  # Make refresh optional
         DM.addFaculty(newFaculty)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
 
-    def editFaculty(self, newFaculty, oldName, refresh):
+    def editFaculty(self, newFaculty, oldName, refresh=None):  # Make refresh optional
         DM.removeFaculty(oldName)
         DM.addFaculty(newFaculty)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
 
-    def removeFaculty(self, facName, refresh):
+    def removeFaculty(self, facName, refresh=None):  # Make refresh optional
         DM.removeFaculty(facName)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
         
 # Course Controller
 class CourseController:
     global DM
     def __init__(self):
         pass
+        
     def listCourses(self):
         return DM.getCourses()
 
-    def addCourse(self, courseData, refresh):
+    def addCourse(self, courseData, refresh=None):  # Make refresh optional
         try:
             DM.addCourse(courseData)
-            refresh("ConfigPage")
+            if refresh:  # Only refresh if requested
+                refresh("ConfigPage")
             return None
         except Exception as e:
             return str(e)
 
-    def editCourse(self, oldName, newData, refresh, target_index=None):
+    def editCourse(self, oldName, newData, refresh=None, target_index=None):  # Make refresh optional
         try:
             DM.editCourse(oldName, newData, target_index=target_index)
-            refresh(target="ConfigPage", data=newData)
+            if refresh:  # Only refresh if requested
+                refresh(target="ConfigPage", data=newData)
             return None
         except Exception as e:
             return str(e)
 
-    def removeCourse(self, courseName, refresh):
+    def removeCourse(self, courseName, refresh=None):  # Make refresh optional
         try:
             DM.removeCourse(courseName)
-            refresh("ConfigPage")
+            if refresh:  # Only refresh if requested
+                refresh("ConfigPage")
             return None
         except Exception as e:
             return str(e)
