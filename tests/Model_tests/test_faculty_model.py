@@ -87,11 +87,15 @@ def test_removeFaculty_not_found_returns_none():
 
 def test_viewFaculty_prints_all_entries(capfd):
     """viewFaculty() should print each faculty entry with a newline."""
-    fake_faculty = [sample_faculty_entry(), {**sample_faculty_entry(), "name": "Dr. Jones"}]
+    fake_faculty = [
+        sample_faculty_entry(),
+        {**sample_faculty_entry(), "name": "Dr. Jones"},
+    ]
     Faculty.viewFaculty(fake_faculty)
     out, _ = capfd.readouterr()
     assert "Dr. Smith" in out
     assert "Dr. Jones" in out
+
 
 def test_facCheck_partial_match_returns_true():
     """
@@ -109,6 +113,7 @@ def test_facCheck_empty_list_returns_false():
     since there are no entries to search through.
     """
     assert Faculty.facCheck([], "Dr. Smith") is False
+
 
 def test_addFaculty_does_not_modify_other_lists():
     """
@@ -149,6 +154,7 @@ def test_removeFaculty_multiple_entries_removes_first_match():
     assert {"name": "Dr. Smithers"} in fake_faculty
     assert {"name": "Dr. Jones"} in fake_faculty
 
+
 def test_viewFaculty_empty_list_prints_nothing(capfd):
     """
     If there are no faculty entries, viewFaculty() should print nothing.
@@ -182,11 +188,13 @@ def test_str_method_returns_expected_format():
     except AttributeError:
         pytest.skip("Known issue: __str__() references undefined 'self.faculty'.")
 
+
 # facCheck handles entries without 'name' key without raising:
 def test_facCheck_entry_without_name_key_returns_false():
     fake = [{"foo": "bar"}, {"name": "Dr. X"}]
     assert Faculty.facCheck(fake, "Dr. X") is True
     assert Faculty.facCheck(fake, "Dr. Y") is False
+
 
 # facCheck with non-string search term:
 def test_facCheck_with_non_string_search_term():
@@ -198,6 +206,7 @@ def test_facCheck_with_non_string_search_term():
     assert Faculty.facCheck(fake, 123) is False  # number search term
     assert Faculty.facCheck(fake, None) is False  # None search term
 
+
 # addFaculty returns None and appends by reference:
 def test_addFaculty_returns_none_and_appends_by_reference():
     lst = []
@@ -208,12 +217,14 @@ def test_addFaculty_returns_none_and_appends_by_reference():
     entry["name"] = "Dr. Ref Modified"
     assert lst[0]["name"] == "Dr. Ref Modified"
 
+
 # removeFaculty when 'name' value is None:
 def test_removeFaculty_entry_with_none_name_skips_and_returns_none():
     fake = [{"name": None}, {"name": "Dr. Valid"}]
     removed = Faculty.removeFaculty(fake, "Dr. Valid")
     assert removed["name"] == "Dr. Valid"
     assert any(e.get("name") is None for e in fake)
+
 
 # removeFaculty identical object instances:
 def test_removeFaculty_duplicate_same_object_removes_first_only():
@@ -224,6 +235,7 @@ def test_removeFaculty_duplicate_same_object_removes_first_only():
     assert len(fake) == 1
     assert fake[0] is entry
 
+
 # viewFaculty exact formatting:
 def test_viewFaculty_exact_formatting(capfd):
     e = {"name": "X"}
@@ -232,11 +244,13 @@ def test_viewFaculty_exact_formatting(capfd):
     out, _ = capfd.readouterr()
     assert out == f"{e}\n\n"
 
+
 # constructor preserves provided types and None:
 def test_constructor_preserves_types_and_none():
     f = Faculty("N", None, None, None, None, None, None, None)
     assert f.times is None
     assert f.course_preferences is None
+
 
 # case sensitivity:
 def test_facCheck_is_case_sensitive():

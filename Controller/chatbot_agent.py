@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import StructuredTool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent as create_react_agent
 
 from Controller.main_controller import DM  # DataManager singleton
 
@@ -21,6 +21,7 @@ load_dotenv()
 # Pydantic schemas (for tools API)
 # -------------------------------
 
+
 class AddItemArgs(BaseModel):
     category: str = Field(description="room | lab | course | faculty")
     data: dict = Field(default_factory=dict, description="Values to add for the item.")
@@ -28,13 +29,17 @@ class AddItemArgs(BaseModel):
 
 class EditItemArgs(BaseModel):
     category: str = Field(description="room | lab | course | faculty")
-    identifier: str = Field(description="Primary key of the item (e.g. course_id or faculty name)")
+    identifier: str = Field(
+        description="Primary key of the item (e.g. course_id or faculty name)"
+    )
     updates: dict = Field(description="Fields to replace on the item.")
 
 
 class DeleteItemArgs(BaseModel):
     category: str = Field(description="room | lab | course | faculty")
-    identifier: str = Field(description="The item to remove (e.g. 'CMSC 140', 'Roddy 136').")
+    identifier: str = Field(
+        description="The item to remove (e.g. 'CMSC 140', 'Roddy 136')."
+    )
 
 
 class KeyPathArgs(BaseModel):
@@ -49,6 +54,7 @@ class NoArgs(BaseModel):
 # -------------------------------
 # Chatbot Agent
 # -------------------------------
+
 
 class ChatbotAgent:
     """
@@ -101,7 +107,9 @@ class ChatbotAgent:
         return m.get(category.lower(), "Faculty")
 
     @staticmethod
-    def _ok(response: str, category: str, action: str, payload: Optional[dict] = None) -> dict:
+    def _ok(
+        response: str, category: str, action: str, payload: Optional[dict] = None
+    ) -> dict:
         return {
             "response": response,
             "category": category,
@@ -149,7 +157,11 @@ class ChatbotAgent:
                     ref = ref[k]
 
             final_key = keys[-1]
-            val = json.loads(new_value) if new_value.strip().startswith(("{", "[", '"')) else new_value
+            val = (
+                json.loads(new_value)
+                if new_value.strip().startswith(("{", "[", '"'))
+                else new_value
+            )
             if "[" in final_key and "]" in final_key:
                 name, idx = final_key[:-1].split("[")
                 ref[name][int(idx)] = val
@@ -165,7 +177,8 @@ class ChatbotAgent:
     def _tool_show_details(self, target: str = ""):
         # Kept simple for now
         try:
-            cfg = DM.data.get("config", {})
+            cfg = getattr(DM, "data", {}) or {}
+            cfg = cfg.get("config", {})
             t = (target or "").strip().lower()
             if t in ("rooms", "room"):
                 return {"rooms": cfg.get("rooms", [])}
@@ -192,8 +205,8 @@ class ChatbotAgent:
         """
         # Generic patterns (liberal)
         patterns = [
-            r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b",       # Word 123 / Word123 / Word123A
-            r"\b[A-Za-z]{2,}\s+[A-Za-z]{2,}\s*\d{1,4}\b"  # Two words then digits (e.g., "Data Sci 200")
+            r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b",  # Word 123 / Word123 / Word123A
+            r"\b[A-Za-z]{2,}\s+[A-Za-z]{2,}\s*\d{1,4}\b",  # Two words then digits (e.g., "Data Sci 200")
         ]
         for pat in patterns:
             m = re.search(pat, text)
@@ -211,7 +224,16 @@ class ChatbotAgent:
         # Heuristic: Proper names (capitalized words, optionally two tokens)
         names = re.findall(r"\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)?\b", text)
         # Remove common nouns that collide
-        blacklist = {"Room", "Lab", "Building", "Course", "Credits", "Add", "Delete", "Edit"}
+        blacklist = {
+            "Room",
+            "Lab",
+            "Building",
+            "Course",
+            "Credits",
+            "Add",
+            "Delete",
+            "Edit",
+        }
         return [n for n in names if n not in blacklist]
 
     @staticmethod
@@ -233,9 +255,9 @@ class ChatbotAgent:
     def _extract_labs_from_text(text: str, known_labs: List[str]) -> List[str]:
         res = []
         lower = text.lower()
-        for l in known_labs:
-            if l.lower() in lower:
-                res.append(l)
+        for lab_name in known_labs:
+            if lab_name.lower() in lower:
+                res.append(lab_name)
         # Also allow single tokens like "Linux", "Mac"
         for m in re.findall(r"\b[A-Z][a-zA-Z0-9]+\b", text):
             if m in ("Lab", "Room"):
@@ -245,14 +267,17 @@ class ChatbotAgent:
         return list(dict.fromkeys(res))
 
     @staticmethod
-    def _extract_conflicts_from_text(text: str, known_rooms: List[str] = None, known_labs: List[str] = None) -> List[
-        str]:
+    def _extract_conflicts_from_text(
+            text: str,
+            known_rooms: Optional[List[str]] = None,
+            known_labs: Optional[List[str]] = None,
+    ) -> List[str]:
         """
         Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs
         and ignoring numeric-only or verb fragments like 'be 5'.
         """
         known_rooms = [r.lower() for r in (known_rooms or [])]
-        known_labs = [l.lower() for l in (known_labs or [])]
+        known_labs = [lab.lower() for lab in (known_labs or [])]
 
         # Match only tokens that have letters immediately followed by digits
         matches = re.findall(r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b", text)
@@ -284,7 +309,9 @@ class ChatbotAgent:
         return f"{hh:02d}:{mm:02d}"
 
     @staticmethod
-    def _extract_min_max_uniq(text: str) -> Tuple[Optional[int], Optional[int], Optional[int]]:
+    def _extract_min_max_uniq(
+        text: str,
+    ) -> Tuple[Optional[int], Optional[int], Optional[int]]:
         """
         Extract minimum_credits, maximum_credits, and unique_course_limit
         from flexible natural language such as:
@@ -317,19 +344,19 @@ class ChatbotAgent:
             # “4 min credits”
             r"(\d+)\s*min(?:imum)?\s*credits?",
             # “min 4”
-            r"\bmin(?:imum)?\s*(\d+)"
+            r"\bmin(?:imum)?\s*(\d+)",
         ]
 
         max_patterns = [
             r"\bmax(?:imum)?\s*credits?\s*(?:is|are)?\s*(?:set\s*to|to|=|of)?\s*(\d+)",
             r"\bmax(?:imum)?\s*credits?\s*(\d+)",
             r"(\d+)\s*max(?:imum)?\s*credits?",
-            r"\bmax(?:imum)?\s*(\d+)"
+            r"\bmax(?:imum)?\s*(\d+)",
         ]
 
         uniq_patterns = [
             r"\bunique\s*(?:course\s*)?limit\s*(?:is|are)?\s*(?:set\s*to|to|=|of)?\s*(\d+)",
-            r"\bunique\s*(?:course\s*)?limit\s*(\d+)"
+            r"\bunique\s*(?:course\s*)?limit\s*(\d+)",
         ]
 
         min_c = grab(min_patterns)
@@ -348,13 +375,23 @@ class ChatbotAgent:
         Build a dict with ONLY the mentioned days; all others omitted (caller will clear).
         """
         day_map = {
-            "mon": "MON", "monday": "MON",
-            "tue": "TUE", "tues": "TUE", "tuesday": "TUE",
-            "wed": "WED", "wednesday": "WED",
-            "thu": "THU", "thur": "THU", "thurs": "THU", "thursday": "THU",
-            "fri": "FRI", "friday": "FRI",
-            "sat": "SAT", "saturday": "SAT",
-            "sun": "SUN", "sunday": "SUN",
+            "mon": "MON",
+            "monday": "MON",
+            "tue": "TUE",
+            "tues": "TUE",
+            "tuesday": "TUE",
+            "wed": "WED",
+            "wednesday": "WED",
+            "thu": "THU",
+            "thur": "THU",
+            "thurs": "THU",
+            "thursday": "THU",
+            "fri": "FRI",
+            "friday": "FRI",
+            "sat": "SAT",
+            "saturday": "SAT",
+            "sun": "SUN",
+            "sunday": "SUN",
         }
 
         def to_24h(t: str) -> str:
@@ -375,7 +412,8 @@ class ChatbotAgent:
         # Pattern captures things like "mon 10:00-12:00", "monday 11am-4pm"
         for m in re.finditer(
             r"\b(mon|monday|tue|tues|tuesday|wed|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday)\b[^0-9a-zA-Z]+([0-9:apm\s]+)-([0-9:apm\s]+)",
-            text, flags=re.IGNORECASE,
+            text,
+            flags=re.IGNORECASE,
         ):
             raw_day, start_s, end_s = m.group(1), m.group(2), m.group(3)
             day = day_map[raw_day.lower()]
@@ -386,9 +424,16 @@ class ChatbotAgent:
         # Also allow compact forms: "mon 10-12", "wed 9-15"
         for m in re.finditer(
             r"\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b\s+(\d{1,2})(?::(\d{2}))?-(\d{1,2})(?::(\d{2}))?",
-            text, flags=re.IGNORECASE,
+            text,
+            flags=re.IGNORECASE,
         ):
-            raw_day, sh, sm, eh, em = m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
+            raw_day, sh, sm, eh, em = (
+                m.group(1),
+                m.group(2),
+                m.group(3),
+                m.group(4),
+                m.group(5),
+            )
             day = day_map[raw_day.lower()]
             sm_i = int(sm or 0)
             em_i = int(em or 0)
@@ -461,9 +506,11 @@ class ChatbotAgent:
     def _tool_add_item(self, category: str, data: dict):
         try:
             if not hasattr(DM, "data") or not DM.data:
-                return self._err("No configuration loaded. Import a config first.", category, "add")
+                return self._err(
+                    "No configuration loaded. Import a config first.", category, "add"
+                )
 
-            text = (self.last_user_input or "")
+            text = self.last_user_input or ""
             category = category.lower().strip()
             cfg = DM.data.get("config", {})
 
@@ -472,15 +519,25 @@ class ChatbotAgent:
                 name = data.get("name")
                 if not name:
                     # accept e.g., "Roddy 136", or last token after "room"
-                    m = re.search(r"(?:room\s+|roddy\s+)?([A-Z][A-Za-z]+\s*\d+)", text, re.IGNORECASE)
+                    m = re.search(
+                        r"(?:room\s+|roddy\s+)?([A-Z][A-Za-z]+\s*\d+)",
+                        text,
+                        re.IGNORECASE,
+                    )
                     name = m.group(1).strip() if m else None
                 if not name:
-                    return self._err("Plpaease specify a room name to add.", category, "add")
+                    return self._err(
+                        "Please specify a room name to add.", category, "add"
+                    )
                 try:
                     DM.addRoom(name)
-                    return self._ok(f"Room '{name}' added (not yet saved).", category, "add")
+                    return self._ok(
+                        f"Room '{name}' added (not yet saved).", category, "add"
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to add room '{name}': {e}", category, "add")
+                    return self._err(
+                        f"Failed to add room '{name}': {e}", category, "add"
+                    )
 
             if category in ("lab", "labs"):
                 name = data.get("name")
@@ -493,17 +550,27 @@ class ChatbotAgent:
                     )
                     if not m:
                         # Fallback: standalone capitalized word after "lab"
-                        m = re.search(r"lab\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)", text, re.IGNORECASE)
+                        m = re.search(
+                            r"lab\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)",
+                            text,
+                            re.IGNORECASE,
+                        )
                     name = m.group(1).strip() if m else None
 
                 if not name:
-                    return self._err("Please specify a lab name to add.", category, "add")
+                    return self._err(
+                        "Please specify a lab name to add.", category, "add"
+                    )
 
                 try:
                     DM.addLab(name)
-                    return self._ok(f"Lab '{name}' added (not yet saved).", category, "add")
+                    return self._ok(
+                        f"Lab '{name}' added (not yet saved).", category, "add"
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to add lab '{name}': {e}", category, "add")
+                    return self._err(
+                        f"Failed to add lab '{name}': {e}", category, "add"
+                    )
 
             if category in ("faculty", "professor", "instructor", "teacher"):
                 # Build a full faculty object with sensible defaults
@@ -527,12 +594,16 @@ class ChatbotAgent:
                 # detect "monday from 9am to 5pm" style
                 if not parsed_times:
                     for m in re.finditer(
-                            r"(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri)\s*(?:from)?\s*([0-9:apm\s]+)\s*(?:to|-)\s*([0-9:apm\s]+)",
-                            text, flags=re.IGNORECASE):
+                        r"(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri)\s*(?:from)?\s*([0-9:apm\s]+)\s*(?:to|-)\s*([0-9:apm\s]+)",
+                        text,
+                        flags=re.IGNORECASE,
+                    ):
                         day, start, end = m.groups()
                         start_24 = self._convert_to_24h(start)
                         end_24 = self._convert_to_24h(end)
-                        parsed_times.setdefault(day[:3].upper(), []).append(f"{start_24}-{end_24}")
+                        parsed_times.setdefault(day[:3].upper(), []).append(
+                            f"{start_24}-{end_24}"
+                        )
 
                 if parsed_times:
                     all_days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
@@ -540,7 +611,11 @@ class ChatbotAgent:
                 else:
                     # sensible default 9-5 M-F
                     new_fac["times"] = {
-                        d: (["09:00-17:00"] if d in ["MON", "TUE", "WED", "THU", "FRI"] else [])
+                        d: (
+                            ["09:00-17:00"]
+                            if d in ["MON", "TUE", "WED", "THU", "FRI"]
+                            else []
+                        )
                         for d in ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
                     }
 
@@ -556,9 +631,9 @@ class ChatbotAgent:
 
                     # Match course-like tokens (e.g., CMSC 362, BIO 120)
                     for m in re.finditer(
-                            r"\b([A-Z]{2,}\s*\d{1,4}[A-Za-z]?)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
-                            text,
-                            re.IGNORECASE,
+                        r"\b([A-Z]{2,}\s*\d{1,4}[A-Za-z]?)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
+                        text,
+                        re.IGNORECASE,
                     ):
                         course = m.group(1).strip()
                         # Exclude if it matches a known room (case-insensitive)
@@ -568,8 +643,10 @@ class ChatbotAgent:
                 if rp is None:
                     rp = {}
                     for m in re.finditer(
-                            r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
-                            text, re.IGNORECASE):
+                        r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
+                        text,
+                        re.IGNORECASE,
+                    ):
                         room_name = m.group(1)
                         # Avoid treating course IDs (like CMSC 4) as rooms
                         if not re.match(r"^[A-Z]{2,}\s*\d{1,4}$", room_name):
@@ -584,14 +661,26 @@ class ChatbotAgent:
 
                 try:
                     DM.addFaculty(new_fac)
-                    return self._ok(f"Faculty '{new_fac['name']}' added (not yet saved).", "faculty", "add")
+                    return self._ok(
+                        f"Faculty '{new_fac['name']}' added (not yet saved).",
+                        "faculty",
+                        "add",
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to add faculty '{new_fac.get('name','?')}': {e}", "faculty", "add")
+                    return self._err(
+                        f"Failed to add faculty '{new_fac.get('name', '?')}': {e}",
+                        "faculty",
+                        "add",
+                    )
 
             if category in ("course", "courses"):
                 course_id = data.get("course_id") or self._find_first_course_id(text)
                 if not course_id:
-                    return self._err("Please include a course id to add (e.g., 'add course BIO 345').", "course", "add")
+                    return self._err(
+                        "Please include a course id to add (e.g., 'add course BIO 345').",
+                        "course",
+                        "add",
+                    )
 
                 credits = data.get("credits")
                 if credits is None:
@@ -601,16 +690,28 @@ class ChatbotAgent:
 
                 known_rooms = cfg.get("rooms", [])
                 known_labs = cfg.get("labs", [])
-                known_faculty = [f.get("name") for f in cfg.get("faculty", []) if isinstance(f, dict)]
+                known_faculty = [
+                    f.get("name") for f in cfg.get("faculty", []) if isinstance(f, dict)
+                ]
 
-                rooms = data.get("room") or self._extract_rooms_from_text(text, known_rooms)
+                rooms = data.get("room") or self._extract_rooms_from_text(
+                    text, known_rooms
+                )
                 labs = data.get("lab") or self._extract_labs_from_text(text, known_labs)
-                faculty = data.get("faculty") or [n for n in self._extract_faculty_names_from_text(text) if n in known_faculty]
+                faculty = data.get("faculty") or [
+                    n
+                    for n in self._extract_faculty_names_from_text(text)
+                    if n in known_faculty
+                ]
 
                 # Conflicts from text (remove self if present)
                 conflicts = data.get("conflicts")
                 if conflicts is None:
-                    conflicts = [c for c in self._extract_conflicts_from_text(text) if c.upper() != course_id.upper()]
+                    conflicts = [
+                        c
+                        for c in self._extract_conflicts_from_text(text)
+                        if c.upper() != course_id.upper()
+                    ]
 
                 new_course = {
                     "course_id": course_id,
@@ -623,9 +724,13 @@ class ChatbotAgent:
 
                 try:
                     DM.addCourse(new_course)
-                    return self._ok(f"Course '{course_id}' added (not yet saved).", "course", "add")
+                    return self._ok(
+                        f"Course '{course_id}' added (not yet saved).", "course", "add"
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to add course '{course_id}': {e}", "course", "add")
+                    return self._err(
+                        f"Failed to add course '{course_id}': {e}", "course", "add"
+                    )
 
             return self._err(f"Unknown category '{category}'.", category, "add")
         except Exception as e:
@@ -635,7 +740,9 @@ class ChatbotAgent:
     def _tool_edit_item(self, category: str, identifier: str, updates: dict):
         try:
             if not hasattr(DM, "data") or not DM.data:
-                return self._err("No configuration loaded. Import a config first.", category, "edit")
+                return self._err(
+                    "No configuration loaded. Import a config first.", category, "edit"
+                )
 
             category = category.lower().strip()
             cfg = DM.data.get("config", {})
@@ -643,28 +750,43 @@ class ChatbotAgent:
             # ROOMS
             if category in ("room", "rooms"):
                 rooms = cfg.get("rooms", [])
-                target = next((r for r in rooms if r.lower() == identifier.lower()), None)
+                target = next(
+                    (r for r in rooms if r.lower() == identifier.lower()), None
+                )
                 if not target:
-                    return self._err(f"Room '{identifier}' not found.", category, "edit")
+                    return self._err(
+                        f"Room '{identifier}' not found.", category, "edit"
+                    )
 
                 new_name = updates.get("name")
                 if not new_name:
                     # Look for patterns like "to Roddy 894" or "be called Roddy 894"
-                    m = re.search(r"(?:to|called|named|be called)\s+([A-Z][A-Za-z]+\s*\d+)", self.last_user_input,
-                                  re.IGNORECASE)
+                    m = re.search(
+                        r"(?:to|called|named|be called)\s+([A-Z][A-Za-z]+\s*\d+)",
+                        self.last_user_input,
+                        re.IGNORECASE,
+                    )
                     if m:
                         new_name = m.group(1).strip()
 
                 if not new_name:
-                    return self._err("Provide 'name' to rename the room.", category, "edit")
+                    return self._err(
+                        "Provide 'name' to rename the room.", category, "edit"
+                    )
 
                 DM.editRoom(target, new_name)
-                return self._ok(f"Room '{target}' renamed to '{new_name}' (not yet saved).", category, "edit")
+                return self._ok(
+                    f"Room '{target}' renamed to '{new_name}' (not yet saved).",
+                    category,
+                    "edit",
+                )
 
             # LABS
             if category in ("lab", "labs"):
                 labs = cfg.get("labs", [])
-                target = next((l for l in labs if l.lower() == identifier.lower()), None)
+                target = next(
+                    (lab for lab in labs if lab.lower() == identifier.lower()), None
+                )
                 if not target:
                     return self._err(f"Lab '{identifier}' not found.", category, "edit")
 
@@ -680,13 +802,21 @@ class ChatbotAgent:
                         new_name = m.group(1).strip()
 
                 if not new_name:
-                    return self._err("Provide 'name' to rename the lab.", category, "edit")
+                    return self._err(
+                        "Provide 'name' to rename the lab.", category, "edit"
+                    )
 
                 try:
                     DM.editLabs(target, new_name)
-                    return self._ok(f"Lab '{target}' renamed to '{new_name}' (not yet saved).", category, "edit")
+                    return self._ok(
+                        f"Lab '{target}' renamed to '{new_name}' (not yet saved).",
+                        category,
+                        "edit",
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to rename lab '{target}': {e}", category, "edit")
+                    return self._err(
+                        f"Failed to rename lab '{target}': {e}", category, "edit"
+                    )
             # COURSES
             if category in ("course", "courses"):
                 # Build updates from text if not provided
@@ -701,12 +831,13 @@ class ChatbotAgent:
                 # rooms / labs / faculty / conflicts — full replacements if provided in updates
                 known_rooms = cfg.get("rooms", [])
                 known_labs = cfg.get("labs", [])
-                known_faculty = [f.get("name") for f in cfg.get("faculty", []) if isinstance(f, dict)]
+                known_faculty = [
+                    f.get("name") for f in cfg.get("faculty", []) if isinstance(f, dict)
+                ]
 
                 if "room" not in payload:
                     rooms = self._extract_rooms_from_text(text, known_rooms)
-                    rooms = [r for r in rooms if
-                             not re.match(r"^[A-Z]{2,}\s*\d+$", r)]
+                    rooms = [r for r in rooms if not re.match(r"^[A-Z]{2,}\s*\d+$", r)]
                     if rooms:
                         payload["room"] = rooms
                 if "lab" not in payload:
@@ -714,29 +845,47 @@ class ChatbotAgent:
                     if labs:
                         payload["lab"] = labs
                 if "faculty" not in payload:
-                    fac = [n for n in self._extract_faculty_names_from_text(text) if n in known_faculty]
+                    fac = [
+                        n
+                        for n in self._extract_faculty_names_from_text(text)
+                        if n in known_faculty
+                    ]
                     if fac:
                         payload["faculty"] = fac
                 if "conflicts" not in payload:
                     conf = [
-                        c for c in self._extract_conflicts_from_text(text, known_rooms, known_labs)
+                        c
+                        for c in self._extract_conflicts_from_text(
+                            text, known_rooms, known_labs
+                        )
                         if c.upper() != identifier.upper()
                     ]
                     if conf:
                         payload["conflicts"] = conf
 
                 try:
-                    DM.editCourse(identifier, payload, target_index=updates.get("_index"))
-                    return self._ok(f"Course '{identifier}' updated in memory.", "course", "edit", payload=payload)
+                    DM.editCourse(
+                        identifier, payload, target_index=updates.get("_index")
+                    )
+                    return self._ok(
+                        f"Course '{identifier}' updated in memory.",
+                        "course",
+                        "edit",
+                        payload=payload,
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to edit course '{identifier}': {e}", "course", "edit")
+                    return self._err(
+                        f"Failed to edit course '{identifier}': {e}", "course", "edit"
+                    )
 
             # FACULTY
             if category in ("faculty", "professor", "instructor", "teacher"):
                 text = self.last_user_input
                 fac = DM.getFacultyByName(identifier)
                 if not fac:
-                    return self._err(f"Faculty '{identifier}' not found.", "faculty", "edit")
+                    return self._err(
+                        f"Faculty '{identifier}' not found.", "faculty", "edit"
+                    )
 
                 # Start with a copy of existing faculty data
                 new_fac = fac.copy()
@@ -756,12 +905,16 @@ class ChatbotAgent:
                 if not parsed_times:
                     # Fallback to "monday from 9am to 5pm" style
                     for m in re.finditer(
-                            r"(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri)\s*(?:from)?\s*([0-9:apm\s]+)\s*(?:to|-)\s*([0-9:apm\s]+)",
-                            text, flags=re.IGNORECASE):
+                        r"(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri)\s*(?:from)?\s*([0-9:apm\s]+)\s*(?:to|-)\s*([0-9:apm\s]+)",
+                        text,
+                        flags=re.IGNORECASE,
+                    ):
                         day, start, end = m.groups()
                         start_24 = self._convert_to_24h(start)
                         end_24 = self._convert_to_24h(end)
-                        parsed_times.setdefault(day[:3].upper(), []).append(f"{start_24}-{end_24}")
+                        parsed_times.setdefault(day[:3].upper(), []).append(
+                            f"{start_24}-{end_24}"
+                        )
 
                 if parsed_times:
                     all_days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
@@ -774,8 +927,9 @@ class ChatbotAgent:
                 # Course preferences
                 cp = {}
                 for m in re.finditer(
-                        r"\b([A-Z]{2,}\s*\d{1,4}[A-Za-z]?)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
-                        text, re.IGNORECASE,
+                    r"\b([A-Z]{2,}\s*\d{1,4}[A-Za-z]?)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
+                    text,
+                    re.IGNORECASE,
                 ):
                     course = m.group(1).strip()
                     if not any(course.lower() == r for r in known_rooms):
@@ -784,8 +938,9 @@ class ChatbotAgent:
                 # Room preferences
                 rp = {}
                 for m in re.finditer(
-                        r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
-                        text, re.IGNORECASE,
+                    r"\b([A-Z][A-Za-z]+\s*\d+)\b\s*(?:weight|with a weight of|=)\s*(\d+)",
+                    text,
+                    re.IGNORECASE,
                 ):
                     rp[m.group(1)] = int(m.group(2))
 
@@ -803,7 +958,10 @@ class ChatbotAgent:
                 # Commit to DM
                 fac_list = DM.data["config"]["faculty"]
                 for i, fobj in enumerate(fac_list):
-                    if isinstance(fobj, dict) and fobj.get("name", "").lower() == identifier.lower():
+                    if (
+                        isinstance(fobj, dict)
+                        and fobj.get("name", "").lower() == identifier.lower()
+                    ):
                         fac_list[i] = new_fac
                         break
 
@@ -811,7 +969,7 @@ class ChatbotAgent:
                     f"Faculty '{identifier}' updated in memory.",
                     "faculty",
                     "edit",
-                    payload=new_fac
+                    payload=new_fac,
                 )
 
             return self._err(f"Unknown category '{category}'.", category, "edit")
@@ -822,49 +980,85 @@ class ChatbotAgent:
     def _tool_delete_item(self, category: str, identifier: str):
         try:
             if not hasattr(DM, "data") or not DM.data:
-                return self._err("No configuration loaded. Import a config first.", category, "delete")
+                return self._err(
+                    "No configuration loaded. Import a config first.",
+                    category,
+                    "delete",
+                )
 
             category = category.lower().strip()
 
             if category in ("room", "rooms"):
                 try:
                     DM.removeRoom(identifier)
-                    return self._ok(f"Room '{identifier}' removed (not yet saved).", category, "delete")
+                    return self._ok(
+                        f"Room '{identifier}' removed (not yet saved).",
+                        category,
+                        "delete",
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to remove room '{identifier}': {e}", category, "delete")
+                    return self._err(
+                        f"Failed to remove room '{identifier}': {e}", category, "delete"
+                    )
 
             if category in ("lab", "labs"):
                 try:
                     labs = DM.data["config"].get("labs", [])
-                    target = next((l for l in labs if l.lower() == identifier.lower()), None)
+                    target = next(
+                        (lab for lab in labs if lab.lower() == identifier.lower()), None
+                    )
                     if not target:
-                        return self._err(f"Lab '{identifier}' not found.", category, "delete")
+                        return self._err(
+                            f"Lab '{identifier}' not found.", category, "delete"
+                        )
 
                     labs.remove(target)
-                    return self._ok(f"Lab '{target}' removed (not yet saved).", category, "delete")
+                    return self._ok(
+                        f"Lab '{target}' removed (not yet saved).", category, "delete"
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to remove lab '{identifier}': {e}", category, "delete")
+                    return self._err(
+                        f"Failed to remove lab '{identifier}': {e}", category, "delete"
+                    )
 
             if category in ("course", "courses"):
                 try:
                     DM.removeCourse(identifier)
-                    return self._ok(f"Course '{identifier}' removed (not yet saved).", category, "delete")
+                    return self._ok(
+                        f"Course '{identifier}' removed (not yet saved).",
+                        category,
+                        "delete",
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to remove course '{identifier}': {e}", category, "delete")
+                    return self._err(
+                        f"Failed to remove course '{identifier}': {e}",
+                        category,
+                        "delete",
+                    )
 
             if category in ("faculty", "professor", "instructor", "teacher"):
                 try:
                     # DataManager expects exact name
                     fac = DM.getFacultyByName(identifier)
                     if not fac:
-                        return self._err(f"Faculty '{identifier}' not found.", "faculty", "delete")
+                        return self._err(
+                            f"Faculty '{identifier}' not found.", "faculty", "delete"
+                        )
                     # Remove by exact name
                     # Reuse removeFaculty API which checks dependencies
-                    from Controller.main_controller import DataManager as _DMType  # type hint only
+
                     DM.removeFaculty(identifier)
-                    return self._ok(f"Faculty '{identifier}' removed (not yet saved).", "faculty", "delete")
+                    return self._ok(
+                        f"Faculty '{identifier}' removed (not yet saved).",
+                        "faculty",
+                        "delete",
+                    )
                 except Exception as e:
-                    return self._err(f"Failed to remove faculty '{identifier}': {e}", "faculty", "delete")
+                    return self._err(
+                        f"Failed to remove faculty '{identifier}': {e}",
+                        "faculty",
+                        "delete",
+                    )
 
             return self._err(f"Unknown category '{category}'.", category, "delete")
         except Exception as e:
@@ -944,16 +1138,22 @@ class ChatbotAgent:
             return "room"
         if re.search(r"\b(add|edit|update|delete|remove|create)\s+(lab|labs)\b", t):
             return "lab"
-        if re.search(r"\b(add|edit|update|delete|remove|create)\s+(course|class|courses)\b", t):
+        if re.search(
+            r"\b(add|edit|update|delete|remove|create)\s+(course|class|courses)\b", t
+        ):
             return "course"
 
         # --- Faculty-style intent ---
         # Look for words that usually appear in faculty creation/update statements
-        if re.search(r"\b(min|max)\s*credits?\b", t) or re.search(r"\b(unique\s*course\s*limit)\b", t):
+        if re.search(r"\b(min|max)\s*credits?\b", t) or re.search(
+            r"\b(unique\s*course\s*limit)\b", t
+        ):
             return "faculty"
         if re.search(r"\b(course|room|lab)\s+preference\b", t):
             return "faculty"
-        if re.search(r"\b(available|availability|teaches|schedule|office\s*hours?)\b", t):
+        if re.search(
+            r"\b(available|availability|teaches|schedule|office\s*hours?)\b", t
+        ):
             return "faculty"
         if re.search(r"\b(faculty|professor|instructor|teacher)\b", t):
             return "faculty"
@@ -1002,15 +1202,28 @@ class ChatbotAgent:
         if category == "lab":
             # --- Handle both "delete lab Mac" and "delete Mac lab" cleanly ---
             # 1. "delete lab Mac" / "edit lab Mac to Windows"
-            m1 = re.search(r"\blab\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)", text, re.IGNORECASE)
+            m1 = re.search(
+                r"\blab\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)", text, re.IGNORECASE
+            )
             # 2. "delete Mac lab" / "remove Windows lab"
-            m2 = re.search(r"\b([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)\s+lab\b", text, re.IGNORECASE)
+            m2 = re.search(
+                r"\b([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)\s+lab\b",
+                text,
+                re.IGNORECASE,
+            )
 
             # Prefer the one that is NOT the command word itself (like “delete”)
             for m in [m1, m2]:
                 if m:
                     name = m.group(1).strip()
-                    if name.lower() not in ("delete", "remove", "edit", "update", "add", "lab"):
+                    if name.lower() not in (
+                        "delete",
+                        "remove",
+                        "edit",
+                        "update",
+                        "add",
+                        "lab",
+                    ):
                         return name
             return None
 
@@ -1036,26 +1249,39 @@ class ChatbotAgent:
 
         try:
             self.last_user_input = user_input or ""
-            action = self._detect_action(self.last_user_input) or "add"  # default to add if vague
+            action = (
+                self._detect_action(self.last_user_input) or "add"
+            )  # default to add if vague
             category = self._detect_category(self.last_user_input) or "course"
 
             # SHOW
             if action == "show":
                 res = self._tool_show_details(category)
-                return self._ok("Showing details.", category, "show", payload=res if isinstance(res, dict) else None)
+                return self._ok(
+                    "Showing details.",
+                    category,
+                    "show",
+                    payload=res if isinstance(res, dict) else None,
+                )
 
             # DELETE
             if action == "delete":
                 ident = self._extract_identifier(self.last_user_input, category)
                 if not ident:
-                    return self._err(f"Please specify which {category} to delete.", category, "delete")
+                    return self._err(
+                        f"Please specify which {category} to delete.",
+                        category,
+                        "delete",
+                    )
                 return self._tool_delete_item(category, ident)
 
             # EDIT
             if action == "edit":
                 ident = self._extract_identifier(self.last_user_input, category)
                 if not ident:
-                    return self._err(f"Please specify which {category} to edit.", category, "edit")
+                    return self._err(
+                        f"Please specify which {category} to edit.", category, "edit"
+                    )
                 # No pre-baked updates: parser inside _tool_edit_item builds replacements as needed
                 return self._tool_edit_item(category, ident, updates={})
 
@@ -1064,7 +1290,11 @@ class ChatbotAgent:
                 return self._tool_add_item(category, data={})
 
             # Fallback
-            return self._err("I couldn't determine your intent. Try 'add course BIO 345'.", category, "unknown")
+            return self._err(
+                "I couldn't determine your intent. Try 'add course BIO 345'.",
+                category,
+                "unknown",
+            )
 
         except Exception as e:
             traceback.print_exc()
