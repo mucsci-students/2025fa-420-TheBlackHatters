@@ -11,7 +11,6 @@ from unittest.mock import mock_open, patch
 from Models.Data_manager import DataManager
 
 
-
 @pytest.fixture
 def sample_config():
     """Minimal but valid configuration matching what DataManager expects."""
@@ -35,6 +34,7 @@ def sample_config():
 
 
 # ---- Basic loading / saving ----
+
 
 def test_default_data_loads_from_template(tmp_path):
     """Should call deafultData() when no file path is given."""
@@ -90,6 +90,7 @@ def test_saveData_permission_error(tmp_path):
 
 # ---- CRUD: Rooms ----
 
+
 def test_add_edit_remove_room(sample_config):
     dm = DataManager()
     dm.data = sample_config
@@ -127,6 +128,7 @@ def test_duplicate_room_names(sample_config):
 
 
 # ---- CRUD: Labs ----
+
 
 def test_add_edit_remove_lab(sample_config):
     dm = DataManager()
@@ -166,6 +168,7 @@ def test_duplicate_lab_names(sample_config):
 
 # ---- CRUD: Faculty ----
 
+
 def test_add_faculty(sample_config):
     dm = DataManager()
     dm.data = sample_config
@@ -178,10 +181,10 @@ def test_faculty_name_formats():
     """Should handle different faculty name formats."""
     dm = DataManager()
     dm.data = {"config": {"faculty": []}}
-    
+
     # Test different faculty formats
     dm.addFaculty({"name": "Dr. Smith"})  # Dict with name
-    dm.addFaculty("Professor Jones")       # Direct string
+    dm.addFaculty("Professor Jones")  # Direct string
     faculty = dm.getFaculty()
     assert any(f.get("name") == "Dr. Smith" for f in faculty)
     assert "Professor Jones" in faculty
@@ -196,6 +199,7 @@ def test_remove_nonexistent_faculty():
 
 
 # ---- Courses ----
+
 
 def test_add_and_remove_course_success(sample_config):
     dm = DataManager()
@@ -220,7 +224,12 @@ def test_editCourse_updates_fields(sample_config):
     dm = DataManager()
     dm.data = sample_config
     old_id = "CMSC 140"
-    updates = {"credits": 5, "room": ["Roddy 102"], "lab": ["Windows"], "faculty": ["Jones"]}
+    updates = {
+        "credits": 5,
+        "room": ["Roddy 102"],
+        "lab": ["Windows"],
+        "faculty": ["Jones"],
+    }
     dm.editCourse(old_id, updates)
     edited = [c for c in dm.getCourses() if c["course_id"] == old_id][0]
     assert edited["credits"] == 5
@@ -240,22 +249,14 @@ def test_course_with_circular_conflicts(sample_config):
     """Should handle courses with circular conflicts."""
     dm = DataManager()
     dm.data = sample_config
-    
+
     # Create two courses that conflict with each other
-    course1 = {
-        "course_id": "CMSC 150",
-        "credits": 3,
-        "conflicts": ["CMSC 160"]
-    }
-    course2 = {
-        "course_id": "CMSC 160",
-        "credits": 3,
-        "conflicts": ["CMSC 150"]
-    }
-    
+    course1 = {"course_id": "CMSC 150", "credits": 3, "conflicts": ["CMSC 160"]}
+    course2 = {"course_id": "CMSC 160", "credits": 3, "conflicts": ["CMSC 150"]}
+
     dm.addCourse(course1)
     dm.addCourse(course2)
-    
+
     # Verify both courses exist with their conflicts
     courses = dm.getCourses()
     c150 = next(c for c in courses if c["course_id"] == "CMSC 150")
@@ -268,14 +269,10 @@ def test_course_edit_with_cascade_updates(sample_config):
     """Should handle updating course ID that's referenced in conflicts."""
     dm = DataManager()
     dm.data = sample_config
-    
+
     # Add a course that conflicts with CMSC 140
-    dm.addCourse({
-        "course_id": "CMSC 150",
-        "credits": 3,
-        "conflicts": ["CMSC 140"]
-    })
-    
+    dm.addCourse({"course_id": "CMSC 150", "credits": 3, "conflicts": ["CMSC 140"]})
+
     # Rename CMSC 140 and verify the conflict is updated
     dm.editCourse("CMSC 140", {"course_id": "CMSC 141"})
     courses = dm.getCourses()
@@ -284,6 +281,7 @@ def test_course_edit_with_cascade_updates(sample_config):
 
 
 # ---- Cleaning references ----
+
 
 def test_clean_invalid_references_removes_bad_links(sample_config):
     dm = DataManager()
@@ -314,14 +312,16 @@ def test_clean_invalid_references_empty_lists():
             "rooms": [],
             "labs": [],
             "faculty": [],
-            "courses": [{
-                "course_id": "TEST101",
-                "credits": 3,
-                "room": [],
-                "lab": [],
-                "faculty": [],
-                "conflicts": []
-            }]
+            "courses": [
+                {
+                    "course_id": "TEST101",
+                    "credits": 3,
+                    "room": [],
+                    "lab": [],
+                    "faculty": [],
+                    "conflicts": [],
+                }
+            ],
         }
     }
     changed = dm._clean_invalid_references()
@@ -336,11 +336,13 @@ def test_clean_invalid_references_missing_fields():
             "rooms": ["Room1"],
             "labs": ["Lab1"],
             "faculty": [{"name": "Faculty1"}],
-            "courses": [{
-                "course_id": "TEST101",
-                "credits": 3
-                # Missing room, lab, faculty, conflicts fields
-            }]
+            "courses": [
+                {
+                    "course_id": "TEST101",
+                    "credits": 3,
+                    # Missing room, lab, faculty, conflicts fields
+                }
+            ],
         }
     }
     changed = dm._clean_invalid_references()
@@ -353,11 +355,13 @@ def test_default_data_missing_template():
         with pytest.raises(FileNotFoundError):
             DataManager()
 
+
 def test_default_data_invalid_json():
     """Should handle corrupted template file."""
     with patch("builtins.open", mock_open(read_data="invalid json")):
         with pytest.raises(json.JSONDecodeError):
             DataManager()
+
 
 def test_updateLimit():
     """Should update limit value correctly."""
@@ -365,6 +369,7 @@ def test_updateLimit():
     dm.data = {"limit": 5}
     dm.updateLimit(10)
     assert dm.data["limit"] == 10
+
 
 def test_updateOptimizerFlags():
     """Should update optimizer flags correctly."""
@@ -374,35 +379,38 @@ def test_updateOptimizerFlags():
     dm.updateOptimizerFlags(new_flags)
     assert dm.data["optimizer_flags"] == new_flags
 
+
 def test_data_consistency_after_operations(sample_config):
     """Should maintain data consistency through multiple operations."""
     dm = DataManager()
     dm.data = sample_config
-    
+
     # Perform a series of operations
     dm.addRoom("NewRoom")
     dm.addLab("NewLab")
     dm.addFaculty({"name": "NewFaculty"})
-    
+
     # Add a course using all new resources
-    dm.addCourse({
-        "course_id": "NEW101",
-        "credits": 3,
-        "room": ["NewRoom"],
-        "lab": ["NewLab"],
-        "faculty": ["NewFaculty"]
-    })
-    
+    dm.addCourse(
+        {
+            "course_id": "NEW101",
+            "credits": 3,
+            "room": ["NewRoom"],
+            "lab": ["NewLab"],
+            "faculty": ["NewFaculty"],
+        }
+    )
+
     # Remove resources in use
     with pytest.raises(ValueError):
         dm.removeRoom("NewRoom")  # Should fail - in use
     with pytest.raises(ValueError):
-        dm.removeLabs("NewLab")   # Should fail - in use
+        dm.removeLabs("NewLab")  # Should fail - in use
     with pytest.raises(ValueError):
         dm.removeFaculty("NewFaculty")  # Should fail - in use
-    
+
     # Remove course first, then resources
     dm.removeCourse("NEW101")
-    dm.removeRoom("NewRoom")      # Should succeed
-    dm.removeLabs("NewLab")       # Should succeed
+    dm.removeRoom("NewRoom")  # Should succeed
+    dm.removeLabs("NewLab")  # Should succeed
     dm.removeFaculty("NewFaculty")  # Should succeed
