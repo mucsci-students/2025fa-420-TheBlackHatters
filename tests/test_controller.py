@@ -522,3 +522,80 @@ def test_undo_redo_integration_with_mocked_controllers():
     
     execute_redo(lab_action)
     mock_lab_ctr.removeLab.assert_called_with('Test Lab', refresh=None)
+
+def test_rooms_controller_list_rooms():
+    """Test that rooms controller properly lists rooms"""
+    c = ctrl.RoomsController()
+    ctrl.DM.getRooms.return_value = ["Room 101", "Room 102", "Room 103"]
+    
+    rooms = c.listRooms()
+    assert rooms == ["Room 101", "Room 102", "Room 103"]
+    ctrl.DM.getRooms.assert_called_once()
+
+
+def test_labs_controller_list_labs():
+    """Test that labs controller properly lists labs"""
+    c = ctrl.LabsController()
+    ctrl.DM.getLabs.return_value = ["Lab A", "Lab B"]
+    
+    labs = c.listLabs()
+    assert labs == ["Lab A", "Lab B"]
+    ctrl.DM.getLabs.assert_called_once()
+
+
+def test_faculty_controller_list_faculty():
+    """Test that faculty controller properly lists faculty"""
+    c = ctrl.FacultyController()
+    mock_faculty = [{"name": "Dr. Smith"}, {"name": "Dr. Johnson"}]
+    ctrl.DM.getFaculty.return_value = mock_faculty
+    
+    faculty = c.listFaculty()
+    assert faculty == mock_faculty
+    ctrl.DM.getFaculty.assert_called_once()
+
+
+def test_course_controller_list_courses():
+    """Test that course controller properly lists courses"""
+    c = ctrl.CourseController()
+    mock_courses = [{"course_id": "CMSC 101"}, {"course_id": "CMSC 102"}]
+    ctrl.DM.getCourses.return_value = mock_courses
+    
+    courses = c.listCourses()
+    assert courses == mock_courses
+    ctrl.DM.getCourses.assert_called_once()
+
+
+def test_rooms_controller_remove_nonexistent_room(capfd):
+    """Test that removing nonexistent room doesn't crash"""
+    c = ctrl.RoomsController()
+    ctrl.DM.getRooms.return_value = ["Existing Room"]
+    
+    # Should not raise an error, just print message
+    c.removeRoom("Nonexistent Room", None)
+    
+    out, _ = capfd.readouterr()
+    assert "Room not in system" in out
+
+
+def test_labs_controller_remove_nonexistent_lab(capfd):
+    """Test that removing nonexistent lab doesn't crash"""
+    c = ctrl.LabsController()
+    ctrl.DM.getLabs.return_value = ["Existing Lab"]
+    
+    # Should not raise an error, just print message
+    c.removeLab("Nonexistent Lab", None)
+    
+    out, _ = capfd.readouterr()
+    assert "Lab not in system" in out
+
+
+def test_course_controller_edit_with_target_index():
+    """Test course edit with target index parameter"""
+    c = ctrl.CourseController()
+    ctrl.DM.editCourse.return_value = None
+    
+    course_data = {"course_id": "CMSC 140", "credits": 4}
+    result = c.editCourse("CMSC 140", course_data, None, target_index=2)
+    
+    assert result is None
+    ctrl.DM.editCourse.assert_called_with("CMSC 140", course_data, target_index=2)
