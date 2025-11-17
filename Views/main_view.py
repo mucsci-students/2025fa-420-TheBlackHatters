@@ -72,7 +72,7 @@ def dataFacultyLeft(frame, controller, refresh, facultyData=None):
 # This function will populate the right side of the page. (If you don't understand left and right load the program and go into config file. Should make sence once you see it!)
 # this function kinda of acts like a form for user to fill.
 # we need to display the current data if user pressed edit on button before or just get an empty one
-def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None):
+def dataFacultyRight(frame, controller, refresh, data=None):
     #Checks if the data being passed in is a string (will break things if so, so stops it)
     #if isinstance(data, str):
     #    pass
@@ -600,33 +600,22 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
 
         # The actions that will happen when save changes is pressed - either calling edit faculty or add faculty.
         def onSave():
-            # Gets the values from all entries
+            #Gets the values from all entries
             result = returnFacultyData()
-            # Checks if there was a problem, if so does nothing.
+            #Checks if there was a problem, if so does nothing.
             if result[0]:
-                # Grabs the new faculty data.
+                #Grabs the new faculty data.
                 newFaculty = result[1]
                 if data:
-                    # Editing existing faculty - no undo/redo for this (yet)
+                    #Stores the original name for the data for proper replacement when editing in case the name has changed.
                     facName = data.get("name")
                     controller.editFaculty(newFaculty, facName, refresh)
                 else:
-                    # ADDING NEW FACULTY - record for undo/redo
                     controller.addFaculty(newFaculty, refresh)
-                    
-                    # Use the passed app_instance
-                    if app_instance and hasattr(app_instance, 'record_faculty_addition'):
-                        app_instance.record_faculty_addition(newFaculty)
-                    else:
-                        print("Warning: Could not record faculty addition for undo/redo")
+
         
         # this is the save buttion that will save changes when we add a new faculty and when we modify existing
         ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height = 40, command=lambda: onSave()).pack(side="bottom", padx=5)
-
-
-
-
-
 
 # this function will fill in the data on the right side of the two column
 def dataRoomRight(frame, controller, refresh, data=None):
@@ -1406,10 +1395,6 @@ class SchedulerApp(ctk.CTk):
         # we will keep our views to dispaly here
         self.views = {}
 
-        # UNDO/REDO SYSTEM
-        self.undo_stack = []  # Stores additions to undo
-        self.redo_stack = []  # Stores undone actions to redo
-
         self.createMainPage()
         self.views["MainPage"].pack(expand=True, fill="both")
 
@@ -1439,114 +1424,6 @@ class SchedulerApp(ctk.CTk):
         self.createConfigPage(parent = tabview.tab("Edit Config"))
         self.createSchedulerPage(parent = tabview.tab("Run Scheduler"))
         self.createViewSchedulePage(parent = tabview.tab("View Schedules"))
-
-        # Creates undo/redo buttons
-        undoButton = ctk.CTkButton(frame, text = "Undo")
-        undoButton.pack(padx = (10, 15), pady = (0, 10), side = "left")
-        redoButton = ctk.CTkButton(frame, text = "Redo")
-        redoButton.pack(padx = (0, 5), pady = (0, 10), side = "left")
-
-        # Store button references
-        self.undo_button = undoButton
-        self.redo_button = redoButton
-
-        # Update initial button states
-        self.update_undo_redo_buttons()
-
-    def update_undo_redo_buttons(self):
-        """Enable/disable buttons based on stack states"""
-        self.undo_button.configure(state="normal" if self.undo_stack else "disabled")
-        self.redo_button.configure(state="normal" if self.redo_stack else "disabled")
-
-    def undo(self):
-        """Undo the last action"""
-        if self.undo_stack:
-            action = self.undo_stack.pop()
-            
-            # Handle different action types
-            if action['type'] == 'faculty_addition':
-                faculty_name = action['data']['name']
-                self._undo_faculty_addition(action)
-                
-                # SHOW VISUAL FEEDBACK
-                self.show_status_message(f"Undo: Removed faculty '{faculty_name}'", "green")
-            
-            # Add to redo stack
-            self.redo_stack.append(action)
-            self.update_undo_redo_buttons()
-
-    def redo(self):
-        """Redo the last undone action"""
-        if self.redo_stack:
-            action = self.redo_stack.pop()
-            
-            # Handle different action types
-            if action['type'] == 'faculty_addition':
-                faculty_name = action['data']['name']
-                self._redo_faculty_addition(action)
-                
-                # SHOW VISUAL FEEDBACK
-                self.show_status_message(f"Redo: Added faculty '{faculty_name}'", "green")
-            
-            # Add back to undo stack
-            self.undo_stack.append(action)
-            self.update_undo_redo_buttons()
-
-    def show_status_message(self, message, color="green"):
-        """Show a temporary status message"""
-        # Create or update status label
-        if not hasattr(self, 'status_label'):
-            self.status_label = ctk.CTkLabel(self, text="", font=("Arial", 16, "bold"))
-            self.status_label.pack(pady=10)
-        
-        self.status_label.configure(text=message, text_color=color)
-        
-        # Clear message after 3 seconds
-        self.after(3000, lambda: self.status_label.configure(text=""))
-
-    def record_action(self, action_type, data):
-        """Record any action for undo/redo"""
-        action = {
-            'type': action_type,
-            'data': data,
-        }
-        
-        self.undo_stack.append(action)
-        self.redo_stack.clear()  # Clear redo stack when new action is performed
-        self.update_undo_redo_buttons()
-
-    def _undo_faculty_addition(self, action):
-        """Undo a faculty addition"""
-        faculty_data = action['data']
-        faculty_name = faculty_data['name']
-        
-        print(f"Undo: Removing faculty '{faculty_name}'")
-        
-        # Remove the faculty using your controller
-        facultyCtr.removeFaculty(faculty_name)
-        
-        # Refresh the display to show the faculty is gone
-        if hasattr(self, 'refresh'):
-            self.refresh("ConfigPage")
-
-    def _redo_faculty_addition(self, action):
-        """Redo a faculty addition"""
-        faculty_data = action['data']
-        faculty_name = faculty_data['name']
-        
-        print(f"Redo: Re-adding faculty '{faculty_name}'")
-        
-        # Re-add the faculty using your controller
-        facultyCtr.addFaculty(faculty_data)
-        
-        # Refresh the display
-        if hasattr(self, 'refresh'):
-            self.refresh("ConfigPage")
-
-    # Convenience method for recording faculty additions
-    def record_faculty_addition(self, faculty_data):
-        """Convenience method to record a faculty addition"""
-        self.record_action('faculty_addition', faculty_data)
 
     # this will create the config Page to modify/create new file
     def createConfigPage(self,  parent=None , data=None):
@@ -1622,7 +1499,7 @@ class SchedulerApp(ctk.CTk):
         self.createTwoColumn(
             tabview.tab("Faculty"),
             lambda frame: dataFacultyLeft(frame, facultyCtr, self.refresh),
-            lambda frame: dataFacultyRight(frame, facultyCtr, self.refresh, data, app_instance=self)
+            lambda frame: dataFacultyRight(frame, facultyCtr, self.refresh, faculty_data)
             #Holding this
         )
 
