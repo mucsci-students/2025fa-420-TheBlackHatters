@@ -968,7 +968,11 @@ def dataLabsLeft(frame, controller, refresh, data=None):
             command=lambda lab_item=lab: onDelete(lab_item),
         ).pack(side="left", padx=5)
         ctk.CTkButton(
-            rowFrame, text="Edit", width=30, height=20, command=lambda lab_item=lab: onEdit(lab_item)
+            rowFrame,
+            text="Edit",
+            width=30,
+            height=20,
+            command=lambda lab_item=lab: onEdit(lab_item),
         ).pack(side="left", padx=5)
 
 
@@ -1910,6 +1914,7 @@ class SchedulerApp(ctk.CTk):
                 app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
             else:
                 app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
+
     # this is to store and return the choice to order the schedules
     def orderByChoice(self, choice, sch):
         self.selectedOrderBy = choice
@@ -1999,7 +2004,7 @@ class SchedulerApp(ctk.CTk):
 
         if (
             self.deafultSchedules is not None
-                and self.deafultSchedules != {}
+            and self.deafultSchedules != {}
             and self.deafultSchedules != []
         ):
             if self.selectedSchView == "Table":

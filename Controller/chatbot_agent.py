@@ -268,9 +268,9 @@ class ChatbotAgent:
 
     @staticmethod
     def _extract_conflicts_from_text(
-            text: str,
-            known_rooms: Optional[List[str]] = None,
-            known_labs: Optional[List[str]] = None,
+        text: str,
+        known_rooms: Optional[List[str]] = None,
+        known_labs: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs

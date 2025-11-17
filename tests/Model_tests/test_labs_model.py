@@ -132,7 +132,9 @@ def test_modify_to_existing_name(capfd):
     """Modifying a lab to a name that already exists."""
     lab = Lab(["Linux", "Windows"])
     lab.modify("Linux", "Windows")
-    assert lab.labs.count("Windows") == 2  # Current behavior allows duplicates in modify
+    assert (
+        lab.labs.count("Windows") == 2
+    )  # Current behavior allows duplicates in modify
 
 
 def test_multiple_operations_sequence():
