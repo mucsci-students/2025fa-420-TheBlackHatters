@@ -657,7 +657,6 @@ def test_config_import_empty_path():
         pathVar.set.assert_called_with("")
         # The actual behavior might call loadFile and refresh, so let's not assert on those
 
-
 def test_rooms_controller_list_method():
     """Test that rooms controller list method works correctly"""
     c = ctrl.RoomsController()
@@ -668,7 +667,6 @@ def test_rooms_controller_list_method():
     
     assert result == expected_rooms
     ctrl.DM.getRooms.assert_called_once()
-
 
 def test_faculty_controller_list_method():
     """Test that faculty controller list method works correctly"""
@@ -681,7 +679,6 @@ def test_faculty_controller_list_method():
     assert result == expected_faculty
     ctrl.DM.getFaculty.assert_called_once()
 
-
 def test_labs_controller_list_method():
     """Test that labs controller list method works correctly"""
     c = ctrl.LabsController()
@@ -692,3 +689,94 @@ def test_labs_controller_list_method():
     
     assert result == expected_labs
     ctrl.DM.getLabs.assert_called_once()
+
+def test_course_controller_list_method():
+    """Test that course controller list method works correctly"""
+    c = ctrl.CourseController()
+    expected_courses = [{"course_id": "CMSC 101"}, {"course_id": "CMSC 102"}]
+    ctrl.DM.getCourses.return_value = expected_courses
+    
+    result = c.listCourses()
+    
+    assert result == expected_courses
+    ctrl.DM.getCourses.assert_called_once()
+
+def test_rooms_controller_add_calls_dm():
+    """Test that room addition calls DataManager"""
+    c = ctrl.RoomsController()
+    refresh = Mock()
+    
+    c.addRoom("New Room", refresh)
+    
+    ctrl.DM.addRoom.assert_called_with("New Room")
+
+def test_labs_controller_add_calls_dm():
+    """Test that lab addition calls DataManager"""
+    c = ctrl.LabsController()
+    refresh = Mock()
+    
+    c.addLab("New Lab", refresh)
+    
+    ctrl.DM.addLab.assert_called_with("New Lab")
+
+def test_faculty_controller_add_calls_dm():
+    """Test that faculty addition calls DataManager"""
+    c = ctrl.FacultyController()
+    refresh = Mock()
+    faculty_data = {"name": "New Faculty"}
+    
+    c.addFaculty(faculty_data, refresh)
+    
+    ctrl.DM.addFaculty.assert_called_with(faculty_data)
+
+def test_course_controller_add_calls_dm():
+    """Test that course addition calls DataManager"""
+    c = ctrl.CourseController()
+    refresh = Mock()
+    course_data = {"course_id": "NEW 101"}
+    ctrl.DM.addCourse.return_value = None
+    
+    result = c.addCourse(course_data, refresh)
+    
+    ctrl.DM.addCourse.assert_called_with(course_data)
+    assert result is None
+
+def test_rooms_controller_edit_calls_dm():
+    """Test that room edit calls DataManager"""
+    c = ctrl.RoomsController()
+    refresh = Mock()
+    
+    c.editRoom("Old Name", "New Name", refresh)
+    
+    ctrl.DM.editRoom.assert_called_with("Old Name", "New Name")
+
+def test_labs_controller_edit_calls_dm():
+    """Test that lab edit calls DataManager"""
+    c = ctrl.LabsController()
+    refresh = Mock()
+    
+    c.editLab("Old Lab", "New Lab", refresh)
+    
+    ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab")
+
+def test_course_controller_remove_calls_dm():
+    """Test that course removal calls DataManager"""
+    c = ctrl.CourseController()
+    refresh = Mock()
+    ctrl.DM.removeCourse.return_value = None
+    ctrl.DM.getCourses.return_value = [{"course_id": "CMSC 101"}]
+    
+    result = c.removeCourse("CMSC 101", refresh)
+    
+    ctrl.DM.removeCourse.assert_called_with("CMSC 101")
+    assert result is None
+
+def test_faculty_controller_remove_calls_dm():
+    """Test that faculty removal calls DataManager"""
+    c = ctrl.FacultyController()
+    refresh = Mock()
+    ctrl.DM.getFaculty.return_value = [{"name": "Dr. Smith"}]
+    
+    c.removeFaculty("Dr. Smith", refresh)
+    
+    ctrl.DM.removeFaculty.assert_called_with("Dr. Smith")
