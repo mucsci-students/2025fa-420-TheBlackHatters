@@ -228,18 +228,21 @@ class LabsController:
     def listLabs(self):
         return DM.getLabs()
 
-    def addLab(self, labName, refresh):
+    def addLab(self, labName, refresh=None):  # Make refresh optional
         DM.addLab(labName)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
 
-    def editLab(self,oldname, labName, refresh):
-        DM.editLabs(oldname,labName)
-        refresh(target = "ConfigPage", data = labName)
+    def editLab(self, oldname, labName, refresh=None):  # Make refresh optional
+        DM.editLabs(oldname, labName)
+        if refresh:  # Only refresh if requested
+            refresh(target="ConfigPage", data=labName)
 
-    def removeLab(self, labName, refresh):
+    def removeLab(self, labName, refresh=None):  # Make refresh optional
         if labName in self.listLabs():
             DM.removeLabs(labName)
-            refresh("ConfigPage")
+            if refresh:  # Only refresh if requested
+                refresh("ConfigPage")
         else: 
             print('Lab not in system')
 

@@ -693,7 +693,7 @@ def dataRoomLeft(frame, controller, refresh, data=None):
 
 
 # same as ROOMS
-def dataLabsRight(frame, controller, refresh, data=None):
+def dataLabsRight(frame, controller, refresh, data=None, app_instance = None):
     # Note that that data here is a specefic one to display, for example a name of a lab
     # we will also treat this as a form to fill out
 
@@ -709,15 +709,23 @@ def dataLabsRight(frame, controller, refresh, data=None):
         nameEntry.insert(0, data)
 
     def onSave():
-        name = nameEntry.get()
-        if name.strip():
-            if data:
-                controller.editLab(data, name, refresh)
+            name = nameEntry.get()
+            if name.strip():
+                if data:
+                    # EDITING EXISTING LAB
+                    controller.editLab(data, name, refresh)
+                    # Record the edit action
+                    if app_instance:
+                        app_instance.record_lab_edit(data, name)
+                else:
+                    # ADDING NEW LAB
+                    controller.addLab(name, refresh)
+                    # Record the addition action
+                    if app_instance:
+                        app_instance.record_lab_addition(name)
             else:
-                controller.addLab(name, refresh)
-        else :
-            ctk.CTkLabel(frame, text="Please Input Valid Lab Name! ", width=120, anchor="w", font=("Arial", 30, "bold"), text_color = "red").grid(row=0, column=0,padx=10, pady=2)
-
+                ctk.CTkLabel(frame, text="Please Input Valid Lab Name! ", width=120, anchor="w", 
+                            font=("Arial", 30, "bold"), text_color="red").grid(row=0, column=0, padx=10, pady=2)
 
     ctk.CTkButton(frame, text="Save Changes", width=100, font=("Arial", 20, "bold"), height=40,
                   command=lambda: onSave()
@@ -725,7 +733,7 @@ def dataLabsRight(frame, controller, refresh, data=None):
 
 
 # same as ROOMS
-def dataLabsLeft(frame, controller, refresh, data=None):
+def dataLabsLeft(frame, controller, refresh, data=None, app_instance = None):
     # Note that that data here is a list of Labs
 
     # I need two rows, 1 for add buttion, other for the content
@@ -740,6 +748,11 @@ def dataLabsLeft(frame, controller, refresh, data=None):
                   ).pack(side="top", padx=5)
 
     def onDelete(lab):
+        # Record the deletion BEFORE actually deleting
+        if app_instance:
+            app_instance.record_lab_deletion(lab)
+        
+        # Then perform the deletion
         controller.removeLab(lab, refresh)
 
     def onEdit(lab):
@@ -1395,8 +1408,112 @@ class SchedulerApp(ctk.CTk):
         # we will keep our views to dispaly here
         self.views = {}
 
+        # UNDO/REDO SYSTEM
+        self.undo_stack = []  # Stores actions to undo
+        self.redo_stack = []  # Stores undone actions to redo
+
         self.createMainPage()
         self.views["MainPage"].pack(expand=True, fill="both")
+
+    def update_undo_redo_buttons(self):
+        """Enable/disable buttons based on stack states"""
+        self.undo_button.configure(state="normal" if self.undo_stack else "disabled")
+        self.redo_button.configure(state="normal" if self.redo_stack else "disabled")
+
+    def undo(self):
+        """Undo the last action"""
+        if self.undo_stack:
+            action = self.undo_stack.pop()
+            
+            if action['type'] == 'lab_addition':
+                self._undo_lab_addition(action)
+            elif action['type'] == 'lab_edit':
+                self._undo_lab_edit(action)
+            elif action['type'] == 'lab_deletion':
+                self._undo_lab_deletion(action)
+            
+            # Add to redo stack
+            self.redo_stack.append(action)
+            self.update_undo_redo_buttons()
+
+    def redo(self):
+        """Redo the last undone action"""
+        if self.redo_stack:
+            action = self.redo_stack.pop()
+            
+            if action['type'] == 'lab_addition':
+                self._redo_lab_addition(action)
+            elif action['type'] == 'lab_edit':
+                self._redo_lab_edit(action)
+            elif action['type'] == 'lab_deletion':
+                self._redo_lab_deletion(action)
+            
+            # Add back to undo stack
+            self.undo_stack.append(action)
+            self.update_undo_redo_buttons()
+
+    def record_action(self, action_type, data):
+        """Record any action for undo/redo"""
+        action = {
+            'type': action_type,
+            'data': data
+        }
+        
+        self.undo_stack.append(action)
+        self.redo_stack.clear()  # Clear redo stack when new action is performed
+        self.update_undo_redo_buttons()
+
+    # Lab-specific undo/redo methods
+    def _undo_lab_addition(self, action):
+        """Undo a lab addition"""
+        lab_name = action['data']['lab_name']
+        labCtr.removeLab(lab_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_lab_addition(self, action):
+        """Redo a lab addition"""
+        lab_name = action['data']['lab_name']
+        labCtr.addLab(lab_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_lab_edit(self, action):
+        """Undo a lab edit"""
+        old_name = action['data']['old_name']
+        new_name = action['data']['new_name']
+        labCtr.editLab(new_name, old_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_lab_edit(self, action):
+        """Redo a lab edit"""
+        old_name = action['data']['old_name']
+        new_name = action['data']['new_name']
+        labCtr.editLab(old_name, new_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _undo_lab_deletion(self, action):
+        """Undo a lab deletion"""
+        lab_name = action['data']['lab_name']
+        labCtr.addLab(lab_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    def _redo_lab_deletion(self, action):
+        """Redo a lab deletion"""
+        lab_name = action['data']['lab_name']
+        labCtr.removeLab(lab_name, refresh=None)  # Don't auto-refresh
+        self.refresh("ConfigPage")
+
+    # Convenience methods for recording lab actions
+    def record_lab_addition(self, lab_name):
+        """Record a lab addition for undo/redo"""
+        self.record_action('lab_addition', {'lab_name': lab_name})
+
+    def record_lab_edit(self, old_name, new_name):
+        """Record a lab edit for undo/redo"""
+        self.record_action('lab_edit', {'old_name': old_name, 'new_name': new_name})
+
+    def record_lab_deletion(self, lab_name):
+        """Record a lab deletion for undo/redo"""
+        self.record_action('lab_deletion', {'lab_name': lab_name})
 
     def createMainPage(self):
         # Create and store the main container
@@ -1424,6 +1541,22 @@ class SchedulerApp(ctk.CTk):
         self.createConfigPage(parent = tabview.tab("Edit Config"))
         self.createSchedulerPage(parent = tabview.tab("Run Scheduler"))
         self.createViewSchedulePage(parent = tabview.tab("View Schedules"))
+
+        # Add undo/redo buttons at the bottom
+        undo_redo_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        undo_redo_frame.pack(side="bottom", fill="x", padx=10, pady=10)
+        
+        undoButton = ctk.CTkButton(undo_redo_frame, text="Undo", command=self.undo)
+        undoButton.pack(side="left", padx=(10, 5))
+        redoButton = ctk.CTkButton(undo_redo_frame, text="Redo", command=self.redo)
+        redoButton.pack(side="left", padx=(5, 10))
+        
+        # Store button references
+        self.undo_button = undoButton
+        self.redo_button = redoButton
+        
+        # Update initial button states
+        self.update_undo_redo_buttons()
 
     # this will create the config Page to modify/create new file
     def createConfigPage(self,  parent=None , data=None):
@@ -1517,10 +1650,11 @@ class SchedulerApp(ctk.CTk):
             lambda frame: dataRoomRight(frame, roomCtr, self.refresh, data if isinstance(data, str) else None)
         )
 
+        # In createConfigPage method, update the Labs tab:
         self.createTwoColumn(
             tabview.tab("Labs"),
-            lambda frame: dataLabsLeft(frame, labCtr, self.refresh),
-            lambda frame: dataLabsRight(frame, labCtr, self.refresh, data if isinstance(data, str) else None)
+            lambda frame: dataLabsLeft(frame, labCtr, self.refresh, data, app_instance=self),
+            lambda frame: dataLabsRight(frame, labCtr, self.refresh, data if isinstance(data, str) else None, app_instance=self)
         )
 
         # One chatbot instance for the entire app
