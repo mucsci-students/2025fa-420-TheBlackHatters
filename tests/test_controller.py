@@ -599,3 +599,48 @@ def test_course_controller_edit_with_target_index():
     
     assert result is None
     ctrl.DM.editCourse.assert_called_with("CMSC 140", course_data, target_index=2)
+
+def test_generate_schedules_with_optimization_flags():
+    """Test that generateSchedulesBtn properly sets optimization flags"""
+    with patch('Controller.main_controller.Scheduler') as MockScheduler:
+        with patch('Controller.main_controller.CombinedConfig') as MockCombinedConfig:
+            mock_scheduler_instance = MockScheduler.return_value
+            mock_scheduler_instance.get_models.return_value = []
+            
+            # Test with optimization flags
+            optimize_flags = ["faculty_course", "pack_rooms"]
+            result = ctrl.generateSchedulesBtn(5, optimize_flags, None)
+            
+            # Verify optimization flags were set
+            ctrl.DM.updateOptimizerFlags.assert_called_with(optimize_flags)
+            ctrl.DM.updateLimit.assert_called_with(5)
+            assert result == []
+
+def test_export_schedules_with_empty_data():
+    """Test exportSchedulesBTN handles empty data gracefully"""
+    with patch('Controller.main_controller.filedialog.asksaveasfilename', return_value="test.json"):
+        with patch('builtins.open', mock_open()):
+            pathVar = Mock()
+            
+            # Test with empty data
+            ctrl.exportSchedulesBTN([], pathVar)
+            
+            # Should not crash and should set path variable
+            pathVar.set.assert_called_once()
+            assert "saved" in pathVar.set.call_args[0][0].lower()
+
+
+def test_generate_schedules_with_zero_limit():
+    """Test generateSchedulesBtn handles zero limit gracefully"""
+    with patch('Controller.main_controller.Scheduler') as MockScheduler:
+        with patch('Controller.main_controller.CombinedConfig'):
+            mock_scheduler_instance = MockScheduler.return_value
+            mock_scheduler_instance.get_models.return_value = []
+            
+            # Test with limit of 0
+            result = ctrl.generateSchedulesBtn(0, [], None)
+            
+            # Should return empty list
+            assert result == []
+            # Should update limit in DataManager
+            ctrl.DM.updateLimit.assert_called_with(0)

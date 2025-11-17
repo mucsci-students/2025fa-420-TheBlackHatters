@@ -1522,35 +1522,46 @@ class SchedulerApp(ctk.CTk):
         """Redo the last undone action"""
         if self.redo_stack:
             action = self.redo_stack.pop()
-            
-            if action['type'] == 'lab_addition':
-                self._redo_lab_addition(action)
-            elif action['type'] == 'lab_edit':
-                self._redo_lab_edit(action)
-            elif action['type'] == 'lab_deletion':
-                self._redo_lab_deletion(action)
-            elif action['type'] == 'course_addition':
-                self._redo_course_addition(action)
-            elif action['type'] == 'course_edit':
-                self._redo_course_edit(action)
-            elif action['type'] == 'course_deletion':
-                self._redo_course_deletion(action)
-            elif action['type'] == 'faculty_addition':
-                self._redo_faculty_addition(action)
-            elif action['type'] == 'faculty_edit':
-                self._redo_faculty_edit(action)
-            elif action['type'] == 'faculty_deletion':
-                self._redo_faculty_deletion(action)
-            elif action['type'] == 'room_addition':
-                self._redo_room_addition(action)
-            elif action['type'] == 'room_edit':
-                self._redo_room_edit(action)
-            elif action['type'] == 'room_deletion':
-                self._redo_room_deletion(action)
-            
-            # Add back to undo stack
-            self.undo_stack.append(action)
-            self.update_undo_redo_buttons()
+            try:
+                if action['type'] == 'lab_addition':
+                    self._redo_lab_addition(action)
+                elif action['type'] == 'lab_edit':
+                    self._redo_lab_edit(action)
+                elif action['type'] == 'lab_deletion':
+                    self._redo_lab_deletion(action)
+                elif action['type'] == 'course_addition':
+                    self._redo_course_addition(action)
+                elif action['type'] == 'course_edit':
+                    self._redo_course_edit(action)
+                elif action['type'] == 'course_deletion':
+                    self._redo_course_deletion(action)
+                elif action['type'] == 'faculty_addition':
+                    self._redo_faculty_addition(action)
+                elif action['type'] == 'faculty_edit':
+                    self._redo_faculty_edit(action)
+                elif action['type'] == 'faculty_deletion':
+                    self._redo_faculty_deletion(action)
+                elif action['type'] == 'room_addition':
+                    self._redo_room_addition(action)
+                elif action['type'] == 'room_edit':
+                    self._redo_room_edit(action)
+                elif action['type'] == 'room_deletion':
+                    self._redo_room_deletion(action)
+                
+                # Add back to undo stack
+                self.undo_stack.append(action)
+                self.update_undo_redo_buttons()
+            except Exception as e:
+                # Restore action to undo stack since operation failed
+                self.redo_stack.append(action)
+                self.update_undo_redo_buttons()
+                # Show error to user
+                error_popup = ctk.CTkToplevel()
+                error_popup.title("Redo Failed")
+                error_popup.geometry("400x200")
+                ctk.CTkLabel(error_popup, text=f"Cannot redo: {str(e)}", 
+                            font=("Arial", 16), wraplength=350).pack(pady=20)
+                ctk.CTkButton(error_popup, text="OK", command=error_popup.destroy).pack(pady=10)
 
     # Lab-specific undo/redo methods
     def _undo_lab_addition(self, action):

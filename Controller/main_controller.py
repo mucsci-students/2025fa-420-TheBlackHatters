@@ -203,18 +203,21 @@ class RoomsController:
     def listRooms(self):
         return DM.getRooms()
 
-    def addRoom(self, roomName, refresh):
+    def addRoom(self, roomName, refresh = None):
         DM.addRoom(roomName)
-        refresh("ConfigPage")
+        if refresh:
+            refresh("ConfigPage")
 
-    def editRoom(self,oldname, roomName, refresh):
+    def editRoom(self, oldname, roomName, refresh = None):
         DM.editRoom(oldname,roomName)
-        refresh(target = "ConfigPage", data = roomName)
+        if refresh:
+            refresh(target="ConfigPage", data=roomName)
 
-    def removeRoom(self, roomName, refresh):
+    def removeRoom(self, roomName, refresh = None):
         if roomName in self.listRooms():
             DM.removeRoom(roomName)
-            refresh("ConfigPage")
+            if refresh:
+                refresh("ConfigPage")
         else: 
             print('Room not in system')
 
