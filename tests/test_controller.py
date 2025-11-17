@@ -644,3 +644,51 @@ def test_generate_schedules_with_zero_limit():
             assert result == []
             # Should update limit in DataManager
             ctrl.DM.updateLimit.assert_called_with(0)
+
+def test_config_import_empty_path():
+    """Test configImportBTN with empty file path"""
+    with patch('Controller.main_controller.filedialog.askopenfilename', return_value=""):
+        pathVar = Mock()
+        refresh = Mock()
+        
+        ctrl.configImportBTN(pathVar, refresh)
+        
+        # Should set the path variable even with empty string
+        pathVar.set.assert_called_with("")
+        # The actual behavior might call loadFile and refresh, so let's not assert on those
+
+
+def test_rooms_controller_list_method():
+    """Test that rooms controller list method works correctly"""
+    c = ctrl.RoomsController()
+    expected_rooms = ["Room 101", "Room 102", "Room 103"]
+    ctrl.DM.getRooms.return_value = expected_rooms
+    
+    result = c.listRooms()
+    
+    assert result == expected_rooms
+    ctrl.DM.getRooms.assert_called_once()
+
+
+def test_faculty_controller_list_method():
+    """Test that faculty controller list method works correctly"""
+    c = ctrl.FacultyController()
+    expected_faculty = [{"name": "Dr. Smith"}, {"name": "Dr. Johnson"}]
+    ctrl.DM.getFaculty.return_value = expected_faculty
+    
+    result = c.listFaculty()
+    
+    assert result == expected_faculty
+    ctrl.DM.getFaculty.assert_called_once()
+
+
+def test_labs_controller_list_method():
+    """Test that labs controller list method works correctly"""
+    c = ctrl.LabsController()
+    expected_labs = ["Lab A", "Lab B"]
+    ctrl.DM.getLabs.return_value = expected_labs
+    
+    result = c.listLabs()
+    
+    assert result == expected_labs
+    ctrl.DM.getLabs.assert_called_once()

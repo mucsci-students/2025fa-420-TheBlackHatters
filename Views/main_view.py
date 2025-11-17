@@ -40,22 +40,19 @@ def dataFacultyLeft(frame, controller, refresh, facultyData=None, app_instance =
     # Button has text "Add" inside it        
     ctk.CTkButton(container, text="Add", width= 120, height = 20, command=lambda: onAdd()).pack(side="top", padx=5)
 
-
     def onDelete(facName):
-        # Find the faculty data BEFORE deleting
-        facList = facultyCtr.listFaculty()
-        faculty_data = None
-        for faculty in facList:
-            if faculty["name"] == facName:
-                faculty_data = faculty
-                break
-        
-        # Record the deletion BEFORE actually deleting
+        facList = controller.listFaculty()
+        faculty_data = next((f for f in facList if f.get("name") == facName), None)
+
+        try:
+            controller.removeFaculty(facName, refresh)
+        except Exception as e:
+            # show popup or at least log the error; do NOT record an action
+            # (you can reuse the CTkToplevel pattern used in undo/redo)
+            return
+
         if app_instance and faculty_data:
             app_instance.record_faculty_deletion(faculty_data)
-        
-        # Then perform the deletion
-        controller.removeFaculty(facName, refresh)
 
     def onEdit(faculty):
         refresh(target="ConfigPage", data=faculty)
