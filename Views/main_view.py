@@ -795,12 +795,20 @@ def dataLabsLeft(frame, controller, refresh, data=None, app_instance = None):
                                                                                       expand=True)
 
         # Buttons
-        ctk.CTkButton(rowFrame, text="Delete", width=30, height=20,
-                      command=lambda l=lab: onDelete(l)
-                      ).pack(side="left", padx=5)
-        ctk.CTkButton(rowFrame, text="Edit", width=30, height=20,
-                      command=lambda l=lab: onEdit(l)
-                      ).pack(side="left", padx=5)
+        ctk.CTkButton(
+            rowFrame,
+            text="Delete",
+            width=30,
+            height=20,
+            command=lambda lab_item=lab: onDelete(lab_item),
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(
+            rowFrame,
+            text="Edit",
+            width=30,
+            height=20,
+            command=lambda lab_item=lab: onEdit(lab_item),
+        ).pack(side="left", padx=5)
 
 
 def dataCoursesLeft(frame, controller, refresh, data=None, app_instance=None): 
@@ -1955,7 +1963,7 @@ class SchedulerApp(ctk.CTk):
                 app.refresh(target="ConfigPage")
 
             else:
-                app.refresh(target="ConfigPage")
+                app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
 
     # this is to store and return the choice to order the schedules
     def orderByChoice(self, choice, sch):
@@ -2030,7 +2038,11 @@ class SchedulerApp(ctk.CTk):
         schedulesFrame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         schedulesFrame.pack(expand=True, fill="both", padx=10, pady=10)
 
-        if self.deafultSchedules != None and self.deafultSchedules != {} and self.deafultSchedules != []:
+        if (
+            self.deafultSchedules is not None
+            and self.deafultSchedules != {}
+            and self.deafultSchedules != []
+        ):
             if self.selectedSchView == "Table":
                 def createDropdown(parent):
                     dropDownFrame = ctk.CTkFrame(parent, fg_color="transparent")
