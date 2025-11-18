@@ -1480,10 +1480,51 @@ class SchedulerApp(ctk.CTk):
         self.undo_button.configure(state="normal" if self.undo_stack else "disabled")
         self.redo_button.configure(state="normal" if self.redo_stack else "disabled")
 
+    def show_undo_redo_message(self, action_type, is_undo=True):
+        """Show a message describing what was undone/redone"""
+        action_messages = {
+            'lab_addition': ('Lab addition', 'Lab deletion'),
+            'lab_edit': ('Lab edit', 'Lab edit'),
+            'lab_deletion': ('Lab deletion', 'Lab addition'),
+            'course_addition': ('Course addition', 'Course deletion'),
+            'course_edit': ('Course edit', 'Course edit'),
+            'course_deletion': ('Course deletion', 'Course addition'),
+            'faculty_addition': ('Faculty addition', 'Faculty deletion'),
+            'faculty_edit': ('Faculty edit', 'Faculty edit'),
+            'faculty_deletion': ('Faculty deletion', 'Faculty addition'),
+            'room_addition': ('Room addition', 'Room deletion'),
+            'room_edit': ('Room edit', 'Room edit'),
+            'room_deletion': ('Room deletion', 'Room addition'),
+        }
+        
+        if action_type in action_messages:
+            if is_undo:
+                message = f"Undid {action_messages[action_type][0].lower()}"
+            else:
+                message = f"Redid {action_messages[action_type][1].lower()}"
+            
+            # Create a temporary message label
+            message_frame = ctk.CTkFrame(self, fg_color="#000000", height=40)
+            message_frame.place(relx=0.5, rely=0.1, anchor="center")
+            
+            message_label = ctk.CTkLabel(
+                message_frame, 
+                text=message, 
+                font=("Arial", 14, "bold"),
+                text_color="white"
+            )
+            message_label.pack(padx=20, pady=10)
+            
+            # Remove the message after 2 seconds
+            self.after(2000, lambda: message_frame.destroy())
+
     def undo(self):
         """Undo the last action"""
         if self.undo_stack:
             action = self.undo_stack.pop()
+            
+            # Show undo message
+            self.show_undo_redo_message(action['type'], is_undo=True)
             
             if action['type'] == 'lab_addition':
                 self._undo_lab_addition(action)
@@ -1519,6 +1560,9 @@ class SchedulerApp(ctk.CTk):
         if self.redo_stack:
             action = self.redo_stack.pop()
             
+            # Show redo message
+            self.show_undo_redo_message(action['type'], is_undo=False)
+            
             if action['type'] == 'lab_addition':
                 self._redo_lab_addition(action)
             elif action['type'] == 'lab_edit':
@@ -1548,132 +1592,189 @@ class SchedulerApp(ctk.CTk):
             self.undo_stack.append(action)
             self.update_undo_redo_buttons()
 
-    # Lab-specific undo/redo methods
-    def _undo_lab_addition(self, action):
-        """Undo a lab addition"""
-        lab_name = action['data']['lab_name']
-        labCtr.removeLab(lab_name, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _redo_lab_addition(self, action):
-        """Redo a lab addition"""
-        lab_name = action['data']['lab_name']
-        labCtr.addLab(lab_name, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _undo_lab_edit(self, action):
-        """Undo a lab edit"""
-        old_name = action['data']['old_name']
-        new_name = action['data']['new_name']
-        labCtr.editLab(new_name, old_name, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _redo_lab_edit(self, action):
-        """Redo a lab edit"""
-        old_name = action['data']['old_name']
-        new_name = action['data']['new_name']
-        labCtr.editLab(old_name, new_name, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _undo_lab_deletion(self, action):
-        """Undo a lab deletion"""
-        lab_name = action['data']['lab_name']
-        labCtr.addLab(lab_name, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _redo_lab_deletion(self, action):
-        """Redo a lab deletion"""
-        lab_name = action['data']['lab_name']
-        labCtr.removeLab(lab_name, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    # Convenience methods for recording lab actions
     def record_lab_addition(self, lab_name):
         """Record a lab addition for undo/redo"""
-        self.record_action('lab_addition', {'lab_name': lab_name})
+        self.record_action('lab_addition', {
+            'lab_name': lab_name,
+            'name': lab_name
+        })
 
     def record_lab_edit(self, old_name, new_name):
         """Record a lab edit for undo/redo"""
-        self.record_action('lab_edit', {'old_name': old_name, 'new_name': new_name})
+        self.record_action('lab_edit', {
+            'old_name': old_name,
+            'new_name': new_name,
+            'name': new_name
+        })
 
     def record_lab_deletion(self, lab_name):
         """Record a lab deletion for undo/redo"""
-        self.record_action('lab_deletion', {'lab_name': lab_name})
+        self.record_action('lab_deletion', {
+            'lab_name': lab_name,
+            'name': lab_name
+        })
 
-    # Course-specific undo/redo methods
-    def _undo_course_addition(self, action):
-        """Undo a course addition"""
-        course_data = action['data']['course_data']
-        courseCtr.removeCourse(course_data['course_id'], refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _redo_course_addition(self, action):
-        """Redo a course addition"""
-        course_data = action['data']['course_data']
-        courseCtr.addCourse(course_data, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _undo_course_edit(self, action):
-        """Undo a course edit"""
-        old_course_data = action['data']['old_course_data']
-        course_id = old_course_data['course_id']
-        courseCtr.editCourse(course_id, old_course_data, refresh=None, target_index=action['data'].get('target_index'))  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _redo_course_edit(self, action):
-        """Redo a course edit"""
-        new_course_data = action['data']['new_course_data']
-        course_id = new_course_data['course_id']
-        courseCtr.editCourse(course_id, new_course_data, refresh=None, target_index=action['data'].get('target_index'))  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _undo_course_deletion(self, action):
-        """Undo a course deletion"""
-        course_data = action['data']['course_data']
-        courseCtr.addCourse(course_data, refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    def _redo_course_deletion(self, action):
-        """Redo a course deletion"""
-        course_data = action['data']['course_data']
-        courseCtr.removeCourse(course_data['course_id'], refresh=None)  # Don't auto-refresh
-        self.refresh("ConfigPage")
-
-    # Convenience methods for recording course actions
     def record_course_addition(self, course_data):
         """Record a course addition for undo/redo"""
-        self.record_action('course_addition', {'course_data': course_data})
+        self.record_action('course_addition', {
+            'course_data': course_data,
+            'name': course_data.get('course_id', '')
+        })
 
     def record_course_edit(self, old_course_data, new_course_data, target_index=None):
         """Record a course edit for undo/redo"""
         self.record_action('course_edit', {
             'old_course_data': old_course_data,
             'new_course_data': new_course_data,
-            'target_index': target_index
+            'target_index': target_index,
+            'old_name': old_course_data.get('course_id', ''),
+            'new_name': new_course_data.get('course_id', '')
         })
 
     def record_course_deletion(self, course_data):
         """Record a course deletion for undo/redo"""
-        self.record_action('course_deletion', {'course_data': course_data})
-    
-    # Faculty-specific undo/redo methods
+        self.record_action('course_deletion', {
+            'course_data': course_data,
+            'name': course_data.get('course_id', '')
+        })
+
+    def record_faculty_addition(self, faculty_data):
+        """Record a faculty addition for undo/redo"""
+        self.record_action('faculty_addition', {
+            'faculty_data': faculty_data,
+            'name': faculty_data.get('name', '')
+        })
+
+    def record_faculty_edit(self, old_faculty_data, new_faculty_data):
+        """Record a faculty edit for undo/redo"""
+        self.record_action('faculty_edit', {
+            'old_faculty_data': old_faculty_data,
+            'new_faculty_data': new_faculty_data,
+            'old_name': old_faculty_data.get('name', ''),
+            'new_name': new_faculty_data.get('name', '')
+        })
+
+    def record_faculty_deletion(self, faculty_data):
+        """Record a faculty deletion for undo/redo"""
+        self.record_action('faculty_deletion', {
+            'faculty_data': faculty_data,
+            'name': faculty_data.get('name', '')
+        })
+
+    def record_room_addition(self, room_name):
+        """Record a room addition for undo/redo"""
+        self.record_action('room_addition', {
+            'room_name': room_name,
+            'name': room_name
+        })
+
+    def record_room_edit(self, old_name, new_name):
+        """Record a room edit for undo/redo"""
+        self.record_action('room_edit', {
+            'old_name': old_name,
+            'new_name': new_name,
+            'name': new_name
+        })
+
+    def record_room_deletion(self, room_name):
+        """Record a room deletion for undo/redo"""
+        self.record_action('room_deletion', {
+            'room_name': room_name,
+            'name': room_name
+        })
+
+    def _undo_lab_addition(self, action):
+        """Undo a lab addition"""
+        lab_name = action['data']['lab_name']
+        labCtr.removeLab(lab_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_lab_addition(self, action):
+        """Redo a lab addition"""
+        lab_name = action['data']['lab_name']
+        labCtr.addLab(lab_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_lab_edit(self, action):
+        """Undo a lab edit"""
+        old_name = action['data']['old_name']
+        new_name = action['data']['new_name']
+        labCtr.editLab(new_name, old_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_lab_edit(self, action):
+        """Redo a lab edit"""
+        old_name = action['data']['old_name']
+        new_name = action['data']['new_name']
+        labCtr.editLab(old_name, new_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_lab_deletion(self, action):
+        """Undo a lab deletion"""
+        lab_name = action['data']['lab_name']
+        labCtr.addLab(lab_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_lab_deletion(self, action):
+        """Redo a lab deletion"""
+        lab_name = action['data']['lab_name']
+        labCtr.removeLab(lab_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_course_addition(self, action):
+        """Undo a course addition"""
+        course_data = action['data']['course_data']
+        courseCtr.removeCourse(course_data['course_id'], refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_course_addition(self, action):
+        """Redo a course addition"""
+        course_data = action['data']['course_data']
+        courseCtr.addCourse(course_data, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_course_edit(self, action):
+        """Undo a course edit"""
+        old_course_data = action['data']['old_course_data']
+        course_id = old_course_data['course_id']
+        courseCtr.editCourse(course_id, old_course_data, refresh=None, target_index=action['data'].get('target_index'))
+        self.refresh("ConfigPage")
+
+    def _redo_course_edit(self, action):
+        """Redo a course edit"""
+        new_course_data = action['data']['new_course_data']
+        course_id = new_course_data['course_id']
+        courseCtr.editCourse(course_id, new_course_data, refresh=None, target_index=action['data'].get('target_index'))
+        self.refresh("ConfigPage")
+
+    def _undo_course_deletion(self, action):
+        """Undo a course deletion"""
+        course_data = action['data']['course_data']
+        courseCtr.addCourse(course_data, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_course_deletion(self, action):
+        """Redo a course deletion"""
+        course_data = action['data']['course_data']
+        courseCtr.removeCourse(course_data['course_id'], refresh=None)
+        self.refresh("ConfigPage")
+
     def _undo_faculty_addition(self, action):
         """Undo a faculty addition"""
         faculty_data = action['data']['faculty_data']
-        facultyCtr.removeFaculty(faculty_data['name'], refresh=None)  # Don't auto-refresh
+        facultyCtr.removeFaculty(faculty_data['name'], refresh=None)
         self.refresh("ConfigPage")
 
     def _redo_faculty_addition(self, action):
         """Redo a faculty addition"""
         faculty_data = action['data']['faculty_data']
-        facultyCtr.addFaculty(faculty_data, refresh=None)  # Don't auto-refresh
+        facultyCtr.addFaculty(faculty_data, refresh=None)
         self.refresh("ConfigPage")
 
     def _undo_faculty_edit(self, action):
         """Undo a faculty edit"""
         old_faculty_data = action['data']['old_faculty_data']
         old_name = old_faculty_data['name']
-        # For faculty edits, we need to remove the new one and add back the old one
         new_name = action['data']['new_faculty_data']['name']
         facultyCtr.removeFaculty(new_name, refresh=None)
         facultyCtr.addFaculty(old_faculty_data, refresh=None)
@@ -1683,7 +1784,6 @@ class SchedulerApp(ctk.CTk):
         """Redo a faculty edit"""
         new_faculty_data = action['data']['new_faculty_data']
         old_name = action['data']['old_faculty_data']['name']
-        # For faculty edits, we need to remove the old one and add back the new one
         facultyCtr.removeFaculty(old_name, refresh=None)
         facultyCtr.addFaculty(new_faculty_data, refresh=None)
         self.refresh("ConfigPage")
@@ -1691,82 +1791,52 @@ class SchedulerApp(ctk.CTk):
     def _undo_faculty_deletion(self, action):
         """Undo a faculty deletion"""
         faculty_data = action['data']['faculty_data']
-        facultyCtr.addFaculty(faculty_data, refresh=None)  # Don't auto-refresh
+        facultyCtr.addFaculty(faculty_data, refresh=None)
         self.refresh("ConfigPage")
 
     def _redo_faculty_deletion(self, action):
         """Redo a faculty deletion"""
         faculty_data = action['data']['faculty_data']
-        facultyCtr.removeFaculty(faculty_data['name'], refresh=None)  # Don't auto-refresh
+        facultyCtr.removeFaculty(faculty_data['name'], refresh=None)
         self.refresh("ConfigPage")
 
-    # Convenience methods for recording faculty actions
-    def record_faculty_addition(self, faculty_data):
-        """Record a faculty addition for undo/redo"""
-        self.record_action('faculty_addition', {'faculty_data': faculty_data})
-
-    def record_faculty_edit(self, old_faculty_data, new_faculty_data):
-        """Record a faculty edit for undo/redo"""
-        self.record_action('faculty_edit', {
-            'old_faculty_data': old_faculty_data,
-            'new_faculty_data': new_faculty_data
-        })
-
-    def record_faculty_deletion(self, faculty_data):
-        """Record a faculty deletion for undo/redo"""
-        self.record_action('faculty_deletion', {'faculty_data': faculty_data})
-
-    # Room-specific undo/redo methods
     def _undo_room_addition(self, action):
         """Undo a room addition"""
         room_name = action['data']['room_name']
-        roomCtr.removeRoom(room_name, refresh=None)  # Don't auto-refresh
+        roomCtr.removeRoom(room_name, refresh=None)
         self.refresh("ConfigPage")
 
     def _redo_room_addition(self, action):
         """Redo a room addition"""
         room_name = action['data']['room_name']
-        roomCtr.addRoom(room_name, refresh=None)  # Don't auto-refresh
+        roomCtr.addRoom(room_name, refresh=None)
         self.refresh("ConfigPage")
 
     def _undo_room_edit(self, action):
         """Undo a room edit"""
         old_name = action['data']['old_name']
         new_name = action['data']['new_name']
-        roomCtr.editRoom(new_name, old_name, refresh=None)  # Don't auto-refresh
+        roomCtr.editRoom(new_name, old_name, refresh=None)
         self.refresh("ConfigPage")
 
     def _redo_room_edit(self, action):
         """Redo a room edit"""
         old_name = action['data']['old_name']
         new_name = action['data']['new_name']
-        roomCtr.editRoom(old_name, new_name, refresh=None)  # Don't auto-refresh
+        roomCtr.editRoom(old_name, new_name, refresh=None)
         self.refresh("ConfigPage")
 
     def _undo_room_deletion(self, action):
         """Undo a room deletion"""
         room_name = action['data']['room_name']
-        roomCtr.addRoom(room_name, refresh=None)  # Don't auto-refresh
+        roomCtr.addRoom(room_name, refresh=None)
         self.refresh("ConfigPage")
 
     def _redo_room_deletion(self, action):
         """Redo a room deletion"""
         room_name = action['data']['room_name']
-        roomCtr.removeRoom(room_name, refresh=None)  # Don't auto-refresh
+        roomCtr.removeRoom(room_name, refresh=None)
         self.refresh("ConfigPage")
-
-    # Convenience methods for recording room actions
-    def record_room_addition(self, room_name):
-        """Record a room addition for undo/redo"""
-        self.record_action('room_addition', {'room_name': room_name})
-
-    def record_room_edit(self, old_name, new_name):
-        """Record a room edit for undo/redo"""
-        self.record_action('room_edit', {'old_name': old_name, 'new_name': new_name})
-
-    def record_room_deletion(self, room_name):
-        """Record a room deletion for undo/redo"""
-        self.record_action('room_deletion', {'room_name': room_name})
 
     def createMainPage(self):
         # Create and store the main container
