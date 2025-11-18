@@ -1,15 +1,16 @@
 import customtkinter as ctk
 import threading
+from typing import Any
 from Controller.chatbot_agent import ChatbotAgent
 from Controller.main_controller import configImportBTN, configExportBTN
 
 
 class ChatbotView(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master: Any):
         super().__init__(master)
 
         # Acquire config path from main app
-        app = self.winfo_toplevel()
+        app: Any = self.winfo_toplevel()
         if hasattr(app, "configPath"):
             self.configPath = app.configPath
         else:
@@ -21,8 +22,20 @@ class ChatbotView(ctk.CTkFrame):
                 "Start editing this new Config File or Import your own. Press export to save new changes."
             )
 
+        # --- normalize to tkinter.Variable ---
+        from tkinter import StringVar, Variable
+
+        if not isinstance(self.configPath, Variable):
+            val = str(getattr(self.configPath, "get", lambda: self.configPath)())
+            self.configPath = StringVar(value=val)
+
         # Function to retrieve current config path
-        get_config_path = lambda: self.configPath.get()
+        def get_config_path() -> str:
+            from tkinter import Variable
+
+            if isinstance(self.configPath, Variable):
+                return self.configPath.get()  # type: ignore[union-attr]
+            return str(self.configPath)
 
         # Initialize chatbot agent
         self.agent = ChatbotAgent(get_config_path)
@@ -46,7 +59,7 @@ class ChatbotView(ctk.CTkFrame):
         path_entry = ctk.CTkEntry(
             header_frame,
             state="readonly",
-            textvariable=self.configPath,
+            textvariable=self.configPath,  # guaranteed StringVar
             width=500,
         )
         path_entry.pack(side="left", padx=(0, 10), fill="x", expand=True)

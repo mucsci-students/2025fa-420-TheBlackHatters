@@ -3,7 +3,7 @@ import Models.Faculty_model as FacultyModel
 
 # This will manage all of the data for the whole config file.
 
-from Models.courses.Course_model import (
+from Models.Course_model import (
     add_course_to_config,
     delete_course_from_config,
 )
@@ -169,7 +169,7 @@ class DataManager:
             new_data = current.copy()
             new_data.update(updates)
 
-            from Models.courses.Course_model import Course
+            from Models.Course_model import Course
 
             candidate = Course.from_dict(new_data)
 

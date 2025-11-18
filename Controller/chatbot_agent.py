@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import StructuredTool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent as create_react_agent
 
 from Controller.main_controller import DM  # DataManager singleton
 
@@ -177,7 +177,8 @@ class ChatbotAgent:
     def _tool_show_details(self, target: str = ""):
         # Kept simple for now
         try:
-            cfg = DM.data.get("config", {})
+            cfg = getattr(DM, "data", {}) or {}
+            cfg = cfg.get("config", {})
             t = (target or "").strip().lower()
             if t in ("rooms", "room"):
                 return {"rooms": cfg.get("rooms", [])}
@@ -254,9 +255,9 @@ class ChatbotAgent:
     def _extract_labs_from_text(text: str, known_labs: List[str]) -> List[str]:
         res = []
         lower = text.lower()
-        for l in known_labs:
-            if l.lower() in lower:
-                res.append(l)
+        for lab_name in known_labs:
+            if lab_name.lower() in lower:
+                res.append(lab_name)
         # Also allow single tokens like "Linux", "Mac"
         for m in re.findall(r"\b[A-Z][a-zA-Z0-9]+\b", text):
             if m in ("Lab", "Room"):
@@ -267,14 +268,16 @@ class ChatbotAgent:
 
     @staticmethod
     def _extract_conflicts_from_text(
-        text: str, known_rooms: List[str] = None, known_labs: List[str] = None
+        text: str,
+        known_rooms: Optional[List[str]] = None,
+        known_labs: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs
         and ignoring numeric-only or verb fragments like 'be 5'.
         """
         known_rooms = [r.lower() for r in (known_rooms or [])]
-        known_labs = [l.lower() for l in (known_labs or [])]
+        known_labs = [lab.lower() for lab in (known_labs or [])]
 
         # Match only tokens that have letters immediately followed by digits
         matches = re.findall(r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b", text)
@@ -524,7 +527,7 @@ class ChatbotAgent:
                     name = m.group(1).strip() if m else None
                 if not name:
                     return self._err(
-                        "Plpaease specify a room name to add.", category, "add"
+                        "Please specify a room name to add.", category, "add"
                     )
                 try:
                     DM.addRoom(name)
@@ -782,7 +785,7 @@ class ChatbotAgent:
             if category in ("lab", "labs"):
                 labs = cfg.get("labs", [])
                 target = next(
-                    (l for l in labs if l.lower() == identifier.lower()), None
+                    (lab for lab in labs if lab.lower() == identifier.lower()), None
                 )
                 if not target:
                     return self._err(f"Lab '{identifier}' not found.", category, "edit")
@@ -1002,7 +1005,7 @@ class ChatbotAgent:
                 try:
                     labs = DM.data["config"].get("labs", [])
                     target = next(
-                        (l for l in labs if l.lower() == identifier.lower()), None
+                        (lab for lab in labs if lab.lower() == identifier.lower()), None
                     )
                     if not target:
                         return self._err(

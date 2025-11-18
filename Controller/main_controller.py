@@ -44,7 +44,7 @@ def generateSchedulesBtn(limit, optimize, progressCallback):
     DM.updateLimit(limit)
     DM.updateOptimizerFlags(optimize)
 
-    config = CombinedConfig(**DM.data)
+    config = CombinedConfig(**(DM.data or {}))
 
     scheduler = Scheduler(config)
     all_schedules = []
