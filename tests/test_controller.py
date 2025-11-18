@@ -1185,3 +1185,250 @@ def test_importSchedulesBTN_json_direct_wrapped_format():
                     # If it returns data, verify it's correct
                     assert result == mock_json_data
                     pathVar.set.assert_called_with("/test/path.json")
+
+def test_generateSchedulesBtn_zero_limit_returns_empty():
+    """Test that generateSchedulesBtn returns empty list when limit is 0"""
+    with patch('Controller.main_controller.Scheduler') as MockScheduler:
+        with patch('Controller.main_controller.CombinedConfig'):
+            mock_scheduler_instance = MockScheduler.return_value
+            mock_scheduler_instance.get_models.return_value = [
+                [Mock(as_csv=Mock(return_value="course1"))],
+                [Mock(as_csv=Mock(return_value="course2"))]
+            ]
+            
+            result = ctrl.generateSchedulesBtn(0, [], None)
+            
+            assert result == []
+            # The function might still call get_models, but should break immediately
+            # Don't assert on get_models being called or not
+
+
+def test_configImportBTN_empty_filepath_handled():
+    """Test configImportBTN handles empty file path gracefully"""
+    with patch('Controller.main_controller.filedialog.askopenfilename') as mock_file:
+        mock_file.return_value = ""  # User cancelled or empty path
+        
+        pathVar = Mock()
+        refresh = Mock()
+        
+        ctrl.configImportBTN(pathVar, refresh)
+        
+        # Should set empty path but not crash
+        pathVar.set.assert_called_with("")
+        # The function might still call loadFile with empty string
+        # Don't assert on loadFile being called or not
+
+
+def test_rooms_controller_list_returns_dm_data():
+    """Test that rooms controller list method returns DataManager data directly"""
+    c = ctrl.RoomsController()
+    expected_rooms = ["Room1", "Room2", "Room3"]
+    ctrl.DM.getRooms.return_value = expected_rooms
+    
+    result = c.listRooms()
+    
+    assert result == expected_rooms
+    ctrl.DM.getRooms.assert_called_once()
+
+
+def test_course_controller_edit_with_none_refresh():
+    """Test course controller edit works with None refresh"""
+    c = ctrl.CourseController()
+    ctrl.DM.editCourse.return_value = None
+    
+    course_data = {"course_id": "CMSC140", "credits": 4}
+    result = c.editCourse("CMSC140", course_data, None)
+    
+    assert result is None
+    ctrl.DM.editCourse.assert_called_with("CMSC140", course_data, target_index=None)
+
+
+def test_faculty_controller_add_with_minimal_data():
+    """Test faculty controller add works with minimal faculty data"""
+    c = ctrl.FacultyController()
+    
+    minimal_faculty = {"name": "Test Faculty"}  # Only required field
+    
+    c.addFaculty(minimal_faculty, None)
+    
+    ctrl.DM.addFaculty.assert_called_with(minimal_faculty)
+
+
+def test_exportSchedulesBTN_with_none_data():
+    """Test exportSchedulesBTN handles None data gracefully"""
+    with patch('Controller.main_controller.filedialog.asksaveasfilename') as mock_file:
+        mock_file.return_value = "/test/path.json"
+        
+        # Mock the open function properly for context manager
+        with patch('builtins.open') as mock_open:
+            # Create a proper mock that supports context manager protocol
+            mock_file_obj = Mock()
+            mock_open.return_value.__enter__ = Mock(return_value=mock_file_obj)
+            mock_open.return_value.__exit__ = Mock(return_value=None)
+            
+            pathVar = Mock()
+            
+            # Should not crash with None data
+            ctrl.exportSchedulesBTN(None, pathVar)
+            
+            # Should still set the path variable
+            pathVar.set.assert_called_once()
+
+def test_exportSchedulesBTN_cancelled_dialog():
+    """Test exportSchedulesBTN when user cancels file dialog"""
+    with patch('Controller.main_controller.filedialog.asksaveasfilename') as mock_file:
+        mock_file.return_value = ""  # User cancelled
+        
+        pathVar = Mock()
+        
+        # Should return early without crashing
+        ctrl.exportSchedulesBTN([], pathVar)
+        
+        # Should not set path variable when cancelled
+        pathVar.set.assert_not_called()
+
+def test_controllers_with_valid_data():
+    """Test controllers with valid data inputs"""
+    c_rooms = ctrl.RoomsController()
+    c_labs = ctrl.LabsController()
+    c_faculty = ctrl.FacultyController()
+    c_courses = ctrl.CourseController()
+    
+    # Test with valid data
+    c_rooms.addRoom("Valid Room", None)
+    c_labs.addLab("Valid Lab", None)
+    c_faculty.addFaculty({"name": "Valid Faculty"}, None)
+    c_courses.addCourse({"course_id": "VALID101"}, None)
+    
+    # Verify DataManager was called with correct data
+    ctrl.DM.addRoom.assert_called_with("Valid Room")
+    ctrl.DM.addLab.assert_called_with("Valid Lab")
+    ctrl.DM.addFaculty.assert_called_with({"name": "Valid Faculty"})
+    ctrl.DM.addCourse.assert_called_with({"course_id": "VALID101"})
+
+def test_list_methods_consistency():
+    """Test that all controller list methods work consistently"""
+    c_rooms = ctrl.RoomsController()
+    c_labs = ctrl.LabsController()
+    c_faculty = ctrl.FacultyController()
+    c_courses = ctrl.CourseController()
+    
+    # Set up mock returns
+    ctrl.DM.getRooms.return_value = ["Room1"]
+    ctrl.DM.getLabs.return_value = ["Lab1"]
+    ctrl.DM.getFaculty.return_value = [{"name": "Faculty1"}]
+    ctrl.DM.getCourses.return_value = [{"course_id": "Course1"}]
+    
+    # All should return lists (empty or with items)
+    assert isinstance(c_rooms.listRooms(), list)
+    assert isinstance(c_labs.listLabs(), list)
+    assert isinstance(c_faculty.listFaculty(), list)
+    assert isinstance(c_courses.listCourses(), list)
+
+def test_labs_controller_remove_with_nonexistent_lab():
+    """Test labs controller remove handles nonexistent lab gracefully"""
+    c = ctrl.LabsController()
+    ctrl.DM.getLabs.return_value = ["ExistingLab"]  # Only this lab exists
+    
+    # Should not crash when removing nonexistent lab
+    c.removeLab("NonexistentLab", None)
+    
+    # Should not call remove on DataManager for nonexistent lab
+    ctrl.DM.removeLabs.assert_not_called()
+
+def test_generateSchedulesBtn_no_optimization_flags():
+    """Test generateSchedulesBtn with empty optimization flags list"""
+    with patch('Controller.main_controller.Scheduler') as MockScheduler:
+        with patch('Controller.main_controller.CombinedConfig'):
+            mock_scheduler_instance = MockScheduler.return_value
+            mock_scheduler_instance.get_models.return_value = [
+                [Mock(as_csv=Mock(return_value="course1,data"))]
+            ]
+            
+            result = ctrl.generateSchedulesBtn(1, [], None)
+            
+            assert len(result) == 1
+            ctrl.DM.updateOptimizerFlags.assert_called_with([])
+
+def test_controllers_method_return_values():
+    """Test that controller methods return expected values"""
+    c_rooms = ctrl.RoomsController()
+    c_labs = ctrl.LabsController()
+    c_faculty = ctrl.FacultyController()
+    c_courses = ctrl.CourseController()
+    
+    # Test list methods return DataManager data
+    ctrl.DM.getRooms.return_value = ["R1", "R2"]
+    ctrl.DM.getLabs.return_value = ["L1"]
+    ctrl.DM.getFaculty.return_value = [{"name": "F1"}]
+    ctrl.DM.getCourses.return_value = [{"id": "C1"}]
+    
+    assert c_rooms.listRooms() == ["R1", "R2"]
+    assert c_labs.listLabs() == ["L1"]
+    assert c_faculty.listFaculty() == [{"name": "F1"}]
+    assert c_courses.listCourses() == [{"id": "C1"}]
+
+def test_generateSchedulesBtn_basic_functionality():
+    """Test basic schedule generation functionality"""
+    with patch('Controller.main_controller.Scheduler') as MockScheduler:
+        with patch('Controller.main_controller.CombinedConfig'):
+            mock_scheduler_instance = MockScheduler.return_value
+            
+            # Mock a single course schedule
+            mock_course = Mock()
+            mock_course.as_csv.return_value = "CMSC101,Faculty1,Room1,Lab1,MON 9:00-10:00"
+            mock_scheduler_instance.get_models.return_value = [
+                [mock_course]
+            ]
+            
+            result = ctrl.generateSchedulesBtn(1, [], None)
+            
+            # Should return list with one schedule containing one course
+            assert len(result) == 1
+            assert len(result[0]) == 1
+            assert result[0][0] == ["CMSC101", "Faculty1", "Room1", "Lab1", "MON 9:00-10:00"]
+
+def test_faculty_controller_operations():
+    """Test faculty controller basic operations"""
+    c = ctrl.FacultyController()
+    
+    faculty_data = {"name": "Test Faculty", "credits": 12}
+    
+    # Test add
+    c.addFaculty(faculty_data, None)
+    ctrl.DM.addFaculty.assert_called_with(faculty_data)
+    
+    # Test edit
+    ctrl.DM.addFaculty.reset_mock()
+    ctrl.DM.removeFaculty.reset_mock()
+    
+    new_faculty = {"name": "New Faculty", "credits": 10}
+    c.editFaculty(new_faculty, "Test Faculty", None)
+    
+    ctrl.DM.removeFaculty.assert_called_with("Test Faculty")
+    ctrl.DM.addFaculty.assert_called_with(new_faculty)
+
+def test_remove_operations():
+    """Test remove operations for all controllers"""
+    c_rooms = ctrl.RoomsController()
+    c_labs = ctrl.LabsController()
+    c_faculty = ctrl.FacultyController()
+    c_courses = ctrl.CourseController()
+    
+    # Set up existing items
+    ctrl.DM.getRooms.return_value = ["RoomToRemove"]
+    ctrl.DM.getLabs.return_value = ["LabToRemove"]
+    ctrl.DM.getFaculty.return_value = [{"name": "FacultyToRemove"}]
+    ctrl.DM.getCourses.return_value = [{"course_id": "CourseToRemove"}]
+    
+    # Remove operations should work
+    c_rooms.removeRoom("RoomToRemove", None)
+    c_labs.removeLab("LabToRemove", None)
+    c_faculty.removeFaculty("FacultyToRemove", None)
+    c_courses.removeCourse("CourseToRemove", None)
+    
+    # Verify DataManager remove methods were called
+    ctrl.DM.removeRoom.assert_called_with("RoomToRemove")
+    ctrl.DM.removeLabs.assert_called_with("LabToRemove")
+    ctrl.DM.removeFaculty.assert_called_with("FacultyToRemove")
+    ctrl.DM.removeCourse.assert_called_with("CourseToRemove")
