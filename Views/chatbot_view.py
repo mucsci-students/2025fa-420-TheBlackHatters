@@ -24,6 +24,7 @@ class ChatbotView(ctk.CTkFrame):
 
         # --- normalize to tkinter.Variable ---
         from tkinter import StringVar, Variable
+
         if not isinstance(self.configPath, Variable):
             val = str(getattr(self.configPath, "get", lambda: self.configPath)())
             self.configPath = StringVar(value=val)
@@ -31,6 +32,7 @@ class ChatbotView(ctk.CTkFrame):
         # Function to retrieve current config path
         def get_config_path() -> str:
             from tkinter import Variable
+
             if isinstance(self.configPath, Variable):
                 return self.configPath.get()  # type: ignore[union-attr]
             return str(self.configPath)
