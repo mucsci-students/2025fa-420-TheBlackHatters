@@ -223,20 +223,23 @@ class RoomsController:
     def listRooms(self):
         return DM.getRooms()
 
-    def addRoom(self, roomName, refresh):
+    def addRoom(self, roomName, refresh = None):
         DM.addRoom(roomName)
-        refresh("ConfigPage")
+        if refresh:
+            refresh("ConfigPage")
 
-    def editRoom(self, oldname, roomName, refresh):
-        DM.editRoom(oldname, roomName)
-        refresh(target="ConfigPage", data=roomName)
+    def editRoom(self, oldname, roomName, refresh = None):
+        DM.editRoom(oldname,roomName)
+        if refresh:
+            refresh(target="ConfigPage", data=roomName)
 
-    def removeRoom(self, roomName, refresh):
+    def removeRoom(self, roomName, refresh = None):
         if roomName in self.listRooms():
             DM.removeRoom(roomName)
-            refresh("ConfigPage")
-        else:
-            print("Room not in system")
+            if refresh:
+                refresh("ConfigPage")
+        else: 
+            print('Room not in system')
 
 
 # Lab controller
@@ -249,21 +252,23 @@ class LabsController:
     def listLabs(self):
         return DM.getLabs()
 
-    def addLab(self, labName, refresh):
+    def addLab(self, labName, refresh=None):  # Make refresh optional
         DM.addLab(labName)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
 
-    def editLab(self, oldname, labName, refresh):
+    def editLab(self, oldname, labName, refresh=None):  # Make refresh optional
         DM.editLabs(oldname, labName)
-        refresh(target="ConfigPage", data=labName)
+        if refresh:  # Only refresh if requested
+            refresh(target="ConfigPage", data=labName)
 
-    def removeLab(self, labName, refresh):
+    def removeLab(self, labName, refresh=None):  # Make refresh optional
         if labName in self.listLabs():
             DM.removeLabs(labName)
-            refresh("ConfigPage")
-        else:
-            print("Lab not in system")
-
+            if refresh:  # Only refresh if requested
+                refresh("ConfigPage")
+        else: 
+            print('Lab not in system')
 
 # Faculty controller
 class FacultyController:
@@ -274,51 +279,56 @@ class FacultyController:
 
     def listFaculty(self):
         return DM.getFaculty()
-
-    def addFaculty(self, newFaculty, refresh):
+    
+    def addFaculty(self, newFaculty, refresh=None):  # Make refresh optional
         DM.addFaculty(newFaculty)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
 
-    def editFaculty(self, newFaculty, oldName, refresh):
+    def editFaculty(self, newFaculty, oldName, refresh=None):  # Make refresh optional
         DM.removeFaculty(oldName)
         DM.addFaculty(newFaculty)
-        refresh("ConfigPage")
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
 
-    def removeFaculty(self, facName, refresh):
+    def removeFaculty(self, facName, refresh=None):  # Make refresh optional
         DM.removeFaculty(facName)
-        refresh("ConfigPage")
-
-
+        if refresh:  # Only refresh if requested
+            refresh("ConfigPage")
+        
 # Course Controller
 class CourseController:
     global DM
 
     def __init__(self):
         pass
-
+        
     def listCourses(self):
         return DM.getCourses()
 
-    def addCourse(self, courseData, refresh):
+    def addCourse(self, courseData, refresh=None):  # Make refresh optional
         try:
             DM.addCourse(courseData)
-            refresh("ConfigPage")
+            if refresh:  # Only refresh if requested
+                refresh("ConfigPage")
             return None
         except Exception as e:
             return str(e)
 
-    def editCourse(self, oldName, newData, refresh, target_index=None):
+    def editCourse(self, oldName, newData, refresh=None, target_index=None):  # Make refresh optional
         try:
             DM.editCourse(oldName, newData, target_index=target_index)
-            refresh(target="ConfigPage", data=newData)
+            if refresh:  # Only refresh if requested
+                refresh(target="ConfigPage", data=newData)
             return None
         except Exception as e:
             return str(e)
 
-    def removeCourse(self, courseName, refresh):
+    def removeCourse(self, courseName, refresh=None):  # Make refresh optional
         try:
             DM.removeCourse(courseName)
-            refresh("ConfigPage")
+            if refresh:  # Only refresh if requested
+                refresh("ConfigPage")
             return None
         except Exception as e:
             return str(e)
