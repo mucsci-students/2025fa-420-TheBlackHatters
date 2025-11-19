@@ -124,11 +124,11 @@ class UnifiedRouter:
         For COURSES, the "details" object MUST match this exact structure:
 
         {
-          "course_id": "CMSC ###",
+          "course_id": "(Course type name, ex: CMSC, BIO) ###",
           "credits": <integer>,
           "room": [ "RoomName1", "RoomName2", ... ],
           "lab": [ "LabName1", "LabName2", ... ],
-          "conflicts": [ "CMSC ###", ... ],
+          "conflicts": [ "(Course type name, ex: CMSC, BIO) ###", ... ],
           "faculty": [ "FacultyName1", ... ]
         }
 
@@ -185,6 +185,22 @@ class UnifiedRouter:
             "identifier": null,
             "details": {}
             }
+            
+        For ROOMS, the "details" object MUST match this exact structure:
+
+        {
+          "name": "RoomName"
+        }
+
+        For LABS, the "details" object MUST match this exact structure:
+
+        {
+          "name": "LabName"
+        }
+
+        Rules:
+        - For rooms and labs, "name" must be the human-readable identifier (e.g., "Roddy 123", "Mac").
+        - Do NOT add any extra fields besides "name".
         """
 
     def route(self, text: str):
