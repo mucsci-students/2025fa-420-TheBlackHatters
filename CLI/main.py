@@ -17,6 +17,7 @@ import csv
 import click
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
+from CLI.meeting_pattern_cli import mainMeetingPatternController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
 
@@ -53,11 +54,17 @@ def parseJson(path):
     Labs = Lab(config.get("labs"))
     Courses = config.get("courses")
     Faculty = config.get("faculty")
+    class_patterns = config.get("class_patterns")
+
+    if class_patterns is None:
+        tsc = fileData.get("time_slot_config", {})
+        class_patterns = tsc.get("classes", [])
 
     other = {
         "time_slot_config": fileData.get("time_slot_config", {}),
         "limit": fileData.get("limit", {}),
         "optimizer_flags": fileData.get("optimizer_flags", {}),
+        "class_patterns": class_patterns,
     }
 
     # just return the others here as well.
@@ -100,6 +107,7 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
             "labs": labs.labs,
             "courses": courses,
             "faculty": faculty,
+            "class_patterns": other.get("class_patterns", []),
         },
         "time_slot_config": other.get("time_slot_config", {}),
         "limit": other.get("limit", int),
@@ -252,7 +260,8 @@ def whatAction(rooms, labs, courses, faculty, other):
         print("2. Add, Modify, Delete Rooms\n")
         print("3. Add, Modify, Delete Labs\n")
         print("4. Add, Modify, Delete Courses\n")
-        print("5. Chatbot Mode (natural language)\n")
+        print("5. Add, Modify, Delete Class Meeting Patterns\n")
+        print("6. Chatbot Mode (natural language)\n")
         print("0. Go Back\n")
         choice = input("Enter choice: ")
         if choice == "1":
@@ -272,6 +281,12 @@ def whatAction(rooms, labs, courses, faculty, other):
             mainCourseController(courses, rooms, labs, faculty)
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "5":
+            # Class Meeting Patterns
+            if "class_patterns" not in other or other["class_patterns"] is None:
+                other["class_patterns"] = []
+            mainMeetingPatternController(other["class_patterns"])
+            saveConfig(filePath, rooms, labs, courses, faculty, other)
+        elif choice == "6":
             from CLI.chatbot_cli import main as chatbot_main
 
             saveConfig(filePath, rooms, labs, courses, faculty, other)
@@ -290,7 +305,7 @@ def configMessage():
     print("Please select one option: \n")
     print("1. Import Config\n")
     print("2. Create New Config\n")
-    print("3. Edit config\n")
+    print("3. Edit Config\n")
     print("4. View Current Config File\n")
     print("0. Back\n")
 
@@ -324,7 +339,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
             whatAction(rooms, labs, courses, faculty, other)
         elif choice == "4":
             # Display the current file:
-            displayConfig(rooms, labs, courses, faculty)
+            displayConfig(rooms, labs, courses, faculty, other)
         elif choice == "0":
             # return to main selection:
             break
@@ -340,7 +355,7 @@ def createEmptyJson(name):
     return file_name
 
 
-def displayConfig(rooms, labs, courses, faculty):
+def displayConfig(rooms, labs, courses, faculty, other):
     # this Function will display the config File,
     # in a human readable way.
 
@@ -415,6 +430,35 @@ def displayConfig(rooms, labs, courses, faculty):
         _print_prefs("Room Preferences", f.get("room_preferences", {}))
         _print_prefs("Lab Preferences", f.get("lab_preferences", {}))
         print()
+
+        # --- Class Meeting Patterns ---
+    patterns = []
+    if isinstance(other, dict):
+        patterns = other.get("class_patterns", []) or []
+
+    print("\nClass Meeting Patterns:")
+    if not patterns:
+        print("  (none)")
+    else:
+        for idx, p in enumerate(patterns, start=1):
+            credits = p.get("credits", "N/A")
+            start_time = p.get("start_time", None)
+            disabled = bool(p.get("disabled", False))
+            print(f"  Pattern #{idx}:")
+            print(f"    Credits: {credits}")
+            print(f"    Start Time: {start_time if start_time else '(none)'}")
+            print(f"    Disabled: {disabled}")
+            meetings = p.get("meetings", [])
+            if not meetings:
+                print("    Meetings: (none)")
+            else:
+                print("    Meetings:")
+                for m in meetings:
+                    day = m.get("day", "")
+                    duration = m.get("duration", "")
+                    lab = m.get("lab", False)
+                    lab_suffix = " (lab)" if lab else ""
+                    print(f"      - {day} {duration} minutes{lab_suffix}")
     print("\n=============================\n")
 
 
