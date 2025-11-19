@@ -3,7 +3,6 @@
 import json
 import os
 from Controller.chatbot_agent import ChatbotAgent
-from Models.Data_manager import DataManager
 
 
 def save_config(DM, path):

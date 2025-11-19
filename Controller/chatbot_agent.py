@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
 
 import Controller.main_controller as ctrl
@@ -75,7 +74,7 @@ class UnifiedRouter:
     """
 
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-5-mini", temperature=0)
+        self.llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
         self.intent_parser = PydanticOutputParser(pydantic_object=Intent)
 
         self.system_prompt = """
@@ -202,7 +201,8 @@ class UnifiedRouter:
     2. JSON matching this schema:
     {self.intent_parser.get_format_instructions()}
     """
-        result = self.llm.invoke(full_prompt).content.strip()
+        raw = self.llm.invoke(full_prompt).content
+        result = str(raw).strip() if raw is not None else ""
 
         # Try to parse JSON → Intent
         try:
@@ -240,8 +240,7 @@ class ChatbotAgent:
 
         self.router = UnifiedRouter()
         self.tools = self._create_tools()
-        self.model = ChatOpenAI(model="gpt-5-mini", temperature=0)
-
+        self.model = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
         self.last_user_input = ""
 
     # UI helper
@@ -340,7 +339,7 @@ class ChatbotAgent:
         if not span:
             return None
         s = span.strip().lower().replace("–", "-").replace("—", "-").replace(" to ", "-")
-        import re, datetime as _dt
+        import re
         # If already HH:MM-HH:MM
         if re.match(r"^\d{1,2}:\d{2}-\d{1,2}:\d{2}$", s):
             return s
@@ -431,13 +430,16 @@ class ChatbotAgent:
         import re
         if not norm["minimum_credits"]:
             m = re.search(r"min(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I)
-            if m: norm["minimum_credits"] = int(m.group(1))
+            if m:
+                norm["minimum_credits"] = int(m.group(1))
         if not norm["maximum_credits"]:
             m = re.search(r"max(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I)
-            if m: norm["maximum_credits"] = int(m.group(1))
+            if m:
+                norm["maximum_credits"] = int(m.group(1))
         if not norm["unique_course_limit"]:
             m = re.search(r"unique\s*course\s*limit\s*(?:of|is|=)?\s*(\d+)", raw_text, re.I)
-            if m: norm["unique_course_limit"] = int(m.group(1))
+            if m:
+                norm["unique_course_limit"] = int(m.group(1))
 
         # --- availability ("times") ---
         # Use ONLY structured times from the LLM. Do NOT infer from raw text.
@@ -567,7 +569,7 @@ class ChatbotAgent:
     def _tool_view_config(self):
         if not hasattr(DM, "data") or not DM.data:
             return "No configuration loaded."
-        cfg = DM.data.get("config", {})
+        cfg = (DM.data or {}).get("config", {})
         rooms = len(cfg.get("rooms", []))
         labs = len(cfg.get("labs", []))
         courses = len(cfg.get("courses", []))
@@ -576,7 +578,8 @@ class ChatbotAgent:
 
     def _tool_show_details(self, target: str = ""):
         try:
-            cfg = DM.data.get("config", {})
+            data = DM.data or {}
+            cfg = data.get("config", {})
             t = (target or "").lower()
             if t in ("rooms", "room"):
                 return {"rooms": cfg.get("rooms", [])}

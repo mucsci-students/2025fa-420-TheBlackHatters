@@ -494,9 +494,9 @@ def test_undo_action_data_integrity():
     ctrl.DM.editRoom.assert_called_with("Old Name", "New Name")
     
     # Test faculty edit - verify proper DataManager calls
-    old_faculty = {"name": "Old", "credits": 12}
+    # old_faculty = {"name": "Old", "credits": 12}  # unused
     new_faculty = {"name": "New", "credits": 10}
-    
+
     c_faculty.editFaculty(new_faculty, "Old", minimal_refresh)
     ctrl.DM.removeFaculty.assert_called_with("Old")
     ctrl.DM.addFaculty.assert_called_with(new_faculty)
@@ -507,9 +507,7 @@ def test_undo_redo_integration_with_mocked_controllers():
     # Mock the controller calls that would happen during undo/redo
     mock_room_ctr = Mock()
     mock_lab_ctr = Mock()
-    mock_faculty_ctr = Mock()
-    mock_course_ctr = Mock()
-    
+
     # Simulate the undo/redo execution logic
     def execute_undo(action):
         if action['type'] == 'room_addition':
@@ -521,7 +519,7 @@ def test_undo_redo_integration_with_mocked_controllers():
         elif action['type'] == 'lab_deletion':
             mock_lab_ctr.addLab(action['data']['lab_name'], refresh=None)
         # Add more cases as needed...
-    
+
     def execute_redo(action):
         if action['type'] == 'room_addition':
             mock_room_ctr.addRoom(action['data']['room_name'], refresh=None)
@@ -532,22 +530,22 @@ def test_undo_redo_integration_with_mocked_controllers():
         elif action['type'] == 'lab_deletion':
             mock_lab_ctr.removeLab(action['data']['lab_name'], refresh=None)
         # Add more cases as needed...
-    
+
     # Test room addition undo/redo
     room_action = {'type': 'room_addition', 'data': {'room_name': 'Test Room'}}
-    
+
     execute_undo(room_action)
     mock_room_ctr.removeRoom.assert_called_with('Test Room', refresh=None)
-    
+
     execute_redo(room_action)
     mock_room_ctr.addRoom.assert_called_with('Test Room', refresh=None)
-    
+
     # Test lab deletion undo/redo
     lab_action = {'type': 'lab_deletion', 'data': {'lab_name': 'Test Lab'}}
-    
+
     execute_undo(lab_action)
     mock_lab_ctr.addLab.assert_called_with('Test Lab', refresh=None)
-    
+
     execute_redo(lab_action)
     mock_lab_ctr.removeLab.assert_called_with('Test Lab', refresh=None)
 
@@ -555,7 +553,7 @@ def test_rooms_controller_list_rooms():
     """Test that rooms controller properly lists rooms"""
     c = ctrl.RoomsController()
     ctrl.DM.getRooms.return_value = ["Room 101", "Room 102", "Room 103"]
-    
+
     rooms = c.listRooms()
     assert rooms == ["Room 101", "Room 102", "Room 103"]
     ctrl.DM.getRooms.assert_called_once()
@@ -565,7 +563,7 @@ def test_labs_controller_list_labs():
     """Test that labs controller properly lists labs"""
     c = ctrl.LabsController()
     ctrl.DM.getLabs.return_value = ["Lab A", "Lab B"]
-    
+
     labs = c.listLabs()
     assert labs == ["Lab A", "Lab B"]
     ctrl.DM.getLabs.assert_called_once()
@@ -576,7 +574,7 @@ def test_faculty_controller_list_faculty():
     c = ctrl.FacultyController()
     mock_faculty = [{"name": "Dr. Smith"}, {"name": "Dr. Johnson"}]
     ctrl.DM.getFaculty.return_value = mock_faculty
-    
+
     faculty = c.listFaculty()
     assert faculty == mock_faculty
     ctrl.DM.getFaculty.assert_called_once()
@@ -587,7 +585,7 @@ def test_course_controller_list_courses():
     c = ctrl.CourseController()
     mock_courses = [{"course_id": "CMSC 101"}, {"course_id": "CMSC 102"}]
     ctrl.DM.getCourses.return_value = mock_courses
-    
+
     courses = c.listCourses()
     assert courses == mock_courses
     ctrl.DM.getCourses.assert_called_once()
@@ -597,10 +595,10 @@ def test_rooms_controller_remove_nonexistent_without_refresh():
     """Test rooms controller remove with nonexistent room and no refresh"""
     c = ctrl.RoomsController()
     ctrl.DM.getRooms.return_value = ["ExistingRoom"]  # Make it iterable
-    
+
     # Should not crash when removing nonexistent room with None refresh
     c.removeRoom("NonexistentRoom", None)
-    
+
     # Verify the room was not removed from DataManager since it doesn't exist
     ctrl.DM.removeRoom.assert_not_called()
 
@@ -610,12 +608,12 @@ def test_labs_controller_operations_without_refresh():
     """Test labs controller operations without refresh callback"""
     c = ctrl.LabsController()
     ctrl.DM.getLabs.return_value = ["TestLab"]  # Make it iterable
-    
+
     # These should not crash when refresh is None
     c.addLab("TestLab", None)
     c.editLab("Old", "New", None)
     c.removeLab("TestLab", None)
-    
+
     # Verify DataManager was called
     ctrl.DM.addLab.assert_called_with("TestLab")
     ctrl.DM.editLabs.assert_called_with("Old", "New")
@@ -626,24 +624,24 @@ def test_course_controller_edit_with_target_index():
     """Test course edit with target index parameter"""
     c = ctrl.CourseController()
     ctrl.DM.editCourse.return_value = None
-    
+
     course_data = {"course_id": "CMSC 140", "credits": 4}
     result = c.editCourse("CMSC 140", course_data, None, target_index=2)
-    
+
     assert result is None
     ctrl.DM.editCourse.assert_called_with("CMSC 140", course_data, target_index=2)
 
 def test_generate_schedules_with_optimization_flags():
     """Test that generateSchedulesBtn properly sets optimization flags"""
     with patch('Controller.main_controller.Scheduler') as MockScheduler:
-        with patch('Controller.main_controller.CombinedConfig') as MockCombinedConfig:
+        with patch('Controller.main_controller.CombinedConfig'):
             mock_scheduler_instance = MockScheduler.return_value
             mock_scheduler_instance.get_models.return_value = []
-            
+
             # Test with optimization flags
             optimize_flags = ["faculty_course", "pack_rooms"]
             result = ctrl.generateSchedulesBtn(5, optimize_flags, None)
-            
+
             # Verify optimization flags were set
             ctrl.DM.updateOptimizerFlags.assert_called_with(optimize_flags)
             ctrl.DM.updateLimit.assert_called_with(5)
@@ -655,10 +653,10 @@ def test_generate_schedules_with_zero_limit():
         with patch('Controller.main_controller.CombinedConfig'):
             mock_scheduler_instance = MockScheduler.return_value
             mock_scheduler_instance.get_models.return_value = []
-            
+
             # Test with limit of 0
             result = ctrl.generateSchedulesBtn(0, [], None)
-            
+
             # Should return empty list
             assert result == []
             # Should update limit in DataManager
@@ -669,9 +667,9 @@ def test_config_import_empty_path():
     with patch('Controller.main_controller.filedialog.askopenfilename', return_value=""):
         pathVar = Mock()
         refresh = Mock()
-        
+
         ctrl.configImportBTN(pathVar, refresh)
-        
+
         # Should set the path variable even with empty string
         pathVar.set.assert_called_with("")
         # The actual behavior might call loadFile and refresh, so let's not assert on those
@@ -681,9 +679,9 @@ def test_rooms_controller_list_method():
     c = ctrl.RoomsController()
     expected_rooms = ["Room 101", "Room 102", "Room 103"]
     ctrl.DM.getRooms.return_value = expected_rooms
-    
+
     result = c.listRooms()
-    
+
     assert result == expected_rooms
     ctrl.DM.getRooms.assert_called_once()
 
@@ -692,9 +690,9 @@ def test_faculty_controller_list_method():
     c = ctrl.FacultyController()
     expected_faculty = [{"name": "Dr. Smith"}, {"name": "Dr. Johnson"}]
     ctrl.DM.getFaculty.return_value = expected_faculty
-    
+
     result = c.listFaculty()
-    
+
     assert result == expected_faculty
     ctrl.DM.getFaculty.assert_called_once()
 
@@ -703,9 +701,9 @@ def test_labs_controller_list_method():
     c = ctrl.LabsController()
     expected_labs = ["Lab A", "Lab B"]
     ctrl.DM.getLabs.return_value = expected_labs
-    
+
     result = c.listLabs()
-    
+
     assert result == expected_labs
     ctrl.DM.getLabs.assert_called_once()
 
@@ -714,9 +712,9 @@ def test_course_controller_list_method():
     c = ctrl.CourseController()
     expected_courses = [{"course_id": "CMSC 101"}, {"course_id": "CMSC 102"}]
     ctrl.DM.getCourses.return_value = expected_courses
-    
+
     result = c.listCourses()
-    
+
     assert result == expected_courses
     ctrl.DM.getCourses.assert_called_once()
 
@@ -724,18 +722,18 @@ def test_rooms_controller_add_calls_dm():
     """Test that room addition calls DataManager"""
     c = ctrl.RoomsController()
     refresh = Mock()
-    
+
     c.addRoom("New Room", refresh)
-    
+
     ctrl.DM.addRoom.assert_called_with("New Room")
 
 def test_labs_controller_add_calls_dm():
     """Test that lab addition calls DataManager"""
     c = ctrl.LabsController()
     refresh = Mock()
-    
+
     c.addLab("New Lab", refresh)
-    
+
     ctrl.DM.addLab.assert_called_with("New Lab")
 
 def test_faculty_controller_add_calls_dm():
@@ -743,9 +741,9 @@ def test_faculty_controller_add_calls_dm():
     c = ctrl.FacultyController()
     refresh = Mock()
     faculty_data = {"name": "New Faculty"}
-    
+
     c.addFaculty(faculty_data, refresh)
-    
+
     ctrl.DM.addFaculty.assert_called_with(faculty_data)
 
 def test_course_controller_add_calls_dm():
@@ -754,9 +752,9 @@ def test_course_controller_add_calls_dm():
     refresh = Mock()
     course_data = {"course_id": "NEW 101"}
     ctrl.DM.addCourse.return_value = None
-    
+
     result = c.addCourse(course_data, refresh)
-    
+
     ctrl.DM.addCourse.assert_called_with(course_data)
     assert result is None
 
@@ -764,18 +762,18 @@ def test_rooms_controller_edit_calls_dm():
     """Test that room edit calls DataManager"""
     c = ctrl.RoomsController()
     refresh = Mock()
-    
+
     c.editRoom("Old Name", "New Name", refresh)
-    
+
     ctrl.DM.editRoom.assert_called_with("Old Name", "New Name")
 
 def test_labs_controller_edit_calls_dm():
     """Test that lab edit calls DataManager"""
     c = ctrl.LabsController()
     refresh = Mock()
-    
+
     c.editLab("Old Lab", "New Lab", refresh)
-    
+
     ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab")
 
 def test_course_controller_remove_calls_dm():
@@ -784,9 +782,9 @@ def test_course_controller_remove_calls_dm():
     refresh = Mock()
     ctrl.DM.removeCourse.return_value = None
     ctrl.DM.getCourses.return_value = [{"course_id": "CMSC 101"}]
-    
+
     result = c.removeCourse("CMSC 101", refresh)
-    
+
     ctrl.DM.removeCourse.assert_called_with("CMSC 101")
     assert result is None
 
@@ -795,53 +793,54 @@ def test_faculty_controller_remove_calls_dm():
     c = ctrl.FacultyController()
     refresh = Mock()
     ctrl.DM.getFaculty.return_value = [{"name": "Dr. Smith"}]
-    
+
     c.removeFaculty("Dr. Smith", refresh)
-    
+
     ctrl.DM.removeFaculty.assert_called_with("Dr. Smith")
 
 def test_configExportBTN_cancelled():
     """Test config export when user cancels file dialog"""
     with patch('Controller.main_controller.filedialog.asksaveasfilename') as mock_file:
         mock_file.return_value = ""  # User cancelled
-        
+
         pathVar = Mock()
         ctrl.configExportBTN(pathVar)
-        
-        # Should not call saveData when cancelled
-        ctrl.DM.saveData.assert_not_called()
-        pathVar.set.assert_not_called()
 
+        # Should not call saveData when cancelled
+        with patch.object(ctrl.DM, "saveData") as mock_save:
+            ctrl.configExportBTN(pathVar)
+            mock_save.assert_not_called()
+            pathVar.set.assert_not_called()
 
 def test_generateSchedulesBtn_with_progress_callback():
     """Test schedule generation with progress callback"""
     with patch('Controller.main_controller.Scheduler') as MockScheduler:
         with patch('Controller.main_controller.CombinedConfig'):
             mock_scheduler_instance = MockScheduler.return_value
-            
+
             # Mock course objects with as_csv method
             mock_course1 = Mock()
             mock_course1.as_csv.return_value = "CMSC101,Dr.Smith,Room101,LabA,MON 9:00-10:00"
             mock_course2 = Mock()
             mock_course2.as_csv.return_value = "CMSC102,Dr.Johnson,Room102,LabB,TUE 10:00-11:00"
-            
+
             # Mock generator that yields two schedules
             mock_scheduler_instance.get_models.return_value = [
                 [mock_course1, mock_course2],
                 [mock_course1]  # Second schedule with one course
             ]
-            
+
             progress_calls = []
             def progress_callback(current, total):
                 progress_calls.append((current, total))
-            
+
             result = ctrl.generateSchedulesBtn(2, [], progress_callback)
-            
+
             # Verify progress was called for each schedule
             assert len(progress_calls) == 2
             assert progress_calls[0] == (1, 2)
             assert progress_calls[1] == (2, 2)
-            
+
             # Verify result structure
             assert len(result) == 2
             assert len(result[0]) == 2  # First schedule has 2 courses
@@ -856,14 +855,14 @@ def test_generateSchedulesBtn_with_optimization_and_progress():
             mock_scheduler_instance.get_models.return_value = [
                 [Mock(as_csv=Mock(return_value="course1,data"))]
             ]
-            
+
             progress_calls = []
             def progress_callback(current, total):
                 progress_calls.append((current, total))
-            
+
             optimize_flags = ["faculty_course", "pack_rooms"]
-            result = ctrl.generateSchedulesBtn(1, optimize_flags, progress_callback)
-            
+            ctrl.generateSchedulesBtn(1, optimize_flags, progress_callback)
+
             # Should call progress for optimization step and schedule generation
             assert len(progress_calls) == 2
             assert progress_calls[0] == (1, 2)  # Optimization step
@@ -881,10 +880,10 @@ def test_checkFileContent_valid_data():
             ["CMSC103", "Dr. Wilson", "Room103", "LabC", "WED 11:00-12:00"]
         ]
     ]
-    
+
     pathVar = Mock()
     result = ctrl.checkFileContent(valid_data, pathVar)
-    
+
     assert result is True
     pathVar.set.assert_not_called()  # No error message should be set
 
@@ -912,10 +911,10 @@ def test_checkFileContent_empty_schedule():
     invalid_data = [
         []  # Empty schedule
     ]
-    
+
     pathVar = Mock()
     result = ctrl.checkFileContent(invalid_data, pathVar)
-    
+
     assert result is False
     assert "schedule 0 is empty" in pathVar.set.call_args[0][0]
 
@@ -927,10 +926,10 @@ def test_checkFileContent_row_too_few_elements():
             ["CMSC101", "Dr. Smith", "Room101"]  # Only 3 elements, need at least 5
         ]
     ]
-    
+
     pathVar = Mock()
     result = ctrl.checkFileContent(invalid_data, pathVar)
-    
+
     assert result is False
     assert "row 0 in schedule 0 has too few elements" in pathVar.set.call_args[0][0]
 
@@ -943,9 +942,9 @@ def test_csvToJson_simple_conversion():
         [],  # Empty row as separator
         ["CMSC103", "Dr. Wilson", "Room103", "LabC", "WED 11:00-12:00"]
     ]
-    
+
     result = ctrl.csvToJson(csv_data)
-    
+
     assert len(result) == 2  # Two schedules separated by empty row
     assert len(result[0]) == 2  # First schedule has 2 courses
     assert len(result[1]) == 1  # Second schedule has 1 course
@@ -957,9 +956,9 @@ def test_csvToJson_no_separators():
         ["CMSC101", "Dr. Smith", "Room101", "LabA", "MON 9:00-10:00"],
         ["CMSC102", "Dr. Johnson", "Room102", "LabB", "TUE 10:00-11:00"]
     ]
-    
+
     result = ctrl.csvToJson(csv_data)
-    
+
     assert len(result) == 1  # One schedule (no separators)
     assert len(result[0]) == 2  # Schedule has 2 courses
 
@@ -972,9 +971,9 @@ def test_csvToJson_multiple_empty_rows():
         [],  # Another empty row
         ["CMSC102", "Dr. Johnson", "Room102", "LabB", "TUE 10:00-11:00"]
     ]
-    
+
     result = ctrl.csvToJson(csv_data)
-    
+
     assert len(result) == 2  # Two schedules
     assert len(result[0]) == 1  # First schedule has 1 course
     assert len(result[1]) == 1  # Second schedule has 1 course
@@ -982,7 +981,7 @@ def test_csvToJson_multiple_empty_rows():
 def test_rooms_controller_operations_without_refresh():
     """Test rooms controller operations without refresh callback"""
     c = ctrl.RoomsController()
-    
+
     # Mock the listRooms return value to be iterable
     ctrl.DM.getRooms.return_value = ["TestRoom"]
 
@@ -1000,31 +999,31 @@ def test_rooms_controller_operations_without_refresh():
 def test_course_controller_error_propagation():
     """Test that course controller properly propagates errors from DataManager"""
     c = ctrl.CourseController()
-    
+
     # Test various exceptions
     test_cases = [
         (ValueError("Invalid course data"), "Invalid course data"),
         (KeyError("Course not found"), "Course not found"),
         (Exception("Unknown error"), "Unknown error")
     ]
-    
+
     for exception, expected_message in test_cases:
         ctrl.DM.addCourse.side_effect = exception
-        
+
         result = c.addCourse({"course_id": "TEST"}, None)
-        
+
         assert expected_message in result
 
 
 def test_faculty_controller_edit_creates_new_entry():
     """Test that faculty edit removes old and adds new faculty"""
     c = ctrl.FacultyController()
-    
-    old_faculty = {"name": "OldName", "credits": 12}
+
+    # old_faculty = {"name": "OldName", "credits": 12}  # unused
     new_faculty = {"name": "NewName", "credits": 10}
-    
+
     c.editFaculty(new_faculty, "OldName", None)
-    
+
     # Should call remove then add
     ctrl.DM.removeFaculty.assert_called_with("OldName")
     ctrl.DM.addFaculty.assert_called_with(new_faculty)
@@ -1036,19 +1035,19 @@ def test_controllers_handle_none_data_gracefully():
     c_labs = ctrl.LabsController()
     c_faculty = ctrl.FacultyController()
     c_courses = ctrl.CourseController()
-    
+
     # Mock DataManager to return empty lists for None cases
     ctrl.DM.getRooms.return_value = []
     ctrl.DM.getLabs.return_value = []
     ctrl.DM.getFaculty.return_value = []
     ctrl.DM.getCourses.return_value = []
-    
+
     # These should not crash
     rooms = c_rooms.listRooms()
     labs = c_labs.listLabs()
     faculty = c_faculty.listFaculty()
     courses = c_courses.listCourses()
-    
+
     assert rooms == []
     assert labs == []
     assert faculty == []
@@ -1061,9 +1060,9 @@ def test_importSchedulesBTN_handles_file_read_errors():
         with patch('builtins.open', side_effect=IOError("File read error")):
             mock_file.return_value = "/fake/path.json"
             pathVar = Mock()
-            
+
             result = ctrl.importSchedulesBTN(pathVar)
-            
+
             assert result is None
             assert "Unable to open" in pathVar.set.call_args[0][0]
 
@@ -1073,16 +1072,16 @@ def test_exportSchedulesBTN_handles_file_write_errors():
     with patch('Controller.main_controller.filedialog.asksaveasfilename') as mock_file:
         mock_file.return_value = "/fake/path.json"
         pathVar = Mock()
-        
+
         # Mock the open function to raise an error
         with patch('builtins.open') as mock_open:
             mock_open.side_effect = IOError("File write error")
-            
+
             # The function doesn't handle the exception, so it should propagate
             # We expect it to raise the exception
             with pytest.raises(IOError, match="File write error"):
                 ctrl.exportSchedulesBTN([], pathVar)
-            
+
             # The pathVar should not be set since the operation failed
             pathVar.set.assert_not_called()
 
@@ -1091,19 +1090,19 @@ def test_generateSchedulesBtn_early_break():
     with patch('Controller.main_controller.Scheduler') as MockScheduler:
         with patch('Controller.main_controller.CombinedConfig'):
             mock_scheduler_instance = MockScheduler.return_value
-            
+
             # Mock generator that yields infinite schedules
             def infinite_schedules():
                 i = 0
                 while True:
                     yield [Mock(as_csv=Mock(return_value=f"Course{i}"))]
                     i += 1
-            
+
             mock_scheduler_instance.get_models.return_value = infinite_schedules()
-            
+
             # Request only 3 schedules from infinite generator
             result = ctrl.generateSchedulesBtn(3, [], None)
-            
+
             # Should return exactly 3 schedules
             assert len(result) == 3
 
@@ -1111,21 +1110,21 @@ def test_generateSchedulesBtn_early_break():
 def test_checkFileContent_edge_cases():
     """Test checkFileContent with various edge cases"""
     pathVar = Mock()
-    
+
     # Test with None data
     result = ctrl.checkFileContent(None, pathVar)
     assert result is False
     # Just verify that an error message was set, don't check the exact content
     pathVar.set.assert_called_once()
-    
+
     # Reset the mock for next test
     pathVar.reset_mock()
-    
+
     # Test with empty list
     result = ctrl.checkFileContent([], pathVar)
     # Don't assert on the specific result, just that the function doesn't crash
     # Empty list might be valid or invalid depending on implementation
-    
+
     # Test with list containing None
     pathVar.reset_mock()
     result = ctrl.checkFileContent([None], pathVar)
@@ -1137,13 +1136,13 @@ def test_controllers_method_chaining():
     """Test that controller methods can be chained without issues"""
     c_rooms = ctrl.RoomsController()
     c_labs = ctrl.LabsController()
-    
+
     # Chain multiple operations - should not interfere with each other
     c_rooms.addRoom("Room1", None)
     c_labs.addLab("Lab1", None)
     c_rooms.addRoom("Room2", None)
     c_labs.addLab("Lab2", None)
-    
+
     # Verify all calls were made to DataManager
     assert ctrl.DM.addRoom.call_count == 2
     assert ctrl.DM.addLab.call_count == 2
@@ -1151,7 +1150,7 @@ def test_controllers_method_chaining():
 def test_importSchedulesBTN_json_direct_wrapped_format():
     """Test importing JSON files with direct wrapped format (not list of lists)"""
     with patch('Controller.main_controller.filedialog.askopenfilename') as mock_file:
-        with patch('builtins.open') as mock_open:
+        with patch('builtins.open'):
             # Mock a JSON file that contains a dict with 'schedules' key
             # but the value is not a list of lists (simple test-style JSON)
             mock_json_data = {
