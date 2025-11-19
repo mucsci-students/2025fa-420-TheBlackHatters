@@ -63,15 +63,17 @@ class FacultyDetails(BaseModel):
     room_preferences: Dict[str, int] = {}
     lab_preferences: Dict[str, int] = {}
 
+
 class MeetingDetails(BaseModel):
     credits: int
     meetings: List[Dict]  # each dict: { day: "MON", duration: 50, optional lab: true }
     start_time: Optional[str] = None
     disabled: Optional[bool] = False
 
+
 class Intent(BaseModel):
     intent: str
-    category: str   # now supports class_pattern
+    category: str  # now supports class_pattern
     identifier: Optional[str] = None
     details: Optional[Union[CourseDetails, FacultyDetails, MeetingDetails, dict]] = None
 
@@ -740,12 +742,12 @@ class ChatbotAgent:
             if t in ("faculty", "instructors", "professors"):
                 return {"faculty": cfg.get("faculty", [])}
             if t in (
-                    "meeting patterns",
-                    "meeting pattern",
-                    "class pattern",
-                    "class patterns",
-                    "class_pattern",
-                    "class_patterns",
+                "meeting patterns",
+                "meeting pattern",
+                "class pattern",
+                "class patterns",
+                "class_pattern",
+                "class_patterns",
             ):
                 cfg = DM.data or {}
                 ts = cfg.get("time_slot_config", {})
@@ -847,11 +849,14 @@ class ChatbotAgent:
 
                 match = re.search(r"\d+", str(identifier))
                 if not match:
-                    raise ValueError(f"Could not determine pattern index from '{identifier}'")
+                    raise ValueError(
+                        f"Could not determine pattern index from '{identifier}'"
+                    )
 
                 idx = int(match.group()) - 1
 
-                cfg = DM.data.get("time_slot_config", {})
+                data_root = DM.data or {}
+                cfg = data_root.get("time_slot_config", {}) or {}
                 classes = cfg.get("classes", [])
 
                 if idx < 0 or idx >= len(classes):
@@ -878,9 +883,9 @@ class ChatbotAgent:
                 # Store updated pattern
                 DM.editClassPattern(idx, merged)
 
-                # ✨ READ BACK THE ACTUAL UPDATED PATTERN
-                updated_pattern = DM.data["time_slot_config"]["classes"][idx]
-
+                updated_pattern = (
+                    (DM.data or {}).get("time_slot_config", {}).get("classes", [])[idx]
+                )
                 return self._ok(
                     f"Class pattern #{idx + 1} updated.",
                     category,
@@ -913,13 +918,17 @@ class ChatbotAgent:
 
                 match = re.search(r"\d+", str(identifier))
                 if not match:
-                    raise ValueError(f"Could not determine pattern index from '{identifier}'")
+                    raise ValueError(
+                        f"Could not determine pattern index from '{identifier}'"
+                    )
 
                 # Convert "1" → 0, "2" → 1, etc.
                 idx = int(match.group()) - 1
 
                 DM.removeClassPattern(idx)
-                return self._ok(f"Class pattern #{identifier} deleted.", category, "delete")
+                return self._ok(
+                    f"Class pattern #{identifier} deleted.", category, "delete"
+                )
             return self._err(f"Unknown category '{category}'.", category, "delete")
         except Exception as e:
             traceback.print_exc()

@@ -112,7 +112,9 @@ def _build_meetings_interactively() -> List[Dict[str, Any]]:
         # Duration
         duration = _input_int("  Enter duration in minutes: ", allow_blank=False)
         # Lab flag
-        is_lab = _input_yes_no("  Is this a lab meeting? (y/n, default n): ", default=False)
+        is_lab = _input_yes_no(
+            "  Is this a lab meeting? (y/n, default n): ", default=False
+        )
 
         meetings.append(
             {
@@ -150,10 +152,7 @@ def _print_patterns_list():
                 duration = m.get("duration", "")
                 lab = m.get("lab", False)
                 lab_suffix = " (lab)" if lab else ""
-                print(
-                    f"    - {_display_day(day_code)} "
-                    f"{duration} minutes{lab_suffix}"
-                )
+                print(f"    - {_display_day(day_code)} {duration} minutes{lab_suffix}")
     print("\n==============================\n")
 
 
@@ -163,7 +162,9 @@ def _select_pattern_index() -> int:
         return -1
     _print_patterns_list()
     while True:
-        raw = input(f"Select pattern number (1-{len(_patterns_ref)}) or blank to cancel: ").strip()
+        raw = input(
+            f"Select pattern number (1-{len(_patterns_ref)}) or blank to cancel: "
+        ).strip()
         if raw == "":
             return -1
         try:
@@ -183,7 +184,9 @@ def add_pattern():
     ).strip()
     if not start_time:
         start_time = None
-    disabled = _input_yes_no("Is this pattern disabled? (y/n, default n): ", default=False)
+    disabled = _input_yes_no(
+        "Is this pattern disabled? (y/n, default n): ", default=False
+    )
 
     meetings = _build_meetings_interactively()
     if not meetings:
@@ -220,9 +223,7 @@ def modify_pattern():
     print(f"  disabled: {disabled}")
 
     # Credits
-    raw_credits = input(
-        "Enter new credits (leave blank to keep current): "
-    ).strip()
+    raw_credits = input("Enter new credits (leave blank to keep current): ").strip()
     if raw_credits:
         try:
             pattern["credits"] = int(raw_credits)
@@ -287,7 +288,7 @@ def delete_pattern():
     credits = pat.get("credits", "")
     start_time = pat.get("start_time", None)
     confirm = _input_yes_no(
-        f"Are you sure you want to delete Pattern #{idx+1} "
+        f"Are you sure you want to delete Pattern #{idx + 1} "
         f"(credits={credits}, start_time={start_time or 'none'})? (y/n): ",
         default=False,
     )
