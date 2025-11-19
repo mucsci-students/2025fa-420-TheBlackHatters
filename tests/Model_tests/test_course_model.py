@@ -37,6 +37,7 @@ def test_build_and_validate_minimal():
     assert c.course_id == "CMSC 150"
     assert c.credits == 4
 
+
 def test_list_cleaning_and_dedup():
     c = Course(
         "CS200",

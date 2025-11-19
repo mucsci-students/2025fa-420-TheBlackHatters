@@ -388,8 +388,11 @@ class DataManager:
 
         # Find faculty by name (case-insensitive)
         idx = next(
-            (i for i, f in enumerate(faculty_list)
-             if f.get("name", "").lower() == name.lower()),
+            (
+                i
+                for i, f in enumerate(faculty_list)
+                if f.get("name", "").lower() == name.lower()
+            ),
             None,
         )
         if idx is None:
@@ -421,7 +424,9 @@ class DataManager:
                             f"Invalid day '{d}' in times; must be one of {sorted(ALLOWED_DAYS)}"
                         )
                     if not isinstance(val[d], list):
-                        raise ValueError(f"'times[{d}]' must be a list of time strings.")
+                        raise ValueError(
+                            f"'times[{d}]' must be a list of time strings."
+                        )
                 # Ensure all allowed days exist
                 for d in ALLOWED_DAYS:
                     val.setdefault(d, [])
@@ -433,9 +438,7 @@ class DataManager:
         # Ensure schema completeness
         for k in ALLOWED_FIELDS:
             if k not in updated:
-                updated[k] = (
-                    {} if k.endswith("_preferences") or k == "times" else 0
-                )
+                updated[k] = {} if k.endswith("_preferences") or k == "times" else 0
         if "name" not in updated or not updated["name"]:
             updated["name"] = current["name"]
 

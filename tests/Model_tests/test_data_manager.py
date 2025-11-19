@@ -168,6 +168,7 @@ def test_duplicate_lab_names(sample_config):
 
 # ---- CRUD: Faculty ----
 
+
 def test_remove_nonexistent_faculty():
     """Should handle removing non-existent faculty."""
     dm = DataManager()

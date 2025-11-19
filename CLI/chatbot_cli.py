@@ -45,6 +45,7 @@ def main(cfg_path=None):
 
     # 🔧 Ensure ChatbotAgent uses this same populated DataManager
     import Controller.main_controller as ctrl
+
     ctrl.DM = DM
 
     # --- Initialize chatbot agent ---

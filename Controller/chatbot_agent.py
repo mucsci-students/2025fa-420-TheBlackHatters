@@ -12,6 +12,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.tools import StructuredTool
 
 import Controller.main_controller as ctrl
+
 DM = ctrl.DM
 
 load_dotenv()
@@ -41,6 +42,7 @@ class NoArgs(BaseModel):
 # Intent Classification Schema
 # --- Insert CourseDetails schema here ---
 
+
 class CourseDetails(BaseModel):
     course_id: str
     credits: int
@@ -48,6 +50,7 @@ class CourseDetails(BaseModel):
     lab: List[str] = []
     conflicts: List[str] = []
     faculty: List[str] = []
+
 
 # Inserted FacultyDetails schema
 class FacultyDetails(BaseModel):
@@ -60,11 +63,13 @@ class FacultyDetails(BaseModel):
     room_preferences: Dict[str, int] = {}
     lab_preferences: Dict[str, int] = {}
 
+
 class Intent(BaseModel):
     intent: str = Field(description="add | edit | delete | show")
     category: str = Field(description="course | faculty | room | lab")
     identifier: Optional[str] = Field(default=None)
     details: Optional[Union[CourseDetails, FacultyDetails, dict]] = Field(default=None)
+
 
 class UnifiedRouter:
     """
@@ -226,7 +231,10 @@ class UnifiedRouter:
         except Exception:
             # Not JSON → treat as conversational response
             return result
+
+
 # Chatbot Agent
+
 
 class ChatbotAgent:
     """
@@ -238,6 +246,7 @@ class ChatbotAgent:
         self.get_config_path = config_path_getter
 
         from Controller import main_controller
+
         if hasattr(main_controller, "DM") and os.path.exists(self.get_config_path()):
             try:
                 with open(self.get_config_path(), "r") as f:
@@ -309,6 +318,7 @@ class ChatbotAgent:
         s = str(value).strip()
         # pick the first integer in the string
         import re
+
         m = re.search(r"-?\d+", s)
         return int(m.group(0)) if m else default
 
@@ -331,7 +341,13 @@ class ChatbotAgent:
         if isinstance(obj, list):
             for item in obj:
                 if isinstance(item, dict):
-                    name = item.get("name") or item.get("id") or item.get("course") or item.get("room") or item.get("lab")
+                    name = (
+                        item.get("name")
+                        or item.get("id")
+                        or item.get("course")
+                        or item.get("room")
+                        or item.get("lab")
+                    )
                     weight = ChatbotAgent._to_int(item.get("weight"), 0)
                     if name:
                         out[str(name)] = weight
@@ -341,7 +357,10 @@ class ChatbotAgent:
                     # "CMSC 124 weight 4" or "Roddy 2:3"
                     s = str(item)
                     import re
-                    m = re.search(r"([A-Za-z0-9#\-\s]+?)\s*(?:weight|:)\s*(\d+)", s, re.I)
+
+                    m = re.search(
+                        r"([A-Za-z0-9#\-\s]+?)\s*(?:weight|:)\s*(\d+)", s, re.I
+                    )
                     if m:
                         out[m.group(1).strip()] = int(m.group(2))
         return out
@@ -354,11 +373,19 @@ class ChatbotAgent:
         """
         if not span:
             return None
-        s = span.strip().lower().replace("–", "-").replace("—", "-").replace(" to ", "-")
+        s = (
+            span.strip()
+            .lower()
+            .replace("–", "-")
+            .replace("—", "-")
+            .replace(" to ", "-")
+        )
         import re
+
         # If already HH:MM-HH:MM
         if re.match(r"^\d{1,2}:\d{2}-\d{1,2}:\d{2}$", s):
             return s
+
         # Accept '7am-5pm', '7 am - 5 pm', '8-4pm' etc.
         def hm(tok):
             m = re.match(r"^\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*$", tok)
@@ -383,13 +410,23 @@ class ChatbotAgent:
     def _weekday_key(name: str):
         name = (name or "").strip().lower()
         mapping = {
-            "monday": "MON", "mon": "MON",
-            "tuesday": "TUE", "tue": "TUE", "tues": "TUE",
-            "wednesday": "WED", "wed": "WED",
-            "thursday": "THU", "thu": "THU", "thur": "THU", "thurs": "THU",
-            "friday": "FRI", "fri": "FRI",
-            "saturday": "SAT", "sat": "SAT",
-            "sunday": "SUN", "sun": "SUN",
+            "monday": "MON",
+            "mon": "MON",
+            "tuesday": "TUE",
+            "tue": "TUE",
+            "tues": "TUE",
+            "wednesday": "WED",
+            "wed": "WED",
+            "thursday": "THU",
+            "thu": "THU",
+            "thur": "THU",
+            "thurs": "THU",
+            "friday": "FRI",
+            "fri": "FRI",
+            "saturday": "SAT",
+            "sat": "SAT",
+            "sunday": "SUN",
+            "sun": "SUN",
         }
         return mapping.get(name)
 
@@ -399,10 +436,13 @@ class ChatbotAgent:
         'available on Monday from 7am to 5pm, tuesday from 4pm to 6pm, friday 8am to 4pm'
         """
         import re
+
         times = {}
         # Patterns: "<day> from X to Y" OR "<day> X to Y"
         day_re = r"(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)"
-        span_re = r"(?:(?:from\s+)?([0-9:\sampAMP\.]+?)\s*(?:to|-)\s*([0-9:\sampAMP\.]+))"
+        span_re = (
+            r"(?:(?:from\s+)?([0-9:\sampAMP\.]+?)\s*(?:to|-)\s*([0-9:\sampAMP\.]+))"
+        )
         for m in re.finditer(day_re + r"\s+" + span_re, text, re.I):
             day = self._weekday_key(m.group(1))
             start, end = m.group(2), m.group(3)
@@ -411,7 +451,9 @@ class ChatbotAgent:
                 times.setdefault(day, []).append(span)
 
         # Also handle a looser comma series like "monday 7am-5pm, tuesday 4pm-6pm"
-        for m in re.finditer(day_re + r"\s+([0-9:\sampAMP\.]+-[0-9:\sampAMP\.]+)", text, re.I):
+        for m in re.finditer(
+            day_re + r"\s+([0-9:\sampAMP\.]+-[0-9:\sampAMP\.]+)", text, re.I
+        ):
             day = self._weekday_key(m.group(1))
             span = self._parse_time_span(m.group(2))
             if day and span:
@@ -430,6 +472,7 @@ class ChatbotAgent:
         name = (data or {}).get("name")
         if not name:
             import re
+
             m = re.search(r"(?:named|called)\s+([A-Z][A-Za-z0-9_\-\s]*)", raw_text)
             if m:
                 name = m.group(1).strip()
@@ -438,22 +481,38 @@ class ChatbotAgent:
         norm["name"] = name
 
         # --- numeric fields ---
-        norm["minimum_credits"] = self._to_int(data.get("minimum_credits") or data.get("min_credits"), 0)
-        norm["maximum_credits"] = self._to_int(data.get("maximum_credits") or data.get("max_credits"), 0)
-        norm["unique_course_limit"] = self._to_int(data.get("unique_course_limit") or data.get("unique_limit") or data.get("unique_courses"), 0)
+        norm["minimum_credits"] = self._to_int(
+            data.get("minimum_credits") or data.get("min_credits"), 0
+        )
+        norm["maximum_credits"] = self._to_int(
+            data.get("maximum_credits") or data.get("max_credits"), 0
+        )
+        norm["unique_course_limit"] = self._to_int(
+            data.get("unique_course_limit")
+            or data.get("unique_limit")
+            or data.get("unique_courses"),
+            0,
+        )
 
         # Try to extract numbers from the raw text if still 0
         import re
+
         if not norm["minimum_credits"]:
-            m = re.search(r"min(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I)
+            m = re.search(
+                r"min(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I
+            )
             if m:
                 norm["minimum_credits"] = int(m.group(1))
         if not norm["maximum_credits"]:
-            m = re.search(r"max(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I)
+            m = re.search(
+                r"max(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I
+            )
             if m:
                 norm["maximum_credits"] = int(m.group(1))
         if not norm["unique_course_limit"]:
-            m = re.search(r"unique\s*course\s*limit\s*(?:of|is|=)?\s*(\d+)", raw_text, re.I)
+            m = re.search(
+                r"unique\s*course\s*limit\s*(?:of|is|=)?\s*(\d+)", raw_text, re.I
+            )
             if m:
                 norm["unique_course_limit"] = int(m.group(1))
 
@@ -469,7 +528,8 @@ class ChatbotAgent:
                     continue
                 if isinstance(spans, list):
                     clean_times[day] = [
-                        self._parse_time_span(s) for s in spans
+                        self._parse_time_span(s)
+                        for s in spans
                         if self._parse_time_span(s)
                     ]
                 else:
@@ -486,12 +546,12 @@ class ChatbotAgent:
         # --- preferences ---
         # Use ONLY the structured values from the LLM. Do NOT infer from raw text.
         course_pref_input = data.get("course_preferences") or {}
-        room_pref_input   = data.get("room_preferences") or {}
-        lab_pref_input    = data.get("lab_preferences") or {}
+        room_pref_input = data.get("room_preferences") or {}
+        lab_pref_input = data.get("lab_preferences") or {}
 
         norm["course_preferences"] = self._to_pref_dict(course_pref_input)
-        norm["room_preferences"]   = self._to_pref_dict(room_pref_input)
-        norm["lab_preferences"]    = self._to_pref_dict(lab_pref_input)
+        norm["room_preferences"] = self._to_pref_dict(room_pref_input)
+        norm["lab_preferences"] = self._to_pref_dict(lab_pref_input)
 
         # Persist all required faculty fields even if empty
         ALLOWED_FIELDS = [
@@ -502,7 +562,7 @@ class ChatbotAgent:
             "times",
             "course_preferences",
             "room_preferences",
-            "lab_preferences"
+            "lab_preferences",
         ]
 
         for k in ALLOWED_FIELDS:
@@ -546,15 +606,21 @@ class ChatbotAgent:
         # course_id ---------------------------------------------------------------
         course_id = clean.get("course_id") or clean.get("name") or clean.get("title")
         if not course_id:
-            raise ValueError("Missing required field: 'course_id'. The LLM must supply this.")
+            raise ValueError(
+                "Missing required field: 'course_id'. The LLM must supply this."
+            )
         clean["course_id"] = str(course_id).strip()
 
         # credits ---------------------------------------------------------------
-        credits = clean.get("credits") or clean.get("credit_hours") or clean.get("hours")
+        credits = (
+            clean.get("credits") or clean.get("credit_hours") or clean.get("hours")
+        )
         try:
             clean["credits"] = int(credits)
         except Exception:
-            raise ValueError("Missing or invalid 'credits'. The LLM must provide an integer.")
+            raise ValueError(
+                "Missing or invalid 'credits'. The LLM must provide an integer."
+            )
 
         # list fields ------------------------------------------------------------
         for field in REQUIRED_LIST_FIELDS:
@@ -651,7 +717,9 @@ class ChatbotAgent:
             if category == "course":
                 clean = self._normalize_course_payload(data, self.last_user_input)
                 DM.addCourse(clean)
-                return self._ok(f"Course '{clean['course_id']}' added.", category, "add")
+                return self._ok(
+                    f"Course '{clean['course_id']}' added.", category, "add"
+                )
 
             return self._err(f"Unknown category '{category}'.", category, "add")
 
@@ -674,7 +742,9 @@ class ChatbotAgent:
                 if isinstance(updates, FacultyDetails):
                     updates = updates.dict()
 
-                clean_updates = self._normalize_faculty_payload(updates, self.last_user_input)
+                clean_updates = self._normalize_faculty_payload(
+                    updates, self.last_user_input
+                )
 
                 # Remove name field if it’s just the same identifier
                 if clean_updates.get("name", "").lower() == identifier.lower():
@@ -792,7 +862,9 @@ class ChatbotAgent:
                 return self._tool_edit_item(category, identifier, updates=details)
             if intent == "delete":
                 if not identifier:
-                    return self._err("Missing identifier for delete.", category, "delete")
+                    return self._err(
+                        "Missing identifier for delete.", category, "delete"
+                    )
                 return self._tool_delete_item(category, identifier)
 
             return self._err("Unknown intent.", category, intent)
