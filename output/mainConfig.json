@@ -3,15 +3,11 @@
         "rooms": [
             "Roddy 136",
             "Roddy 140",
-            "Roddy 147",
-            "Roddy 1",
-            "Roddy 1"
+            "Roddy 147"
         ],
         "labs": [
             "Linux",
-            "Mac",
-            "Windows",
-            "Windows"
+            "Mac"
         ],
         "courses": [
             {
@@ -295,52 +291,6 @@
                     "CMSC 453"
                 ],
                 "faculty": []
-            },
-            {
-                "course_id": "CMSC 434",
-                "credits": 5,
-                "room": [
-                    "Roddy 136"
-                ],
-                "lab": [
-                    "Mac"
-                ],
-                "conflicts": [
-                    "CMSC 140"
-                ]
-            },
-            {
-                "course_id": "CMSC 839",
-                "credits": 5
-            },
-            {
-                "course_id": "CMSC 435",
-                "credits": 5
-            },
-            {
-                "course_id": "CMSC 428",
-                "credits": 5,
-                "room": [],
-                "lab": [],
-                "conflicts": [],
-                "faculty": []
-            },
-            {
-                "course_id": "CMSC 148",
-                "credits": 5,
-                "room": [
-                    "Roddy 136"
-                ],
-                "lab": [
-                    "Mac"
-                ],
-                "conflicts": [
-                    "CMSC 140",
-                    "CSMC 428"
-                ],
-                "faculty": [
-                    "Zoppetti"
-                ]
             }
         ],
         "faculty": [
@@ -632,96 +582,6 @@
                     "Mac": 5,
                     "Linux": 1
                 }
-            },
-            {
-                "name": "Fletcher that has min credits set to 2",
-                "minimum_credits": 2,
-                "maximum_credits": 8,
-                "unique_course_limit": 2,
-                "times": {
-                    "MON": [
-                        "07:00-17:00"
-                    ],
-                    "TUE": [
-                        "16:00-18:00"
-                    ],
-                    "FRI": [
-                        "08:00-16:00"
-                    ]
-                },
-                "course_preferences": {
-                    "CMSC 124": 4
-                },
-                "room_preferences": {
-                    "Roddy 2": 2,
-                    "Roddy 1": 3
-                },
-                "lab_preferences": {
-                    "Mac": 1
-                }
-            },
-            {
-                "name": "Fletcher",
-                "minimum_credits": 2,
-                "maximum_credits": 8,
-                "unique_course_limit": 2,
-                "times": {
-                    "MON": [
-                        "07:00-17:00"
-                    ],
-                    "TUE": [
-                        "16:00-18:00"
-                    ],
-                    "FRI": [
-                        "08:00-16:00"
-                    ]
-                },
-                "course_preferences": {
-                    "CMSC 124": 4
-                },
-                "room_preferences": {
-                    "Roddy 2": 2,
-                    "Roddy 1": 3
-                },
-                "lab_preferences": {
-                    "Mac": 1
-                }
-            },
-            {
-                "name": "Dominic",
-                "minimum_credits": 2,
-                "maximum_credits": 8,
-                "unique_course_limit": 2,
-                "times": {
-                    "MON": [
-                        "07:00-17:00"
-                    ],
-                    "TUE": [],
-                    "WED": [],
-                    "THU": [],
-                    "FRI": []
-                },
-                "course_preferences": {},
-                "room_preferences": {},
-                "lab_preferences": {}
-            },
-            {
-                "name": "Maddie",
-                "minimum_credits": 6,
-                "maximum_credits": 12,
-                "unique_course_limit": 3,
-                "times": {
-                    "MON": [],
-                    "TUE": [],
-                    "WED": [],
-                    "THU": [],
-                    "FRI": []
-                },
-                "course_preferences": {
-                    "CMSC 140": 4
-                },
-                "room_preferences": {},
-                "lab_preferences": {}
             }
         ]
     },
