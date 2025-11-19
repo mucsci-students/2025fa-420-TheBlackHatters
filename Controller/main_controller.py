@@ -336,3 +336,55 @@ class CourseController:
             return None
         except Exception as e:
             return str(e)
+
+
+class ClassPatternController:
+    global DM
+
+    def __init__(self):
+        pass
+
+    def listPatterns(self):
+        """Return all class meeting patterns."""
+        return DM.getClassPatterns()
+
+    def addPattern(self, pattern_dict, refresh=None):
+        """
+        Add a new class meeting pattern.
+        pattern_dict must contain:
+            credits: int
+            meetings: [{day, duration, lab?}]
+            start_time: optional "HH:MM"
+            disabled: optional bool
+        """
+        try:
+            DM.addClassPattern(pattern_dict)
+            if refresh:
+                refresh("ConfigPage")
+            return None
+        except Exception as e:
+            return str(e)
+
+    def editPattern(self, index, updates, refresh=None):
+        """
+        Edit an existing class pattern by index.
+        updates may include:
+            credits, meetings, start_time, disabled
+        """
+        try:
+            DM.editClassPattern(index, updates)
+            if refresh:
+                refresh("ConfigPage")
+            return None
+        except Exception as e:
+            return str(e)
+
+    def removePattern(self, index, refresh=None):
+        """Remove class pattern by index."""
+        try:
+            DM.removeClassPattern(index)
+            if refresh:
+                refresh("ConfigPage")
+            return None
+        except Exception as e:
+            return str(e)

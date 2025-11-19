@@ -8,6 +8,12 @@ from Models.Course_model import (
     delete_course_from_config,
 )
 
+from Models.ClassPattern_model import (
+    add_class_pattern_to_config,
+    modify_class_pattern_in_config,
+    delete_class_pattern_from_config,
+)
+
 
 # We will need to give a config filePath or it will start will an empty file
 # note: empty file only inclues,
@@ -454,3 +460,29 @@ class DataManager:
 
         faculty_list[idx] = updated
         print(f"Updated faculty: {old_name} → {new_name}")
+
+    @requireData
+    def getClassPatterns(self):
+        cfg = self.data.setdefault("time_slot_config", {})
+        return cfg.setdefault("classes", [])
+
+    @requireData
+    def addClassPattern(self, pattern_dict):
+        cfg = self.data.setdefault("time_slot_config", {})
+        added = add_class_pattern_to_config(cfg, pattern_dict)
+        print(f"Added class pattern (credits={added['credits']})")
+        return added
+
+    @requireData
+    def editClassPattern(self, index, updates):
+        cfg = self.data.setdefault("time_slot_config", {})
+        updated = modify_class_pattern_in_config(cfg, index, updates)
+        print(f"Updated class pattern at index {index}.")
+        return updated
+
+    @requireData
+    def removeClassPattern(self, index):
+        cfg = self.data.setdefault("time_slot_config", {})
+        removed = delete_class_pattern_from_config(cfg, index)
+        print(f"Removed class pattern at index {index}.")
+        return removed

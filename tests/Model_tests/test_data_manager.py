@@ -393,3 +393,109 @@ def test_data_consistency_after_operations(sample_config):
     dm.removeRoom("NewRoom")  # Should succeed
     dm.removeLabs("NewLab")  # Should succeed
     dm.removeFaculty("NewFaculty")  # Should succeed
+
+
+# Class Pattern tests
+
+
+def test_getClassPatterns_initializes_structure():
+    """getClassPatterns should always return a list and initialize time_slot_config if missing."""
+    dm = DataManager()
+    dm.data = {}  # missing time_slot_config entirely
+    patterns = dm.getClassPatterns()
+    assert isinstance(patterns, list)
+    assert dm.data["time_slot_config"]["classes"] == patterns
+
+
+def test_addClassPattern_success():
+    dm = DataManager()
+    dm.data = {"time_slot_config": {"classes": []}}
+
+    new_pattern = {
+        "credits": 3,
+        "meetings": [{"day": "MON", "duration": 50}],
+    }
+
+    added = dm.addClassPattern(new_pattern)
+    assert added in dm.getClassPatterns()
+    assert added["credits"] == 3
+    assert added["meetings"][0]["day"] == "MON"
+
+
+def test_addClassPattern_invalid_structure():
+    """Should raise ValueError when given invalid dict structure."""
+    dm = DataManager()
+    dm.data = {"time_slot_config": {"classes": []}}
+
+    bad_pattern = {"credits": 3}  # missing meetings
+    with pytest.raises(ValueError):
+        dm.addClassPattern(bad_pattern)
+
+
+def test_editClassPattern_success():
+    dm = DataManager()
+    dm.data = {
+        "time_slot_config": {
+            "classes": [{"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}]
+        }
+    }
+
+    updated = dm.editClassPattern(
+        0,
+        {
+            "credits": 4,
+            "meetings": [{"day": "TUE", "duration": 75}],
+            "start_time": "10:00",
+            "disabled": True,
+        },
+    )
+
+    assert updated["credits"] == 4
+    assert updated["meetings"][0]["day"] == "TUE"
+    assert updated["start_time"] == "10:00"
+    assert updated["disabled"] is True
+
+
+def test_editClassPattern_invalid_index():
+    dm = DataManager()
+    dm.data = {"time_slot_config": {"classes": []}}
+
+    with pytest.raises(IndexError):
+        dm.editClassPattern(0, {"credits": 4})
+
+
+def test_editClassPattern_invalid_updates():
+    dm = DataManager()
+    dm.data = {
+        "time_slot_config": {
+            "classes": [{"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}]
+        }
+    }
+
+    # invalid meetings list
+    with pytest.raises(ValueError):
+        dm.editClassPattern(0, {"meetings": "not_a_list"})
+
+
+def test_removeClassPattern_success():
+    dm = DataManager()
+    dm.data = {
+        "time_slot_config": {
+            "classes": [
+                {"credits": 3, "meetings": [{"day": "MON", "duration": 50}]},
+                {"credits": 4, "meetings": [{"day": "TUE", "duration": 75}]},
+            ]
+        }
+    }
+
+    removed = dm.removeClassPattern(0)
+    assert removed["credits"] == 3
+    assert len(dm.getClassPatterns()) == 1
+
+
+def test_removeClassPattern_invalid_index():
+    dm = DataManager()
+    dm.data = {"time_slot_config": {"classes": []}}
+
+    with pytest.raises(IndexError):
+        dm.removeClassPattern(1)

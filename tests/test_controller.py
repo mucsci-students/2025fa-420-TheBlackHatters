@@ -1485,3 +1485,105 @@ def test_remove_operations():
     ctrl.DM.removeLabs.assert_called_with("LabToRemove")
     ctrl.DM.removeFaculty.assert_called_with("FacultyToRemove")
     ctrl.DM.removeCourse.assert_called_with("CourseToRemove")
+
+
+# Class Pattern Tests
+
+
+def test_classpatterncontroller_list_patterns():
+    c = ctrl.ClassPatternController()
+    ctrl.DM.getClassPatterns.return_value = [
+        {"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}
+    ]
+
+    result = c.listPatterns()
+
+    assert result == [{"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}]
+    ctrl.DM.getClassPatterns.assert_called_once()
+
+
+def test_classpatterncontroller_add_pattern_success(fake_refresh):
+    c = ctrl.ClassPatternController()
+    ctrl.DM.addClassPattern.return_value = {
+        "credits": 3,
+        "meetings": [{"day": "MON", "duration": 50}],
+    }
+
+    pattern = {"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}
+    result = c.addPattern(pattern, fake_refresh)
+
+    assert result is None
+    ctrl.DM.addClassPattern.assert_called_with(pattern)
+    fake_refresh.assert_called_once_with("ConfigPage")
+
+
+def test_classpatterncontroller_add_pattern_error(fake_refresh):
+    c = ctrl.ClassPatternController()
+    ctrl.DM.addClassPattern.side_effect = ValueError("Invalid pattern")
+
+    pattern = {"credits": 0, "meetings": []}
+    err = c.addPattern(pattern, fake_refresh)
+
+    assert "Invalid pattern" in err
+
+
+def test_classpatterncontroller_edit_pattern_success(fake_refresh):
+    c = ctrl.ClassPatternController()
+    ctrl.DM.editClassPattern.return_value = {
+        "credits": 4,
+        "meetings": [{"day": "TUE", "duration": 75}],
+    }
+
+    updates = {"credits": 4}
+    result = c.editPattern(0, updates, fake_refresh)
+
+    assert result is None
+    ctrl.DM.editClassPattern.assert_called_with(0, updates)
+    fake_refresh.assert_called_once_with("ConfigPage")
+
+
+def test_classpatterncontroller_edit_pattern_error(fake_refresh):
+    c = ctrl.ClassPatternController()
+    ctrl.DM.editClassPattern.side_effect = ValueError("Invalid edit")
+
+    err = c.editPattern(999, {"credits": 4}, fake_refresh)
+    assert "Invalid edit" in err
+
+
+def test_classpatterncontroller_remove_pattern_success(fake_refresh):
+    c = ctrl.ClassPatternController()
+    ctrl.DM.removeClassPattern.return_value = {"credits": 3}
+
+    result = c.removePattern(0, fake_refresh)
+
+    assert result is None
+    ctrl.DM.removeClassPattern.assert_called_with(0)
+    fake_refresh.assert_called_once_with("ConfigPage")
+
+
+def test_classpatterncontroller_remove_pattern_error(fake_refresh):
+    c = ctrl.ClassPatternController()
+    ctrl.DM.removeClassPattern.side_effect = ValueError("Invalid index")
+
+    err = c.removePattern(999, fake_refresh)
+    assert "Invalid index" in err
+
+
+def test_classpatterncontroller_operations_without_refresh():
+    """Ensure operations work when refresh=None."""
+    c = ctrl.ClassPatternController()
+
+    ctrl.DM.getClassPatterns.return_value = []
+    ctrl.DM.addClassPattern.return_value = None
+    ctrl.DM.editClassPattern.return_value = None
+    ctrl.DM.removeClassPattern.return_value = None
+
+    # Should not crash
+    c.listPatterns()
+    c.addPattern({"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}, None)
+    c.editPattern(0, {"credits": 4}, None)
+    c.removePattern(0, None)
+
+    ctrl.DM.addClassPattern.assert_called_once()
+    ctrl.DM.editClassPattern.assert_called_once()
+    ctrl.DM.removeClassPattern.assert_called_once()
