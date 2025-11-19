@@ -3,6 +3,7 @@
 # Author: Liam Delaney, Nicholas DiPace
 # Last Modified: November 11, 2025
 
+
 class Faculty(list):
     faculty_name = None
     maximum_credits = None

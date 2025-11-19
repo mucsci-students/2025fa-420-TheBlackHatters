@@ -19,6 +19,7 @@ from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
+
 # from CLI.room_cli import *
 from CLI.room_cli import mainRoomControler
 from CLI.lab_cli import mainLabControler
@@ -306,7 +307,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
                 # Checks if the provided path is valid
                 if os.path.exists(userPath):
                     # If so, makes it the input path
-                    #filePath = userPath ?  output/example.json
+                    # filePath = userPath ?  output/example.json
                     print("Config Loaded Successfully")
                     return
                 else:
