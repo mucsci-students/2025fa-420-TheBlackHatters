@@ -16,8 +16,10 @@ sys.modules["reportlab.pdfgen"] = mock
 sys.modules["reportlab.pdfgen.canvas"] = mock
 sys.modules["reportlab.platypus"] = mock
 
+if True:
+    import Controller.main_controller as ctrl
+
 # with patch("Controller.main_controller.DataManager", Mock(return_value=Mock())):
-import Controller.main_controller as ctrl
 
 
 
@@ -141,27 +143,25 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     assert pathVar.set.call_args[0][0] == expected_msg
 
 
-def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
-    fake_save = tmp_path / "out.json"
+# def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
+#     fake_save = tmp_path / "out.json"
 
-    monkeypatch.setattr(
-        "Controller.main_controller.filedialog.asksaveasfilename",
-        lambda **kwargs: str(fake_save),
-    )
+#     monkeypatch.setattr(
+#         "Controller.main_controller.filedialog.asksaveasfilename",
+#         lambda **kwargs: str(fake_save),
+#     )
 
-    pathVar = Mock()
-    data = [[{"course": "X"}], [{"course": "Y"}]]
+#     pathVar = Mock()
+#     data = [[{"course": "X"}], [{"course": "Y"}]]
 
-    ctrl.exportSchedulesBTN(data, pathVar)
+#     ctrl.exportSchedulesBTN(data, pathVar)
 
-    written = json.loads(fake_save.read_text())
+#     written = json.loads(fake_save.read_text())
 
-    assert written == data
+#     assert written == data
 
-    expected_msg = f"Schedules have been saved to: {fake_save}"
-    assert pathVar.set.call_args[0][0] == expected_msg
-
-
+#     expected_msg = f"Schedules have been saved to: {fake_save}"
+#     assert pathVar.set.call_args[0][0] == expected_msg
 
 
 def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
@@ -541,7 +541,7 @@ def test_undo_action_data_integrity():
     ctrl.DM.editRoom.assert_called_with("Old Name", "New Name")
     
     # Test faculty edit - verify proper DataManager calls
-    old_faculty = {"name": "Old", "credits": 12}
+    #old_faculty = {"name": "Old", "credits": 12}
     new_faculty = {"name": "New", "credits": 10}
     
     c_faculty.editFaculty(new_faculty, "Old", minimal_refresh)
@@ -554,8 +554,8 @@ def test_undo_redo_integration_with_mocked_controllers():
     # Mock the controller calls that would happen during undo/redo
     mock_room_ctr = Mock()
     mock_lab_ctr = Mock()
-    mock_faculty_ctr = Mock()
-    mock_course_ctr = Mock()
+    # mock_faculty_ctr = Mock()
+    # mock_course_ctr = Mock()
     
     # Simulate the undo/redo execution logic
     def execute_undo(action):
@@ -683,7 +683,7 @@ def test_course_controller_edit_with_target_index():
 def test_generate_schedules_with_optimization_flags():
     """Test that generateSchedulesBtn properly sets optimization flags"""
     with patch('Controller.main_controller.Scheduler') as MockScheduler:
-        with patch('Controller.main_controller.CombinedConfig') as MockCombinedConfig:
+        with patch('Controller.main_controller.CombinedConfig'):
             mock_scheduler_instance = MockScheduler.return_value
             mock_scheduler_instance.get_models.return_value = []
             
@@ -909,7 +909,7 @@ def test_generateSchedulesBtn_with_optimization_and_progress():
                 progress_calls.append((current, total))
             
             optimize_flags = ["faculty_course", "pack_rooms"]
-            result = ctrl.generateSchedulesBtn(1, optimize_flags, progress_callback)
+            ctrl.generateSchedulesBtn(1, optimize_flags, progress_callback)
             
             # Should call progress for optimization step and schedule generation
             assert len(progress_calls) == 2
@@ -1067,7 +1067,7 @@ def test_faculty_controller_edit_creates_new_entry():
     """Test that faculty edit removes old and adds new faculty"""
     c = ctrl.FacultyController()
     
-    old_faculty = {"name": "OldName", "credits": 12}
+    #old_faculty = {"name": "OldName", "credits": 12}
     new_faculty = {"name": "NewName", "credits": 10}
     
     c.editFaculty(new_faculty, "OldName", None)
@@ -1198,7 +1198,7 @@ def test_controllers_method_chaining():
 def test_importSchedulesBTN_json_direct_wrapped_format():
     """Test importing JSON files with direct wrapped format (not list of lists)"""
     with patch('Controller.main_controller.filedialog.askopenfilename') as mock_file:
-        with patch('builtins.open') as mock_open:
+        with patch('builtins.open'):
             # Mock a JSON file that contains a dict with 'schedules' key
             # but the value is not a list of lists (simple test-style JSON)
             mock_json_data = {

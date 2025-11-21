@@ -24,7 +24,7 @@ from Controller.controllerUtils import (
 )
 
 
-from datetime import datetime
+
 
 
 # should create controllers for other things too
@@ -146,22 +146,21 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
         rowFacultyType.pack(fill="x", pady=5)
 
         # Label for the faculty type
-        facultyLabel = ctk.CTkLabel(rowFacultyType, text="Is the faculty full-time or adjunct?",
+        ctk.CTkLabel(rowFacultyType, text="Is the faculty full-time or adjunct?",
                                     font=("Arial", 25, "bold")).pack(side="left", padx=10, pady=5)
         # Full-time button
-        fullSelection = ctk.CTkRadioButton(rowFacultyType, text="Full-time", variable=facultyType, value="full",
+        ctk.CTkRadioButton(rowFacultyType, text="Full-time", variable=facultyType, value="full",
                                            font=("Arial", 20, "bold"), command=onFacultyTypeChange).pack(side="left",
                                                                                                          padx=10)
         # Adjunct button
-        adjunctSelection = ctk.CTkRadioButton(rowFacultyType, text="Adjunct", variable=facultyType, value="adjunct",
+        ctk.CTkRadioButton(rowFacultyType, text="Adjunct", variable=facultyType, value="adjunct",
                                               font=("Arial", 20, "bold"), command=onFacultyTypeChange).pack(side="left",
                                                                                                             padx=10)
 
         # if we have data given here we just display the data
         # for example when someone clicks edit.
-        if data:
-            if data != None:
-                nameEntry.insert(0, data.get("name", ""))
+        if data is not None:
+            nameEntry.insert(0, data.get("name", ""))
 
         # This is to display the credit things
         # we need to place, Label and Entry to for each of those we need a frame
@@ -296,7 +295,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
                                                                                                       pady=(0, 5))
 
         # Lets the user add additonal course rows if desired.
-        addCourseButton = ctk.CTkButton(rowCourse, text="Add Course", width=30, height=20,
+        ctk.CTkButton(rowCourse, text="Add Course", width=30, height=20,
                                         command=lambda: preference_bar_creation("None", 5)).pack(side=ctk.LEFT, padx=5)
 
         # Allows for more modular bar creation if we need to allow user to choose to add more classes.
@@ -333,7 +332,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
         # Decide how many dropdown rows to create
         if data:
             course_data = data.get("course_preferences")
-            if course_data != None:
+            if course_data is not None:
                 for course in course_data:
                     # Stores the weight for the course.
                     weight = course_data.get(course)
@@ -393,7 +392,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
         ctk.CTkLabel(rowRoom, text="(Maximum 3 entries):", anchor="w", font=("Arial", 15, "bold", "underline"),
                      text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0, 5))
 
-        addRoomButton = ctk.CTkButton(rowRoom, text="Add Room", width=30, height=20,
+        ctk.CTkButton(rowRoom, text="Add Room", width=30, height=20,
                                       command=lambda: room_bar_creation("None", 5)).pack(side=ctk.LEFT, padx=5)
 
         def room_bar_creation(room_name, weight):
@@ -428,7 +427,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
     
         if data:
             room_data = data.get("room_preferences")
-            if room_data != None:
+            if room_data is not None:
                 for room in room_data:
                     # Stores the weight for the course.
                     weight = room_data.get(room)
@@ -471,7 +470,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
                      text_color="cyan", justify="left").pack(anchor="w", padx=5, pady=(0, 5))
 
         # Allows user to add additional lab entries if needed.
-        addLabButton = ctk.CTkButton(rowLab, text="Add Lab", width=30, height=20,
+        ctk.CTkButton(rowLab, text="Add Lab", width=30, height=20,
                                      command=lambda: lab_bar_creation("None", 5)).pack(side=ctk.LEFT, padx=5)
 
         # Lab Entry constructor, Allows for more modular creation of lab entries.
@@ -505,7 +504,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance = None)
         # Creates Lab entry for each Lab in the Faculty Data, otherwise creates two.
         if data:
             lab_data = data.get("lab_preferences")
-            if lab_data != None:
+            if lab_data is not None:
                 for lab in lab_data:
                     # Stores the weight for the course.
                     weight = lab_data.get(lab)
@@ -1357,7 +1356,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                     height = (end - start).seconds / 3600 * hourHeight - 2
 
                     # Rectangle for class
-                    rect = canvas.create_rectangle(
+                    canvas.create_rectangle(
                         x, y, x + dayWidth - 10, y + height,
                         fill=PICKEDCOLOR
                     )
@@ -1729,7 +1728,7 @@ class SchedulerApp(ctk.CTk):
     def _undo_faculty_edit(self, action):
         """Undo a faculty edit"""
         old_faculty_data = action['data']['old_faculty_data']
-        old_name = old_faculty_data['name']
+        #old_name = old_faculty_data['name']
         new_name = action['data']['new_faculty_data']['name']
         facultyCtr.removeFaculty(new_name, refresh=None)
         facultyCtr.addFaculty(old_faculty_data, refresh=None)
