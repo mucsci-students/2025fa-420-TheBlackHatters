@@ -2258,9 +2258,9 @@ class SchedulerApp(ctk.CTk):
         app = frame.winfo_toplevel()
         if not hasattr(app, "chat_agent"):
             setattr(
-                app, 
-                "chat_agent", 
-                ChatbotAgent(lambda: getattr(app, "configPath").get())  # type: ignore
+                app,
+                "chat_agent",
+                ChatbotAgent(lambda: getattr(app, "configPath").get()),  # type: ignore
             )
 
         chatbot_bar = ctk.CTkFrame(frame, fg_color="#2A2A2A")
@@ -2290,7 +2290,7 @@ class SchedulerApp(ctk.CTk):
             chatbot_entry.delete(0, "end")
 
             print(f"[CHATBOT INPUT] {text}")
-            response = app.chat_agent.query(text) # type: ignore
+            response = app.chat_agent.query(text)  # type: ignore
             print("[Chatbot Response]", response)
 
             if isinstance(response, dict):
@@ -2306,9 +2306,9 @@ class SchedulerApp(ctk.CTk):
 
                 # FIX: persist new tab before refresh
                 if switch_tab:
-                    app.selected_tabs["ConfigPage"] = switch_tab # type: ignore
+                    app.selected_tabs["ConfigPage"] = switch_tab  # type: ignore
 
-                app.refresh(target="ConfigPage") # type: ignore
+                app.refresh(target="ConfigPage")  # type: ignore
 
             else:
                 app.refresh(target="ConfigPage")  # type: ignore[attr-defined]

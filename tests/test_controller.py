@@ -846,7 +846,7 @@ def test_labs_controller_edit_calls_dm():
 
     c.editLab("Old Lab", "New Lab", refresh)
 
-    ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab") # type: ignore
+    ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab")  # type: ignore
 
 
 def test_course_controller_remove_calls_dm():
@@ -882,7 +882,7 @@ def test_configExportBTN_cancelled():
         ctrl.configExportBTN(pathVar)
 
         # Should not call saveData when cancelled
-        ctrl.DM.saveData.assert_not_called() # type: ignore
+        ctrl.DM.saveData.assert_not_called()  # type: ignore
         pathVar.set.assert_not_called()
 
 
