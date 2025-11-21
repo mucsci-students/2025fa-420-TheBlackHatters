@@ -4,18 +4,24 @@
 #
 # Tests for main_controller.py functions and controller classes.
 # Uses pytest + unittest.mock to isolate Tkinter and DataManager behavior.
-
+import sys
 import json
 import pytest
 from unittest.mock import Mock, patch
+mock = Mock()
+sys.modules["reportlab"] = mock
+sys.modules["reportlab.lib"] = mock
+sys.modules["reportlab.lib.pagesizes"] = mock
+sys.modules["reportlab.pdfgen"] = mock
+sys.modules["reportlab.pdfgen.canvas"] = mock
+sys.modules["reportlab.platypus"] = mock
 
-with patch("Controller.main_controller.DataManager", Mock(return_value=Mock())):
-    import Controller.main_controller as ctrl
+# with patch("Controller.main_controller.DataManager", Mock(return_value=Mock())):
+import Controller.main_controller as ctrl
+
 
 
 # --- Fixtures ---
-
-
 @pytest.fixture(autouse=True)
 def reset_dm(monkeypatch):
     """Provide a mock DataManager for each test run."""
