@@ -367,7 +367,7 @@ def exportOneScheduleHTML(room_classes, dir):
 def exportMultiScheduleHTML(schedules, filepath):
     titel = filepath[:-5].split("/")[-1]
     order_ways = ["Rooms & Labs", "Faculty"]
-    
+
     html = f"""<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -550,4 +550,4 @@ def exportSchedulesBTN(data, pathEntaryVar):
         return
 
     pathEntaryVar.set(f"Schedules have been saved to: {filePath}")
-    #pathEntaryVar.set(f"Schedules saved to: {filePath}")
+    # pathEntaryVar.set(f"Schedules saved to: {filePath}")

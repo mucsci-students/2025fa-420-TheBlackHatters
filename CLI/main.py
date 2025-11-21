@@ -23,10 +23,7 @@ from Models.Labs_model import Lab
 # from CLI.room_cli import *
 from CLI.room_cli import mainRoomControler
 from CLI.lab_cli import mainLabControler
-from scheduler import (
-    Scheduler,
-    load_config_from_file
-)
+from scheduler import Scheduler, load_config_from_file
 from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
 
@@ -205,7 +202,6 @@ def runScheduler(otherData):
 
             print("Running the schedule: \n")
             config = load_config_from_file(CombinedConfig, f"{configInput}")
-
 
             # Create scheduler
             scheduler = Scheduler(config)
@@ -480,7 +476,7 @@ def main(cli, tests):
         #     app.mainloop()
         app = SchedulerApp()
         app.mainloop()
-        
+
     quit()
 
 

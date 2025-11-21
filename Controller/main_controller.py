@@ -4,6 +4,7 @@ from scheduler import Scheduler, CombinedConfig
 import os
 import json
 import csv
+
 # from reportlab.pdfgen import canvas
 # from reportlab.lib.pagesizes import letter
 from .controllerUtils import exportSchedulesBTN
@@ -19,7 +20,6 @@ DM = DataManager()
 def configImportBTN(pathVar, refresh=None):
     global DM
 
-    
     # this just opens the file manager and accepts only .json files
     filePath = filedialog.askopenfilename(
         title="Select a JSON file", filetypes=[("JSON files", "*.json")]
@@ -110,13 +110,14 @@ def checkFileContent(data, pathEntaryVar):
 
     return True
 
+
 def stupid():
-    # just to make the CI stuff happy, without 
+    # just to make the CI stuff happy, without
     # from .controllerUtils import exportSchedulesBTN
-    # I get lots of errors, 
-    # if i import it have to use it to make the ruff checker happy 
+    # I get lots of errors,
+    # if i import it have to use it to make the ruff checker happy
     # or here it is
-    exportSchedulesBTN("s","s" )
+    exportSchedulesBTN("s", "s")
 
 
 def csvToJson(data):
@@ -180,8 +181,6 @@ def importSchedulesBTN(pathEntaryVar):
     return sch
 
 
-
-
 # room controller
 class RoomsController:
     global DM
@@ -192,23 +191,23 @@ class RoomsController:
     def listRooms(self):
         return DM.getRooms()
 
-    def addRoom(self, roomName, refresh = None):
+    def addRoom(self, roomName, refresh=None):
         DM.addRoom(roomName)
         if refresh:
             refresh("ConfigPage")
 
-    def editRoom(self, oldname, roomName, refresh = None):
-        DM.editRoom(oldname,roomName)
+    def editRoom(self, oldname, roomName, refresh=None):
+        DM.editRoom(oldname, roomName)
         if refresh:
             refresh(target="ConfigPage", data=roomName)
 
-    def removeRoom(self, roomName, refresh = None):
+    def removeRoom(self, roomName, refresh=None):
         if roomName in self.listRooms():
             DM.removeRoom(roomName)
             if refresh:
                 refresh("ConfigPage")
-        else: 
-            print('Room not in system')
+        else:
+            print("Room not in system")
 
 
 # Lab controller
@@ -236,8 +235,9 @@ class LabsController:
             DM.removeLabs(labName)
             if refresh:  # Only refresh if requested
                 refresh("ConfigPage")
-        else: 
-            print('Lab not in system')
+        else:
+            print("Lab not in system")
+
 
 # Faculty controller
 class FacultyController:
@@ -248,7 +248,7 @@ class FacultyController:
 
     def listFaculty(self):
         return DM.getFaculty()
-    
+
     def addFaculty(self, newFaculty, refresh=None):  # Make refresh optional
         DM.addFaculty(newFaculty)
         if refresh:  # Only refresh if requested
@@ -264,14 +264,15 @@ class FacultyController:
         DM.removeFaculty(facName)
         if refresh:  # Only refresh if requested
             refresh("ConfigPage")
-        
+
+
 # Course Controller
 class CourseController:
     global DM
 
     def __init__(self):
         pass
-        
+
     def listCourses(self):
         return DM.getCourses()
 
@@ -284,7 +285,9 @@ class CourseController:
         except Exception as e:
             return str(e)
 
-    def editCourse(self, oldName, newData, refresh=None, target_index=None):  # Make refresh optional
+    def editCourse(
+        self, oldName, newData, refresh=None, target_index=None
+    ):  # Make refresh optional
         try:
             DM.editCourse(oldName, newData, target_index=target_index)
             if refresh:  # Only refresh if requested
