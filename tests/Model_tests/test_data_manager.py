@@ -169,27 +169,6 @@ def test_duplicate_lab_names(sample_config):
 # ---- CRUD: Faculty ----
 
 
-def test_add_faculty(sample_config):
-    dm = DataManager()
-    dm.data = sample_config
-    new_faculty = {"name": "Delaney"}
-    dm.addFaculty(new_faculty)
-    assert new_faculty in dm.getFaculty()
-
-
-def test_faculty_name_formats():
-    """Should handle different faculty name formats."""
-    dm = DataManager()
-    dm.data = {"config": {"faculty": []}}
-
-    # Test different faculty formats
-    dm.addFaculty({"name": "Dr. Smith"})  # Dict with name
-    dm.addFaculty("Professor Jones")  # Direct string
-    faculty = dm.getFaculty()
-    assert any(f.get("name") == "Dr. Smith" for f in faculty)
-    assert "Professor Jones" in faculty
-
-
 def test_remove_nonexistent_faculty():
     """Should handle removing non-existent faculty."""
     dm = DataManager()

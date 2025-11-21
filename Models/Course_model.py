@@ -71,26 +71,21 @@ class Course:
         return Course(
             course_id=data["course_id"],
             credits=data["credits"],
-            room=data.get("room", []),
-            lab=data.get("lab", []),
-            conflicts=data.get("conflicts", []),
-            faculty=data.get("faculty", []),
+            room=data.get("room", []) or [],
+            lab=data.get("lab", []) or [],
+            conflicts=data.get("conflicts", []) or [],
+            faculty=data.get("faculty", []) or [],
         )
 
-    def to_dict(self, omit_empty=True):
-        d = {
+    def to_dict(self):
+        return {
             "course_id": self.course_id,
             "credits": int(self.credits),
-            "room": list(self.room),
-            "lab": list(self.lab),
-            "conflicts": list(self.conflicts),
-            "faculty": list(self.faculty),
+            "room": list(self.room or []),
+            "lab": list(self.lab or []),
+            "conflicts": list(self.conflicts or []),
+            "faculty": list(self.faculty or []),
         }
-        if omit_empty:
-            for k in ("room", "lab", "conflicts", "faculty"):
-                if not d[k]:
-                    del d[k]
-        return d
 
     # Edit functions
     def rename(self, new_course_id):

@@ -38,15 +38,6 @@ def test_build_and_validate_minimal():
     assert c.credits == 4
 
 
-def test_to_dict_omit_empty():
-    c = Course("CS101", 3)
-    d = c.to_dict(omit_empty=True)
-    assert d["course_id"] == "CS101"
-    assert d["credits"] == 3
-    assert "room" not in d
-    assert "lab" not in d
-
-
 def test_list_cleaning_and_dedup():
     c = Course(
         "CS200",

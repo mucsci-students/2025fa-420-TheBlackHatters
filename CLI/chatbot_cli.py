@@ -3,7 +3,6 @@
 import json
 import os
 from Controller.chatbot_agent import ChatbotAgent
-from Models.Data_manager import DataManager
 
 
 def save_config(DM, path):
@@ -34,15 +33,20 @@ def main(cfg_path=None):
         cfg_path = "output/mainConfig.json"
 
     # --- Load DataManager Config ---
-    DM = DataManager()
+    from Controller.main_controller import DM
 
     if os.path.exists(cfg_path):
         with open(cfg_path, "r") as f:
             DM.data = json.load(f)
-        print(f"Config loaded from {cfg_path}")
+            print(f"Config loaded from {cfg_path}")
     else:
         DM.data = {"config": {"rooms": [], "labs": [], "courses": [], "faculty": []}}
         print("No config file found. Starting with an empty config.")
+
+    # 🔧 Ensure ChatbotAgent uses this same populated DataManager
+    import Controller.main_controller as ctrl
+
+    ctrl.DM = DM
 
     # --- Initialize chatbot agent ---
     agent = ChatbotAgent(lambda: cfg_path)

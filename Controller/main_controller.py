@@ -223,23 +223,23 @@ class RoomsController:
     def listRooms(self):
         return DM.getRooms()
 
-    def addRoom(self, roomName, refresh = None):
+    def addRoom(self, roomName, refresh=None):
         DM.addRoom(roomName)
         if refresh:
             refresh("ConfigPage")
 
-    def editRoom(self, oldname, roomName, refresh = None):
-        DM.editRoom(oldname,roomName)
+    def editRoom(self, oldname, roomName, refresh=None):
+        DM.editRoom(oldname, roomName)
         if refresh:
             refresh(target="ConfigPage", data=roomName)
 
-    def removeRoom(self, roomName, refresh = None):
+    def removeRoom(self, roomName, refresh=None):
         if roomName in self.listRooms():
             DM.removeRoom(roomName)
             if refresh:
                 refresh("ConfigPage")
-        else: 
-            print('Room not in system')
+        else:
+            print("Room not in system")
 
 
 # Lab controller
@@ -267,8 +267,9 @@ class LabsController:
             DM.removeLabs(labName)
             if refresh:  # Only refresh if requested
                 refresh("ConfigPage")
-        else: 
-            print('Lab not in system')
+        else:
+            print("Lab not in system")
+
 
 # Faculty controller
 class FacultyController:
@@ -279,7 +280,7 @@ class FacultyController:
 
     def listFaculty(self):
         return DM.getFaculty()
-    
+
     def addFaculty(self, newFaculty, refresh=None):  # Make refresh optional
         DM.addFaculty(newFaculty)
         if refresh:  # Only refresh if requested
@@ -295,14 +296,15 @@ class FacultyController:
         DM.removeFaculty(facName)
         if refresh:  # Only refresh if requested
             refresh("ConfigPage")
-        
+
+
 # Course Controller
 class CourseController:
     global DM
 
     def __init__(self):
         pass
-        
+
     def listCourses(self):
         return DM.getCourses()
 
@@ -315,7 +317,9 @@ class CourseController:
         except Exception as e:
             return str(e)
 
-    def editCourse(self, oldName, newData, refresh=None, target_index=None):  # Make refresh optional
+    def editCourse(
+        self, oldName, newData, refresh=None, target_index=None
+    ):  # Make refresh optional
         try:
             DM.editCourse(oldName, newData, target_index=target_index)
             if refresh:  # Only refresh if requested
