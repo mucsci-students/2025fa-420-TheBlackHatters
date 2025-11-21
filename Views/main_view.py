@@ -10,8 +10,6 @@ from Controller.main_controller import (
     configExportBTN,
     generateSchedulesBtn,
     importSchedulesBTN,
-    # exportSchedulesBTN,
-    # exportSchedulePDF
 )
 from pathlib import Path
 from Controller.controllerUtils import (
@@ -22,7 +20,7 @@ from Controller.controllerUtils import (
     exportOneScheduleHTML,
     exportSchedulesBTN,
 )
-
+from typing import Optional 
 
 # should create controllers for other things too
 roomCtr = RoomsController()
