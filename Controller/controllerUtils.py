@@ -5,7 +5,7 @@ from datetime import datetime
 import math
 from tkinter import filedialog
 import re
-import os
+import os 
 
 
 def sortSchedulesByTime(data):
