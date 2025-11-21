@@ -287,9 +287,65 @@ class DataManager:
 
     @requireData
     def addFaculty(self, newFaculty):
-        conFaculty = self.data["config"]["faculty"]
-        FacultyModel.Faculty.addFaculty(conFaculty, newFaculty)
-        # self.saveData(outPath = self.filePath)
+        """
+        Safely add a new faculty record.
+        Enforces strict schema and weekday validation (MON–FRI only).
+        """
+        ALLOWED_FIELDS = {
+            "name",
+            "minimum_credits",
+            "maximum_credits",
+            "unique_course_limit",
+            "times",
+            "course_preferences",
+            "room_preferences",
+            "lab_preferences",
+        }
+        ALLOWED_DAYS = {"MON", "TUE", "WED", "THU", "FRI"}
+
+        if not isinstance(newFaculty, dict):
+            raise ValueError("Faculty entry must be a dictionary.")
+
+        # Keep only allowed fields
+        clean_fac = {k: v for k, v in newFaculty.items() if k in ALLOWED_FIELDS}
+
+        if "name" not in clean_fac or not clean_fac["name"]:
+            raise ValueError("Faculty must include a valid 'name' field.")
+
+        # Validate and normalize fields
+        for k in ("minimum_credits", "maximum_credits", "unique_course_limit"):
+            if k in clean_fac and not isinstance(clean_fac[k], int):
+                try:
+                    clean_fac[k] = int(clean_fac[k])
+                except Exception:
+                    raise ValueError(f"Invalid integer for '{k}': {clean_fac[k]}")
+        if "times" in clean_fac:
+            if not isinstance(clean_fac["times"], dict):
+                raise ValueError("'times' must be a dict[str, list[str]]")
+            for d in list(clean_fac["times"].keys()):
+                if d not in ALLOWED_DAYS:
+                    raise ValueError(
+                        f"Invalid day '{d}' in times; must be one of {sorted(ALLOWED_DAYS)}"
+                    )
+                if not isinstance(clean_fac["times"][d], list):
+                    raise ValueError(f"'times[{d}]' must be a list of time strings.")
+        else:
+            clean_fac["times"] = {d: [] for d in ALLOWED_DAYS}
+
+        for pref in ("course_preferences", "room_preferences", "lab_preferences"):
+            if pref not in clean_fac:
+                clean_fac[pref] = {}
+            elif not isinstance(clean_fac[pref], dict):
+                raise ValueError(f"'{pref}' must be a dict[str, int]")
+
+        # Fill any missing numeric fields with defaults
+        clean_fac.setdefault("minimum_credits", 0)
+        clean_fac.setdefault("maximum_credits", 0)
+        clean_fac.setdefault("unique_course_limit", 1)
+
+        # Append safely
+        self.data["config"]["faculty"].append(clean_fac)
+        print(f"Added faculty: {clean_fac['name']}")
 
     @requireData
     def removeFaculty(self, facName):
@@ -306,3 +362,95 @@ class DataManager:
         if result is None:
             raise ValueError(f"Faculty member '{facName}' not found")
         # self.saveData(outPath = self.filePath)
+
+    @requireData
+    def editFaculty(self, name: str, updates: dict):
+        """
+        Safely update an existing faculty member.
+        Only known fields are allowed.
+        Validates weekdays as MON–FRI and preserves JSON schema structure.
+        """
+        ALLOWED_FIELDS = {
+            "name",
+            "minimum_credits",
+            "maximum_credits",
+            "unique_course_limit",
+            "times",
+            "course_preferences",
+            "room_preferences",
+            "lab_preferences",
+        }
+        ALLOWED_DAYS = {"MON", "TUE", "WED", "THU", "FRI"}
+
+        faculty_list = self.data["config"].get("faculty", [])
+        if not faculty_list:
+            raise ValueError("No faculty data found.")
+
+        # Find faculty by name (case-insensitive)
+        idx = next(
+            (
+                i
+                for i, f in enumerate(faculty_list)
+                if f.get("name", "").lower() == name.lower()
+            ),
+            None,
+        )
+        if idx is None:
+            raise ValueError(f"Faculty '{name}' not found.")
+
+        current = faculty_list[idx]
+        updated = current.copy()
+
+        for key, val in (updates or {}).items():
+            if key not in ALLOWED_FIELDS:
+                print(f"[WARN] Ignoring unknown faculty field: '{key}'")
+                continue
+
+            # Validate types and structures
+            if key in ("minimum_credits", "maximum_credits", "unique_course_limit"):
+                if not isinstance(val, int):
+                    try:
+                        val = int(val)
+                    except Exception:
+                        raise ValueError(f"Invalid integer for '{key}': {val}")
+
+            elif key == "times":
+                if not isinstance(val, dict):
+                    raise ValueError("'times' must be a dict[str, list[str]]")
+                # Check valid weekday keys
+                for d in list(val.keys()):
+                    if d not in ALLOWED_DAYS:
+                        raise ValueError(
+                            f"Invalid day '{d}' in times; must be one of {sorted(ALLOWED_DAYS)}"
+                        )
+                    if not isinstance(val[d], list):
+                        raise ValueError(
+                            f"'times[{d}]' must be a list of time strings."
+                        )
+                # Ensure all allowed days exist
+                for d in ALLOWED_DAYS:
+                    val.setdefault(d, [])
+            elif key.endswith("_preferences"):
+                if not isinstance(val, dict):
+                    raise ValueError(f"'{key}' must be a dict[str, int]")
+            updated[key] = val
+
+        # Ensure schema completeness
+        for k in ALLOWED_FIELDS:
+            if k not in updated:
+                updated[k] = {} if k.endswith("_preferences") or k == "times" else 0
+        if "name" not in updated or not updated["name"]:
+            updated["name"] = current["name"]
+
+        # Cascade rename if needed
+        old_name = current.get("name")
+        new_name = updated.get("name", old_name)
+        if new_name != old_name:
+            for course in self.data["config"].get("courses", []):
+                if old_name in course.get("faculty", []):
+                    course["faculty"] = [
+                        new_name if x == old_name else x for x in course["faculty"]
+                    ]
+
+        faculty_list[idx] = updated
+        print(f"Updated faculty: {old_name} → {new_name}")

@@ -1665,6 +1665,8 @@ class SchedulerApp(ctk.CTk):
     def __init__(self):
         # our apps inherates everything form ctk.CTk
         super().__init__()
+        self.chat_agent: Optional[ChatbotAgent] = None
+
         # titel
         self.title("Scheduler Application")
 
