@@ -13,7 +13,7 @@ from Controller.main_controller import (
     #exportSchedulesBTN,
     # exportSchedulePDF
 )
-
+from pathlib import Path
 from Controller.controllerUtils import (
     orderedSchedules, 
     parseMeeting, 
@@ -1046,7 +1046,7 @@ def showSuccessPopup(message="Successfully exported!"):
     popup = ctk.CTkToplevel()
     popup.title("Success")
     popup.geometry("300x150")
-    popup.grab_set()  # blocks interaction with main window
+    popup.grab_set()  
 
     ctk.CTkLabel(popup, text=message, font=("Arial", 16)).pack(pady=20)
 
@@ -1057,15 +1057,39 @@ def showSuccessPopup(message="Successfully exported!"):
         command=popup.destroy
     ).pack(pady=10)
 
-def handleExportPDF(room, classes):
-    exportOneSchedulePDF([room, classes], "output")
-    showSuccessPopup("PDF exported successfully!")
+
+def showErrorPopup(message="An error occurred during export!"):
+    popup = ctk.CTkToplevel()
+    popup.title("Error")
+    popup.geometry("300x150")
+    popup.grab_set()
+
+    ctk.CTkLabel(popup, text=message, font=("Arial", 16), text_color="red").pack(pady=20)
+
+    ctk.CTkButton(
+        popup,
+        text="OK",
+        width=80,
+        command=popup.destroy
+    ).pack(pady=10)
 
 
-def handleExportHTML(room, classes):
-    exportOneScheduleHTML([room, classes], "output")
-    showSuccessPopup("HTML exported successfully!")
+def handleExportPDF(room, classes, output_dir="output"):
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        exportOneSchedulePDF([room, classes], output_dir)
+        showSuccessPopup("PDF exported successfully!")
+    except Exception as e:
+        showErrorPopup(f"Failed to export PDF:\n{e}")
 
+
+def handleExportHTML(room, classes, output_dir="output"):
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        exportOneScheduleHTML([room, classes], output_dir)
+        showSuccessPopup("HTML exported successfully!")
+    except Exception as e:
+        showErrorPopup(f"Failed to export HTML:\n{e}")
 
 
 def defaultScheduleViewer(

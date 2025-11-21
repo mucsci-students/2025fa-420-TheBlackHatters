@@ -215,7 +215,7 @@ def drawSchedulePagePDF(canvas, data):
 
 def exportOneSchedulePDF(room_classes, output_dir):
     room, classes = room_classes  # room_classes = [roomName(proffessro name), classes]
-
+    os.makedirs(output_dir, exist_ok=True)
     filename = f"{output_dir}/{room}_schedule.pdf"
 
     # Canvas name does not work.... Don't do that pleae
@@ -314,6 +314,7 @@ def drawScheduleSVG(room_classes):
 
 def exportOneScheduleHTML(room_classes, dir):
     room, classes = room_classes
+    os.makedirs(dir, exist_ok=True)
     filename = f"{dir}/{room}_schedule.html"
     html = f"""<!DOCTYPE html>
         <html lang="en">
@@ -366,7 +367,7 @@ def exportOneScheduleHTML(room_classes, dir):
 def exportMultiScheduleHTML(schedules, filepath):
     titel = filepath[:-5].split("/")[-1]
     order_ways = ["Rooms & Labs", "Faculty"]
-
+    
     html = f"""<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -548,4 +549,5 @@ def exportSchedulesBTN(data, pathEntaryVar):
         pathEntaryVar.set("Unsupported file type selected!")
         return
 
-    pathEntaryVar.set(f"Schedules saved to: {filePath}")
+    pathEntaryVar.set(f"Schedules have been saved to: {filePath}")
+    #pathEntaryVar.set(f"Schedules saved to: {filePath}")
