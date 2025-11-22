@@ -29,6 +29,8 @@ from CLI.display_schedule import display_schedule
 from Views.main_view import SchedulerApp
 from CLI.test_cli import run_tests_cli
 
+from CLI.time_slot_cli import mainTimeSlotController
+
 # output/input Path
 filePath = "output/mainConfig.json"
 
@@ -249,6 +251,7 @@ def whatAction(rooms, labs, courses, faculty, other):
         print("3. Add, Modify, Delete Labs\n")
         print("4. Add, Modify, Delete Courses\n")
         print("5. Chatbot Mode (natural language)\n")
+        print("6. Manage Time Slots\n")
         print("0. Go Back\n")
         choice = input("Enter choice: ")
         if choice == "1":
@@ -271,6 +274,12 @@ def whatAction(rooms, labs, courses, faculty, other):
             from CLI.chatbot_cli import main as chatbot_main
             saveConfig(filePath, rooms, labs, courses, faculty, other)
             chatbot_main(filePath)
+        elif choice == "6":
+            from Models.Data_manager import DataManager
+            dm = DataManager(filePath)
+            mainTimeSlotController(dm)
+            # Reload after changes
+            rooms, labs, courses, faculty, other = parseJson(filePath)
 
             # reload changes made by chatbot
             rooms, labs, courses, faculty, other = parseJson(filePath)
