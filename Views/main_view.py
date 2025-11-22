@@ -5,13 +5,14 @@ from Controller.chatbot_agent import ChatbotAgent
 from Controller.main_controller import (RoomsController, LabsController, FacultyController,
                                         configImportBTN, configExportBTN, generateSchedulesBtn,
                                         importSchedulesBTN, exportSchedulesBTN,
-                                        CourseController)
+                                        CourseController, TimeSlotController, DM)
 
 import math
 import re
 import random
 
 from datetime import datetime
+
 
 
 # should create controllers for other things too
@@ -963,8 +964,595 @@ def dataCoursesRight(frame, controller, refresh, data=None):
 
     # --- Save button ---
     ctk.CTkButton(frame, text="Save Changes", width=150, font=("Arial", 22, "bold"), height=45,
-                  command=onSave).pack(side="bottom", pady=15)
+                command=onSave).pack(side="bottom", pady=15)
 
+def dataTimeSlotsLeft(frame, controller, refresh, data=None):
+
+    """Display list of time slots on the left side"""
+    container = ctk.CTkFrame(frame, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # Button container
+    button_frame = ctk.CTkFrame(container, fg_color="transparent")
+    button_frame.pack(side="top", fill="x", padx=5, pady=(0, 10))
+
+    def onAdd():
+        refresh(target="ConfigPage")
+
+    # Add button
+    ctk.CTkButton(
+        button_frame,
+        text="Add",
+        width=120,
+        height=20,
+        command=onAdd
+    ).pack(side="left", padx=(0, 5))
+
+    # View All button
+    ctk.CTkButton(
+        button_frame,
+        text="View All",
+        width=120,
+        height=20,
+        command=lambda: viewAllTimeSlots(controller, refresh)
+    ).pack(side="left", padx=(0, 5))
+
+    # Days in fixed order
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    for day in days:
+        ctk.CTkLabel(container, text=day, font=("Arial", 14, "bold")).pack(anchor="w", pady=(10, 5), padx=5)
+
+        intervals = controller.list_intervals(day)
+
+        if not intervals:
+            ctk.CTkLabel(container, text="  (No intervals)", text_color="gray", font=("Arial", 11)).pack(anchor="w", padx=20)
+            continue
+
+        for idx, interval in enumerate(intervals):
+            rowFrame = ctk.CTkFrame(container, fg_color="transparent")
+            rowFrame.pack(fill="x", pady=2, padx=5)
+            
+            # Configure grid columns: label takes remaining space, buttons have fixed size
+            rowFrame.grid_columnconfigure(0, weight=1)
+            rowFrame.grid_columnconfigure(1, weight=0)
+            rowFrame.grid_columnconfigure(2, weight=0)
+            
+            # Build shorter label text
+            restrictions = []
+            if interval.get("professors"):
+                restrictions.append(f"F:{len(interval['professors'])}")
+            if interval.get("labs"):
+                restrictions.append(f"R:{len(interval['labs'])}")
+            if interval.get("courses"):
+                restrictions.append(f"C:{len(interval['courses'])}")
+            
+            restriction_text = f" [{','.join(restrictions)}]" if restrictions else ""
+            label_txt = f"{interval['start']}-{interval['end']} ({interval.get('spacing', 0)}m){restriction_text}"
+
+            # Label with fixed width to prevent overflow
+            label = ctk.CTkLabel(
+                rowFrame, 
+                text=label_txt, 
+                font=("Arial", 11), 
+                anchor="w"
+            )
+            label.grid(row=0, column=0, sticky="w", padx=(0, 5))
+
+            # Edit button - fixed position
+            ctk.CTkButton(
+                rowFrame,
+                text="Edit",
+                width=50,
+                height=20,
+                command=lambda d=day, i=idx: onEdit(d, i)
+            ).grid(row=0, column=1, padx=2)
+
+            # Delete button - fixed position
+            ctk.CTkButton(
+                rowFrame,
+                text="Del",
+                width=50,
+                height=20,
+                fg_color="#d32f2f",
+                hover_color="#b71c1c",
+                command=lambda d=day, i=idx: onDelete(d, i)
+            ).grid(row=0, column=2, padx=(2, 0))
+
+    def onDelete(day, idx):
+        # Confirmation dialog
+        confirm = ctk.CTkToplevel()
+        confirm.title("Confirm Delete")
+        confirm.geometry("350x120")
+        confirm.grab_set()
+        
+        ctk.CTkLabel(
+            confirm,
+            text="Delete this time slot?",
+            font=("Arial", 14, "bold")
+        ).pack(pady=15)
+        
+        button_frame = ctk.CTkFrame(confirm, fg_color="transparent")
+        button_frame.pack(pady=10)
+        
+        def do_delete():
+            controller.remove_time_interval(day, idx)
+            confirm.destroy()
+            refresh(target="ConfigPage")
+        
+        ctk.CTkButton(
+            button_frame,
+            text="Delete",
+            width=80,
+            fg_color="#d32f2f",
+            hover_color="#b71c1c",
+            command=do_delete
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="Cancel",
+            width=80,
+            command=confirm.destroy
+        ).pack(side="left", padx=5)
+
+    def onEdit(day, idx):
+        intervals = controller.list_intervals(day)
+        if idx < len(intervals):
+            interval = intervals[idx]
+            edit_data = {
+                "day": day,
+                "index": idx,
+                "interval": interval
+            }
+            refresh(target="ConfigPage", data=edit_data)
+
+def dataTimeSlotsRight(frame, controller, refresh, data=None):
+
+    """Display time slot form on the right side"""
+    container = ctk.CTkFrame(frame, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # Check if we're editing
+    is_editing = data and isinstance(data, dict) and "day" in data and "index" in data
+
+    # Title
+    title_text = "Edit Time Slot" if is_editing else "Add Time Slot"
+    ctk.CTkLabel(container, text=title_text, font=("Arial", 24, "bold")).pack(pady=(0, 20))
+
+    # Day selection
+    dayFrame = ctk.CTkFrame(container, fg_color="transparent")
+    dayFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(dayFrame, text="Day:", width=120, anchor="w", font=("Arial", 20, "bold")).pack(side="left", padx=10)
+    
+    dayVar = ctk.StringVar(value=data.get("day", "Monday") if is_editing else "Monday")
+    dayDropdown = ctk.CTkOptionMenu(
+        dayFrame,
+        variable=dayVar,
+        values=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        width=200,
+        font=("Arial", 18)
+    )
+    dayDropdown.pack(side="left", fill="x", expand=True, padx=5)
+
+    # If editing, disable day selection
+    if is_editing:
+        dayDropdown.configure(state="disabled")
+
+    # Start Time
+    startFrame = ctk.CTkFrame(container, fg_color="transparent")
+    startFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(startFrame, text="Start Time:", width=120, anchor="w", font=("Arial", 20, "bold")).pack(side="left", padx=10)
+    startVar = ctk.StringVar(value=data.get("interval", {}).get("start", "09:00") if is_editing else "09:00")
+    startEntry = ctk.CTkEntry(startFrame, textvariable=startVar, placeholder_text="HH:MM", font=("Arial", 20))
+    startEntry.pack(side="left", fill="x", expand=True, padx=5)
+
+    # End Time
+    endFrame = ctk.CTkFrame(container, fg_color="transparent")
+    endFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(endFrame, text="End Time:", width=120, anchor="w", font=("Arial", 20, "bold")).pack(side="left", padx=10)
+    endVar = ctk.StringVar(value=data.get("interval", {}).get("end", "10:00") if is_editing else "10:00")
+    endEntry = ctk.CTkEntry(endFrame, textvariable=endVar, placeholder_text="HH:MM", font=("Arial", 20))
+    endEntry.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Spacing
+    spacingFrame = ctk.CTkFrame(container, fg_color="transparent")
+    spacingFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(spacingFrame, text="Spacing (min):", width=120, anchor="w", font=("Arial", 20, "bold")).pack(side="left", padx=10)
+    spacingVar = ctk.StringVar(value=str(data.get("interval", {}).get("spacing", 10)) if is_editing else "10")
+    spacingEntry = ctk.CTkEntry(spacingFrame, textvariable=spacingVar, placeholder_text="0-60", font=("Arial", 20))
+    spacingEntry.pack(side="left", fill="x", expand=True, padx=5)
+
+    # Helper text
+    ctk.CTkLabel(
+        container,
+        text="Format: HH:MM (24-hour format, e.g., 09:00, 14:30)",
+        font=("Arial", 12),
+        text_color="gray"
+    ).pack(pady=10)
+
+    # Get available options for dropdowns
+    all_faculty = sorted({f["name"] for f in facultyCtr.listFaculty()})
+    all_rooms = sorted(roomCtr.listRooms())
+    all_courses = sorted({c["course_id"] for c in courseCtr.listCourses()})
+
+    # Get existing values if editing
+    existing_professors = data.get("interval", {}).get("professors", []) if is_editing else []
+    existing_labs = data.get("interval", {}).get("labs", []) if is_editing else []
+    existing_courses = data.get("interval", {}).get("courses", []) if is_editing else []
+
+    # Helper function to create multi-select sections
+    def create_multiselect_section(parent, title, items, selected_list):
+        """Creates a section with checkboxes for multi-selection"""
+        section = ctk.CTkFrame(parent, fg_color="transparent")
+        section.pack(fill="x", pady=(10, 5), padx=5)
+
+        # Section title
+        ctk.CTkLabel(section, text=f"{title}:", anchor="w", font=("Arial", 20, "bold")).pack(anchor="w", padx=10, pady=(0, 5))
+        
+        # Helper text
+        ctk.CTkLabel(
+            section,
+            text=f"(Leave unchecked to allow all {title.lower()})",
+            font=("Arial", 12),
+            text_color="gray"
+        ).pack(anchor="w", padx=10, pady=(0, 5))
+
+        # Scrollable frame for checkboxes
+        checkbox_container = ctk.CTkScrollableFrame(section, height=150, fg_color="#2b2b2b")
+        checkbox_container.pack(fill="both", padx=20, pady=5)
+
+        checkbox_vars = {}
+        
+        for item in items:
+            var = ctk.BooleanVar(value=(item in selected_list))
+            checkbox = ctk.CTkCheckBox(
+                checkbox_container,
+                text=item,
+                variable=var,
+                font=("Arial", 14)
+            )
+            checkbox.pack(anchor="w", pady=2, padx=5)
+            checkbox_vars[item] = var
+
+        return checkbox_vars
+
+    # Faculty/Professors section
+    professor_vars = create_multiselect_section(
+        container,
+        "Restrict to Faculty",
+        all_faculty,
+        existing_professors
+    )
+
+    # Rooms section (called "labs" in the model, but these are actually rooms)
+    room_vars = create_multiselect_section(
+        container,
+        "Restrict to Rooms",
+        all_rooms,
+        existing_labs
+    )
+
+    # Courses section
+    course_vars = create_multiselect_section(
+        container,
+        "Restrict to Courses",
+        all_courses,
+        existing_courses
+    )
+
+    # Error label
+    error_label = ctk.CTkLabel(container, text="", text_color="red", font=("Arial", 14, "bold"))
+    error_label.pack(pady=5)
+
+    # Save button
+    def onSave():
+        error_label.configure(text="")
+        
+        try:
+            # Validate inputs
+            start = startVar.get().strip()
+            end = endVar.get().strip()
+            spacing = int(spacingVar.get().strip())
+            
+            # Basic time format validation
+            if not start or not end:
+                error_label.configure(text="Please enter both start and end times!")
+                return
+            
+            # Get selected faculty, rooms, and courses
+            selected_professors = [name for name, var in professor_vars.items() if var.get()]
+            selected_rooms = [room for room, var in room_vars.items() if var.get()]
+            selected_courses = [course for course, var in course_vars.items() if var.get()]
+            
+            # Create interval dict
+            interval = {
+                "start": start,
+                "end": end,
+                "spacing": spacing
+            }
+            
+            # Only add these fields if they have values
+            if selected_professors:
+                interval["professors"] = selected_professors
+            if selected_rooms:
+                interval["labs"] = selected_rooms  # Note: using "labs" key for rooms in the model
+            if selected_courses:
+                interval["courses"] = selected_courses
+            
+            if is_editing:
+                # Edit existing interval
+                controller.edit_time_interval(data["day"], data["index"], interval)
+            else:
+                # Add new interval
+                controller.add_time_interval(dayVar.get(), interval)
+            
+            # Success - refresh the page
+            refresh(target="ConfigPage")
+            
+        except ValueError as e:
+            error_label.configure(text=f"Invalid spacing value! Must be a number.")
+        except Exception as e:
+            error_label.configure(text=f"Error: {str(e)}")
+
+    ctk.CTkButton(
+        frame,
+        text="Save Changes",
+        width=150,
+        font=("Arial", 20, "bold"),
+        height=40,
+        command=onSave
+    ).pack(side="bottom", pady=15)
+
+def deleteTimeSlot(day, idx, ctrl, refresh):
+    """Helper function to delete a time slot"""
+    ctrl.remove_time_interval(day, idx)
+    refresh(target="ConfigPage")
+
+def viewAllTimeSlots(controller, refresh):
+    """Display all time slots in a popup window with delete functionality"""
+    popup = ctk.CTkToplevel()
+    popup.title("All Time Slots Overview")
+    popup.geometry("1000x700")
+    popup.minsize(800, 600)
+    
+    # Make popup modal
+    popup.grab_set()
+    popup.focus_force()
+    
+    def reload_view():
+        """Reload the view after deletions"""
+        popup.destroy()
+        viewAllTimeSlots(controller, refresh)
+    
+    # Main container
+    container = ctk.CTkScrollableFrame(popup, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    # Title
+    ctk.CTkLabel(
+        container,
+        text="Time Slots Configuration",
+        font=("Arial", 28, "bold")
+    ).pack(pady=(0, 20))
+    
+    # Days in order
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    
+    has_any_intervals = False
+    
+    for day in days:
+        intervals = controller.list_intervals(day)
+        
+        if not intervals:
+            continue
+        
+        has_any_intervals = True
+        
+        # Day header
+        day_frame = ctk.CTkFrame(container, fg_color="#2b2b2b", corner_radius=10)
+        day_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            day_frame,
+            text=day,
+            font=("Arial", 22, "bold"),
+            anchor="w"
+        ).pack(anchor="w", padx=15, pady=(10, 5))
+        
+        # Each interval
+        for idx, interval in enumerate(intervals):
+            interval_frame = ctk.CTkFrame(day_frame, fg_color="#1f1f1f", corner_radius=8)
+            interval_frame.pack(fill="x", padx=15, pady=5)
+            
+            # Top row with time info and action buttons
+            top_row = ctk.CTkFrame(interval_frame, fg_color="transparent")
+            top_row.pack(fill="x", padx=15, pady=(10, 5))
+            
+            # Time and spacing info
+            time_info = f"⏰ {interval['start']} — {interval['end']}  |  📊 Spacing: {interval.get('spacing', 0)} minutes"
+            ctk.CTkLabel(
+                top_row,
+                text=time_info,
+                font=("Arial", 16, "bold"),
+                anchor="w"
+            ).pack(side="left", fill="x", expand=True)
+            
+            # Action buttons
+            def make_edit_handler(d, i):
+                def handler():
+                    popup.destroy()
+                    intervals_list = controller.list_intervals(d)
+                    if i < len(intervals_list):
+                        edit_data = {
+                            "day": d,
+                            "index": i,
+                            "interval": intervals_list[i]
+                        }
+                        refresh(target="ConfigPage", data=edit_data)
+                return handler
+            
+            def make_delete_handler(d, i):
+                def handler():
+                    # Confirmation dialog
+                    confirm = ctk.CTkToplevel(popup)
+                    confirm.title("Confirm Delete")
+                    confirm.geometry("400x150")
+                    confirm.grab_set()
+                    
+                    ctk.CTkLabel(
+                        confirm,
+                        text="Are you sure you want to delete this time slot?",
+                        font=("Arial", 14, "bold"),
+                        wraplength=350
+                    ).pack(pady=20)
+                    
+                    button_frame = ctk.CTkFrame(confirm, fg_color="transparent")
+                    button_frame.pack(pady=10)
+                    
+                    def do_delete():
+                        controller.remove_time_interval(d, i)
+                        confirm.destroy()
+                        reload_view()
+                        refresh(target="ConfigPage")
+                    
+                    ctk.CTkButton(
+                        button_frame,
+                        text="Delete",
+                        width=100,
+                        fg_color="#d32f2f",
+                        hover_color="#b71c1c",
+                        command=do_delete
+                    ).pack(side="left", padx=5)
+                    
+                    ctk.CTkButton(
+                        button_frame,
+                        text="Cancel",
+                        width=100,
+                        command=confirm.destroy
+                    ).pack(side="left", padx=5)
+                
+                return handler
+            
+            ctk.CTkButton(
+                top_row,
+                text="Edit",
+                width=60,
+                height=28,
+                command=make_edit_handler(day, idx)
+            ).pack(side="right", padx=(5, 0))
+            
+            ctk.CTkButton(
+                top_row,
+                text="Delete",
+                width=60,
+                height=28,
+                fg_color="#d32f2f",
+                hover_color="#b71c1c",
+                command=make_delete_handler(day, idx)
+            ).pack(side="right", padx=(5, 0))
+            
+            # Restrictions section
+            restrictions_frame = ctk.CTkFrame(interval_frame, fg_color="transparent")
+            restrictions_frame.pack(fill="x", padx=15, pady=(5, 10))
+            
+            # Faculty restrictions
+            professors = interval.get("professors", [])
+            if professors:
+                faculty_frame = ctk.CTkFrame(restrictions_frame, fg_color="#2b2b2b", corner_radius=5)
+                faculty_frame.pack(fill="x", pady=2)
+                
+                ctk.CTkLabel(
+                    faculty_frame,
+                    text="👥 Restricted to Faculty:",
+                    font=("Arial", 14, "bold"),
+                    anchor="w"
+                ).pack(anchor="w", padx=10, pady=(5, 2))
+                
+                ctk.CTkLabel(
+                    faculty_frame,
+                    text=", ".join(professors),
+                    font=("Arial", 13),
+                    anchor="w",
+                    wraplength=800
+                ).pack(anchor="w", padx=25, pady=(0, 5))
+            
+            # Room restrictions
+            rooms = interval.get("labs", [])  # "labs" key stores rooms
+            if rooms:
+                room_frame = ctk.CTkFrame(restrictions_frame, fg_color="#2b2b2b", corner_radius=5)
+                room_frame.pack(fill="x", pady=2)
+                
+                ctk.CTkLabel(
+                    room_frame,
+                    text="🏫 Restricted to Rooms:",
+                    font=("Arial", 14, "bold"),
+                    anchor="w"
+                ).pack(anchor="w", padx=10, pady=(5, 2))
+                
+                ctk.CTkLabel(
+                    room_frame,
+                    text=", ".join(rooms),
+                    font=("Arial", 13),
+                    anchor="w",
+                    wraplength=800
+                ).pack(anchor="w", padx=25, pady=(0, 5))
+            
+            # Course restrictions
+            courses = interval.get("courses", [])
+            if courses:
+                course_frame = ctk.CTkFrame(restrictions_frame, fg_color="#2b2b2b", corner_radius=5)
+                course_frame.pack(fill="x", pady=2)
+                
+                ctk.CTkLabel(
+                    course_frame,
+                    text="📚 Restricted to Courses:",
+                    font=("Arial", 14, "bold"),
+                    anchor="w"
+                ).pack(anchor="w", padx=10, pady=(5, 2))
+                
+                ctk.CTkLabel(
+                    course_frame,
+                    text=", ".join(courses),
+                    font=("Arial", 13),
+                    anchor="w",
+                    wraplength=800
+                ).pack(anchor="w", padx=25, pady=(0, 5))
+            
+            # If no restrictions
+            if not professors and not rooms and not courses:
+                ctk.CTkLabel(
+                    restrictions_frame,
+                    text="✓ No restrictions (available to all)",
+                    font=("Arial", 13, "italic"),
+                    text_color="gray"
+                ).pack(anchor="w", padx=10, pady=2)
+        
+        # Spacing between days
+        ctk.CTkLabel(day_frame, text="").pack(pady=5)
+    
+    # If no intervals at all
+    if not has_any_intervals:
+        ctk.CTkLabel(
+            container,
+            text="No time slots configured yet.\nClick 'Add' to create your first time slot.",
+            font=("Arial", 16),
+            text_color="gray"
+        ).pack(pady=50)
+    
+    # Close button
+    ctk.CTkButton(
+        popup,
+        text="Close",
+        width=150,
+        height=40,
+        font=("Arial", 16, "bold"),
+        command=popup.destroy
+    ).pack(pady=15)
 
 def defaultScheduleViewer(frame, schedules, pathEntaryVar, idx, numOfSch, createDropdown, order = None):
     schedules = orderedSchedules(schedules, "Default")
@@ -1075,8 +1663,6 @@ def roomLabsScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSc
             for item in values:
                 ctk.CTkLabel(rowFrame, text=item, font=("Arial", 12), 
                     width=120, anchor="w").pack(side="left",padx=5)
-
-                
 
 
 def facultyScheduleViewer(frame, schedulesInstance, pathEntaryVar, idx, numOfSch, order, createDropdown):
@@ -1473,6 +2059,9 @@ class SchedulerApp(ctk.CTk):
         tabview.add("Courses")
         tabview.add("Rooms")
         tabview.add("Labs")
+        tabview.add("Time Slots")
+
+        tsCtr = TimeSlotController()
 
         # this sets the current tabview, to current when we refresh
         if "ConfigPage" in self.selected_tabs:
@@ -1529,6 +2118,12 @@ class SchedulerApp(ctk.CTk):
             lambda frame: dataLabsRight(frame, labCtr, self.refresh, data if isinstance(data, str) else None)
         )
 
+        # In createConfigPage method, replace the Time Slots section with:
+        self.createTwoColumn(
+            tabview.tab("Time Slots"),
+            lambda frame: dataTimeSlotsLeft(frame, tsCtr, self.refresh, data if isinstance(data, dict) and "day" in data else None),
+            lambda frame: dataTimeSlotsRight(frame, tsCtr, self.refresh, data if isinstance(data, dict) and "day" in data else None)
+        )
         # One chatbot instance for the entire app
         app = frame.winfo_toplevel()
         if not hasattr(app, "chat_agent"):
@@ -1900,7 +2495,7 @@ class SchedulerApp(ctk.CTk):
                             text_color="red").pack(padx=(0, 10))
 
         genBtn = ctk.CTkButton(container, text="Generate Schedules",
-                             width=150, command=onGenerate)
+                            width=150, command=onGenerate)
         genBtn.pack(padx=(0, 10))
 
 
@@ -1919,9 +2514,15 @@ class SchedulerApp(ctk.CTk):
         leftInner = ctk.CTkScrollableFrame(leftFrame, fg_color="transparent")
         leftInner.pack(expand=True, fill="both")
 
-        # if we do have the data we can popluate the left side.
+        # if we do have the data we can popluate the left side and capture
+        # an optional API returned by the left-populate function.
+        left_api = None
         if popluateLeft:
-            popluateLeft(leftInner)
+            try:
+                left_api = popluateLeft(leftInner)
+            except TypeError:
+                # left callback doesn't return an API
+                popluateLeft(leftInner)
 
         # right Frame, similar to left
         rightFrameC = ctk.CTkFrame(container, fg_color="transparent")
@@ -1931,7 +2532,11 @@ class SchedulerApp(ctk.CTk):
         rightInner.pack(expand=True, fill="both")
 
         if popluateRight:
-            popluateRight(rightInner)
+            try:
+                # try passing left_api to right-populate if it accepts it
+                popluateRight(rightInner, left_api)
+            except TypeError:
+                popluateRight(rightInner)
 
     def refresh(self, target=None, data=None):
         if target is None:
@@ -1968,3 +2573,121 @@ class SchedulerApp(ctk.CTk):
                     self.createConfigPage(parent=tab_parent, data=data)
                 elif target == "ViewSchedulePage":
                     self.createViewSchedulePage(parent=tab_parent, schedules=data)
+
+        # refresh handled by configured left/right populate functions
+
+
+# -------------------------
+# Time-slot editor helper
+# -------------------------
+def saveNewTimeSlot(self, day, start, end, spacing):
+    ctrl = TimeSlotController()
+    interval = {"start": start, "end": end, "spacing": int(spacing)}
+
+    ctrl.add_time_interval(day, interval)
+    self.refresh("ConfigPage")
+
+
+def updateTimeSlot(self, day, idx, start, end, spacing):
+    ctrl = TimeSlotController()
+    interval = {"start": start, "end": end, "spacing": int(spacing)}
+
+    ctrl.edit_time_interval(day, idx, interval)
+    self.refresh("ConfigPage")
+
+# -------------------------
+# Time-slot editor UI
+# -------------------------
+def dataTimeSlotEditor(frame, refresh=None, tsCtr=None):
+    """
+    Render a simple time-slot editor into `frame` using global `DM`.
+    `tsCtr` should be a TimeSlotController instance.
+    """
+    import customtkinter as ctk
+    from Models.Data_manager import DataManager
+
+    # Clear the frame
+    for widget in frame.winfo_children():
+        widget.destroy()
+
+    container = ctk.CTkFrame(frame, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # Title
+    title = ctk.CTkLabel(
+        container, 
+        text="Time Slot Editor", 
+        font=ctk.CTkFont(size=18, weight="bold")
+    )
+    title.pack(pady=(0, 10))
+
+    # Day dropdown
+    dayFrame = ctk.CTkFrame(container, fg_color="transparent")
+    dayFrame.pack(fill="x", pady=5)
+
+    ctk.CTkLabel(dayFrame, text="Day:").pack(side="left", padx=(0, 10))
+    dayVar = ctk.StringVar(value="Monday")
+
+    dayDropdown = ctk.CTkComboBox(
+        dayFrame, 
+        variable=dayVar,
+        values=[
+            "Monday", "Tuesday", "Wednesday",
+            "Thursday", "Friday", "Saturday", "Sunday"
+        ],
+        width=140
+    )
+    dayDropdown.pack(side="left")
+
+    # Start Time
+    startFrame = ctk.CTkFrame(container, fg_color="transparent")
+    startFrame.pack(fill="x", pady=5)
+
+    ctk.CTkLabel(startFrame, text="Start Time:").pack(side="left", padx=(0, 10))
+    startVar = ctk.StringVar(value="09:00")
+    startEntry = ctk.CTkEntry(startFrame, textvariable=startVar, width=140)
+    startEntry.pack(side="left")
+
+    # End Time
+    endFrame = ctk.CTkFrame(container, fg_color="transparent")
+    endFrame.pack(fill="x", pady=5)
+
+    ctk.CTkLabel(endFrame, text="End Time:").pack(side="left", padx=(0, 10))
+    endVar = ctk.StringVar(value="10:00")
+    endEntry = ctk.CTkEntry(endFrame, textvariable=endVar, width=140)
+    endEntry.pack(side="left")
+
+    # Spacing
+    spacingFrame = ctk.CTkFrame(container, fg_color="transparent")
+    spacingFrame.pack(fill="x", pady=5)
+
+    ctk.CTkLabel(spacingFrame, text="Spacing (min):").pack(side="left", padx=(0, 10))
+    spacingVar = ctk.StringVar(value="10")
+    spacingEntry = ctk.CTkEntry(spacingFrame, textvariable=spacingVar, width=80)
+    spacingEntry.pack(side="left")
+
+    # Save Button
+    def submit():
+        if tsCtr is None:
+            print("TimeSlotController is missing.")
+            return
+        tsCtr.add_time_interval(
+            dayVar.get(),
+            {
+                "start": startVar.get(),
+                "end": endVar.get(),
+                "spacing": int(spacingVar.get())
+            }
+        )
+        if refresh:
+            refresh("ConfigPage")
+
+    saveBtn = ctk.CTkButton(
+        container, 
+        text="Add Time Slot",
+        command=submit
+    )
+    saveBtn.pack(pady=10)
+
+    return None
+

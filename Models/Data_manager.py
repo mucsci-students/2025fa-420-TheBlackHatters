@@ -1,7 +1,9 @@
 import json
+from typing import List, Optional
 from scheduler import load_config_from_file
 from scheduler.config import CombinedConfig
 import Models.Faculty_model as FacultyModel
+from Models.time_slot_model import TimeSlotConfig
 
 # This will manage all of the data for the whole config file. 
 
@@ -270,3 +272,111 @@ class DataManager():
         if result is None:
             raise ValueError(f"Faculty member '{facName}' not found")
         #self.saveData(outPath = self.filePath)
+
+    def getTimeSlotConfig(self) -> TimeSlotConfig:
+        """Get or create the time_slot_config structure with proper day name normalization."""
+        
+        cfg = self.data.get("time_slot_config")
+        
+        if cfg is None:
+            # Create empty structure
+            empty = {"times": {}, "classes": []}
+            self.data["time_slot_config"] = empty
+            cfg = empty
+        
+        # Normalize day names to full capitalized format (Monday, Tuesday, etc.)
+        if "times" in cfg:
+            normalized_times = {}
+            day_map = {
+                "MON": "Monday", "MONDAY": "Monday",
+                "TUE": "Tuesday", "TUESDAY": "Tuesday",
+                "WED": "Wednesday", "WEDNESDAY": "Wednesday",
+                "THU": "Thursday", "THURSDAY": "Thursday",
+                "FRI": "Friday", "FRIDAY": "Friday",
+                "SAT": "Saturday", "SATURDAY": "Saturday",
+                "SUN": "Sunday", "SUNDAY": "Sunday"
+            }
+            
+            for day, intervals in cfg["times"].items():
+                # Normalize the day name
+                normalized_day = day_map.get(day.upper(), day)
+                
+                # Merge intervals if the normalized day already exists
+                if normalized_day in normalized_times:
+                    normalized_times[normalized_day].extend(intervals)
+                else:
+                    normalized_times[normalized_day] = intervals
+            
+            cfg["times"] = normalized_times
+        
+        return TimeSlotConfig.from_dict(cfg)
+
+    # Provide compatibility helpers used by other models
+    @property
+    def config(self) -> dict:
+        """Return the internal config dict, creating it if missing."""
+        if self.data is None:
+            self.data = {}
+        return self.data.setdefault("config", {})
+
+    def save_config(self, path: Optional[str] = None) -> None:
+        """Persist the current data/config to disk. Wrapper for `saveData`."""
+        self.saveData(path or self.filePath)
+
+# --- DataManager time-slot helpers ---
+
+    def saveTimeSlotConfig(self, timeslot_config: TimeSlotConfig) -> None:
+        """Overwrite data['time_slot_config'] with the given model and persist to disk."""
+        self.data["time_slot_config"] = timeslot_config.to_dict()
+    
+    # Always save to disk when time slots are modified
+        if self.filePath:
+            try:
+                self.saveData()
+                print(f"✓ Time slot config saved to {self.filePath}")
+            except Exception as e:
+                print(f"✗ Failed to save time slot config: {e}")
+                raise  # Re-raise so the UI knows it failed
+    # Convenience wrappers for common operations:
+
+    def get_time_intervals_for_day(self, day: str) -> List[dict]:
+        ts = self.getTimeSlotConfig()
+        return [iv.to_dict() for iv in ts.get_intervals(day)]
+
+    def list_all_generated_slots(self) -> dict:
+        """Return mapping day -> list of HH:MM slots (generated from intervals)."""
+        ts = self.getTimeSlotConfig()
+        return ts.generate_all_slots()
+
+    def add_time_interval(self, day: str, interval_dict: dict) -> None:
+        """Add a time interval, normalizing the day name."""
+    # Normalize day name to Title Case (Monday, Tuesday, etc.)
+        day_normalized = day.strip().title()
+    
+        ts = self.getTimeSlotConfig()
+        ts.add_interval(day_normalized, interval_dict)
+        self.saveTimeSlotConfig(ts)
+    
+    def edit_time_interval(self, day: str, index: int, new_interval_dict: dict) -> None:
+        """Edit a time interval, normalizing the day name."""
+        day_normalized = day.strip().title()
+    
+        ts = self.getTimeSlotConfig()
+        ts.edit_interval(day_normalized, index, new_interval_dict)
+        self.saveTimeSlotConfig(ts)
+    
+    def remove_time_interval(self, day: str, index: int) -> None:
+        """Remove a time interval, normalizing the day name."""
+        day_normalized = day.strip().title()
+    
+        ts = self.getTimeSlotConfig()
+        ts.remove_interval(day_normalized, index)
+        self.saveTimeSlotConfig(ts)
+        # Class pattern wrappers
+
+    def get_time_intervals_for_day(self, day: str) -> List[dict]:
+        """Get intervals for a specific day, normalizing the day name."""
+        day_normalized = day.strip().title()
+    
+        ts = self.getTimeSlotConfig()
+        return [iv.to_dict() for iv in ts.get_intervals(day_normalized)]
