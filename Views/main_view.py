@@ -998,7 +998,7 @@ def dataTimeSlotsLeft(frame, controller, refresh, data=None):
     ).pack(side="left", padx=(0, 5))
 
     # Days in fixed order
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
 
     for day in days:
         ctk.CTkLabel(container, text=day, font=("Arial", 14, "bold")).pack(anchor="w", pady=(10, 5), padx=5)
@@ -1108,7 +1108,6 @@ def dataTimeSlotsLeft(frame, controller, refresh, data=None):
             refresh(target="ConfigPage", data=edit_data)
 
 def dataTimeSlotsRight(frame, controller, refresh, data=None):
-
     """Display time slot form on the right side"""
     container = ctk.CTkFrame(frame, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=5, pady=5)
@@ -1120,17 +1119,18 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
     title_text = "Edit Time Slot" if is_editing else "Add Time Slot"
     ctk.CTkLabel(container, text=title_text, font=("Arial", 24, "bold")).pack(pady=(0, 20))
 
-    # Day selection
+    # Day selection - USE ABBREVIATED FORMAT
     dayFrame = ctk.CTkFrame(container, fg_color="transparent")
     dayFrame.pack(fill="x", pady=5, padx=5)
 
     ctk.CTkLabel(dayFrame, text="Day:", width=120, anchor="w", font=("Arial", 20, "bold")).pack(side="left", padx=10)
     
-    dayVar = ctk.StringVar(value=data.get("day", "Monday") if is_editing else "Monday")
+    # Default to MON if no data, otherwise use the day from data
+    dayVar = ctk.StringVar(value=data.get("day", "MON") if is_editing else "MON")
     dayDropdown = ctk.CTkOptionMenu(
         dayFrame,
         variable=dayVar,
-        values=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        values=["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],  # ABBREVIATED FORMAT
         width=200,
         font=("Arial", 18)
     )
@@ -1288,7 +1288,7 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
                 # Edit existing interval
                 controller.edit_time_interval(data["day"], data["index"], interval)
             else:
-                # Add new interval
+                # Add new interval - dayVar.get() will be abbreviated format (MON, TUE, etc.)
                 controller.add_time_interval(dayVar.get(), interval)
             
             # Success - refresh the page
@@ -1340,8 +1340,8 @@ def viewAllTimeSlots(controller, refresh):
         font=("Arial", 28, "bold")
     ).pack(pady=(0, 20))
     
-    # Days in order
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    # Days in order - USE ABBREVIATED FORMAT
+    days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
     
     has_any_intervals = False
     
@@ -1359,7 +1359,7 @@ def viewAllTimeSlots(controller, refresh):
         
         ctk.CTkLabel(
             day_frame,
-            text=day,
+            text=day,  # Display abbreviated format
             font=("Arial", 22, "bold"),
             anchor="w"
         ).pack(anchor="w", padx=15, pady=(10, 5))
