@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import List, Optional
 import Models.Faculty_model as FacultyModel
 from Models.Time_slot_model import TimeSlotConfig
 
