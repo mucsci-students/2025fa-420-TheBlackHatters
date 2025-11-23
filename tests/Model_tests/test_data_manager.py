@@ -664,6 +664,7 @@ def test_editFaculty_times_missing_days_are_added():
     for day in ["MON", "TUE", "WED", "THU", "FRI"]:
         assert day in updated["times"]
 
+
 def test_editFaculty_no_faculty_data():
     """Should raise when faculty list missing or empty."""
     dm = DataManager()
