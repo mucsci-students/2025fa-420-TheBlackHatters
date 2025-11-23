@@ -1567,10 +1567,10 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
             # Success - refresh the page
             refresh(target="ConfigPage")
             
-        except ValueError as e:
-            error_label.configure(text=f"Invalid spacing value! Must be a number.")
+        except ValueError:  # Remove 'as e' since we're not using it
+            error_label.configure(text="Invalid spacing value! Must be a number.")  # Remove f-string prefix
         except Exception as e:
-            print(f"✗ Failed to save time slot config: {e}")  # Added {e} in f-string
+            print(f"✗ Failed to save time slot config: {e}")
             raise
     ctk.CTkButton(
         frame,
