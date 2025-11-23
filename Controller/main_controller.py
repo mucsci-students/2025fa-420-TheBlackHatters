@@ -336,12 +336,14 @@ class CourseController:
             return None
         except Exception as e:
             return str(e)
-        
+
+
 # Time Slot Controller
 class TimeSlotController:
     """Controller wrapper for time-slot operations that delegates to the global DataManager (DM).
     This keeps view code consistent with other tabs that call a controller which updates DM.
     """
+
     def __init__(self):
         pass
 
@@ -369,7 +371,9 @@ class TimeSlotController:
             except Exception:
                 pass
 
-    def edit_time_interval_and_refresh(self, day: str, index: int, interval: dict, refresh=None):
+    def edit_time_interval_and_refresh(
+        self, day: str, index: int, interval: dict, refresh=None
+    ):
         self.edit_time_interval(day, index, interval)
         if callable(refresh):
             try:

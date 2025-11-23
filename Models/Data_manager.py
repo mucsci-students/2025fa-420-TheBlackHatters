@@ -461,26 +461,33 @@ class DataManager:
     def _normalize_day_name(self, day: str) -> str:
         """Normalize day name to uppercase 3-letter abbreviation (MON, TUE, etc.)"""
         day_map = {
-            "MONDAY": "MON", "MON": "MON",
-            "TUESDAY": "TUE", "TUE": "TUE",
-            "WEDNESDAY": "WED", "WED": "WED",
-            "THURSDAY": "THU", "THU": "THU",
-            "FRIDAY": "FRI", "FRI": "FRI",
-            "SATURDAY": "SAT", "SAT": "SAT",
-            "SUNDAY": "SUN", "SUN": "SUN"
+            "MONDAY": "MON",
+            "MON": "MON",
+            "TUESDAY": "TUE",
+            "TUE": "TUE",
+            "WEDNESDAY": "WED",
+            "WED": "WED",
+            "THURSDAY": "THU",
+            "THU": "THU",
+            "FRIDAY": "FRI",
+            "FRI": "FRI",
+            "SATURDAY": "SAT",
+            "SAT": "SAT",
+            "SUNDAY": "SUN",
+            "SUN": "SUN",
         }
-    
+
         day_upper = day.strip().upper()
-    
+
         # Return mapped value or original if not found
         return day_map.get(day_upper, day_upper[:3].upper())
 
     @requireData
     def getTimeSlotConfig(self) -> TimeSlotConfig:
         """Get or create the time_slot_config structure."""
-    
+
         cfg = self.data.get("time_slot_config")
-    
+
         if cfg is None:
             # Create empty structure
             empty = {"times": {}, "classes": []}
@@ -507,7 +514,7 @@ class DataManager:
     def get_time_intervals_for_day(self, day: str) -> List[dict]:
         """Get intervals for a specific day, normalizing the day name."""
         day_normalized = self._normalize_day_name(day)
-    
+
         ts = self.getTimeSlotConfig()
         return [iv.to_dict() for iv in ts.get_intervals(day_normalized)]
 
@@ -522,7 +529,7 @@ class DataManager:
         """Add a time interval, normalizing the day name to uppercase abbreviation."""
         # Normalize day name to uppercase 3-letter abbreviation
         day_normalized = self._normalize_day_name(day)
-    
+
         ts = self.getTimeSlotConfig()
         ts.add_interval(day_normalized, interval_dict)
         self.saveTimeSlotConfig(ts)
@@ -531,7 +538,7 @@ class DataManager:
     def edit_time_interval(self, day: str, index: int, new_interval_dict: dict) -> None:
         """Edit a time interval, normalizing the day name."""
         day_normalized = self._normalize_day_name(day)
-    
+
         ts = self.getTimeSlotConfig()
         ts.edit_interval(day_normalized, index, new_interval_dict)
         self.saveTimeSlotConfig(ts)
@@ -540,10 +547,11 @@ class DataManager:
     def remove_time_interval(self, day: str, index: int) -> None:
         """Remove a time interval, normalizing the day name."""
         day_normalized = self._normalize_day_name(day)
-    
+
         ts = self.getTimeSlotConfig()
         ts.remove_interval(day_normalized, index)
         self.saveTimeSlotConfig(ts)
+
     # Provide compatibility helpers used by other models
     @property
     def config(self) -> dict:
@@ -551,6 +559,7 @@ class DataManager:
         if self.data is None:
             self.data = {}
         return self.data.setdefault("config", {})
+
     def save_config(self, path: Optional[str] = None) -> None:
         """Persist the current data/config to disk. Wrapper for `saveData`."""
         self.saveData(path or self.filePath)

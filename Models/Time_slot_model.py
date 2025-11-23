@@ -35,7 +35,9 @@ class TimeInterval:
         s = parse_time_to_minutes(self.start)
         e = parse_time_to_minutes(self.end)
         if e <= s:
-            raise ValueError(f"Interval end must be after start: {self.start} - {self.end}")
+            raise ValueError(
+                f"Interval end must be after start: {self.start} - {self.end}"
+            )
         if self.spacing <= 0:
             raise ValueError("spacing must be a positive integer (minutes)")
 
@@ -67,7 +69,9 @@ class TimeInterval:
             start=d["start"],
             spacing=int(d["spacing"]),
             end=d["end"],
-            professors=[str(x).strip() for x in d.get("professors", []) if str(x).strip()],
+            professors=[
+                str(x).strip() for x in d.get("professors", []) if str(x).strip()
+            ],
             labs=[str(x).strip() for x in d.get("labs", []) if str(x).strip()],
             courses=[str(x).strip() for x in d.get("courses", []) if str(x).strip()],
         )
@@ -88,7 +92,10 @@ class TimeSlotConfig:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "times": {day: [iv.to_dict() for iv in intervals] for day, intervals in self.times.items()},
+            "times": {
+                day: [iv.to_dict() for iv in intervals]
+                for day, intervals in self.times.items()
+            },
         }
 
     # ---- Time interval operations ----
@@ -104,7 +111,9 @@ class TimeSlotConfig:
         if not self.times[day]:
             del self.times[day]
 
-    def edit_interval(self, day: str, index: int, new_interval_dict: Dict[str, Any]) -> None:
+    def edit_interval(
+        self, day: str, index: int, new_interval_dict: Dict[str, Any]
+    ) -> None:
         if day not in self.times:
             raise KeyError(f"No intervals for day {day}")
         iv = TimeInterval.from_dict(new_interval_dict)

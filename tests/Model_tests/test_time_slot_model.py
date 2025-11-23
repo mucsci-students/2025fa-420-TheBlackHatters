@@ -12,6 +12,7 @@ from Models.Time_slot_model import (
 # parse_time_to_minutes() tests
 # ============================================================
 
+
 class TestParseTimeToMinutes:
     # Valid inputs
     def test_midnight(self):
@@ -99,6 +100,7 @@ class TestParseTimeToMinutes:
 # minutes_to_time_str() tests
 # ============================================================
 
+
 class TestMinutesToTimeStr:
     # Valid inputs
     def test_zero_minutes(self):
@@ -147,6 +149,7 @@ class TestMinutesToTimeStr:
 # ============================================================
 # TimeInterval tests
 # ============================================================
+
 
 class TestTimeIntervalValidation:
     def test_valid_interval(self):
@@ -243,26 +246,33 @@ class TestTimeIntervalToDict:
         assert d == {"start": "08:00", "end": "17:00", "spacing": 60}
 
     def test_with_professors(self):
-        iv = TimeInterval(start="08:00", end="12:00", spacing=60, 
-                         professors=["Dr. Smith", "Dr. Jones"])
+        iv = TimeInterval(
+            start="08:00",
+            end="12:00",
+            spacing=60,
+            professors=["Dr. Smith", "Dr. Jones"],
+        )
         d = iv.to_dict()
         assert d["professors"] == ["Dr. Smith", "Dr. Jones"]
 
     def test_with_labs(self):
-        iv = TimeInterval(start="08:00", end="12:00", spacing=60,
-                         labs=["Lab A", "Lab B"])
+        iv = TimeInterval(
+            start="08:00", end="12:00", spacing=60, labs=["Lab A", "Lab B"]
+        )
         d = iv.to_dict()
         assert d["labs"] == ["Lab A", "Lab B"]
 
     def test_with_courses(self):
-        iv = TimeInterval(start="08:00", end="12:00", spacing=60,
-                         courses=["CS101", "CS102"])
+        iv = TimeInterval(
+            start="08:00", end="12:00", spacing=60, courses=["CS101", "CS102"]
+        )
         d = iv.to_dict()
         assert d["courses"] == ["CS101", "CS102"]
 
     def test_empty_lists_not_included(self):
-        iv = TimeInterval(start="08:00", end="12:00", spacing=60,
-                         professors=[], labs=[], courses=[])
+        iv = TimeInterval(
+            start="08:00", end="12:00", spacing=60, professors=[], labs=[], courses=[]
+        )
         d = iv.to_dict()
         assert "professors" not in d
         assert "labs" not in d
@@ -270,13 +280,21 @@ class TestTimeIntervalToDict:
 
     def test_all_fields(self):
         iv = TimeInterval(
-            start="09:00", end="17:00", spacing=30,
-            professors=["Prof A"], labs=["Lab 1"], courses=["Course X"]
+            start="09:00",
+            end="17:00",
+            spacing=30,
+            professors=["Prof A"],
+            labs=["Lab 1"],
+            courses=["Course X"],
         )
         d = iv.to_dict()
         assert d == {
-            "start": "09:00", "end": "17:00", "spacing": 30,
-            "professors": ["Prof A"], "labs": ["Lab 1"], "courses": ["Course X"]
+            "start": "09:00",
+            "end": "17:00",
+            "spacing": 30,
+            "professors": ["Prof A"],
+            "labs": ["Lab 1"],
+            "courses": ["Course X"],
         }
 
 
@@ -290,8 +308,12 @@ class TestTimeIntervalFromDict:
 
     def test_with_optional_fields(self):
         d = {
-            "start": "08:00", "end": "12:00", "spacing": 30,
-            "professors": ["Dr. A"], "labs": ["Lab 1"], "courses": ["CS101"]
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "professors": ["Dr. A"],
+            "labs": ["Lab 1"],
+            "courses": ["CS101"],
         }
         iv = TimeInterval.from_dict(d)
         assert iv.professors == ["Dr. A"]
@@ -306,14 +328,22 @@ class TestTimeIntervalFromDict:
         assert iv.courses == []
 
     def test_strips_whitespace_from_professors(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "professors": ["  Dr. Smith  ", "Dr. Jones  "]}
+        d = {
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "professors": ["  Dr. Smith  ", "Dr. Jones  "],
+        }
         iv = TimeInterval.from_dict(d)
         assert iv.professors == ["Dr. Smith", "Dr. Jones"]
 
     def test_filters_empty_strings(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "professors": ["Dr. A", "", "  ", "Dr. B"]}
+        d = {
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "professors": ["Dr. A", "", "  ", "Dr. B"],
+        }
         iv = TimeInterval.from_dict(d)
         assert iv.professors == ["Dr. A", "Dr. B"]
 
@@ -325,8 +355,12 @@ class TestTimeIntervalFromDict:
 
     def test_roundtrip(self):
         original = TimeInterval(
-            start="09:00", end="18:00", spacing=45,
-            professors=["Prof X"], labs=["Lab Y"], courses=["Course Z"]
+            start="09:00",
+            end="18:00",
+            spacing=45,
+            professors=["Prof X"],
+            labs=["Lab Y"],
+            courses=["Course Z"],
         )
         restored = TimeInterval.from_dict(original.to_dict())
         assert restored.start == original.start
@@ -341,6 +375,7 @@ class TestTimeIntervalFromDict:
 # TimeSlotConfig tests
 # ============================================================
 
+
 class TestTimeSlotConfigBasic:
     def test_empty_config(self):
         cfg = TimeSlotConfig()
@@ -354,7 +389,7 @@ class TestTimeSlotConfigBasic:
         d = {
             "times": {
                 "MON": [{"start": "08:00", "end": "12:00", "spacing": 60}],
-                "TUE": [{"start": "09:00", "end": "11:00", "spacing": 30}]
+                "TUE": [{"start": "09:00", "end": "11:00", "spacing": 30}],
             }
         }
         cfg = TimeSlotConfig.from_dict(d)
@@ -372,10 +407,16 @@ class TestTimeSlotConfigBasic:
 
     def test_roundtrip(self):
         original = TimeSlotConfig()
-        original.add_interval("MON", {
-            "start": "08:00", "end": "17:00", "spacing": 60,
-            "professors": ["Dr. A"], "labs": ["Lab 1"]
-        })
+        original.add_interval(
+            "MON",
+            {
+                "start": "08:00",
+                "end": "17:00",
+                "spacing": 60,
+                "professors": ["Dr. A"],
+                "labs": ["Lab 1"],
+            },
+        )
         original.add_interval("WED", {"start": "10:00", "end": "14:00", "spacing": 30})
 
         restored = TimeSlotConfig.from_dict(original.to_dict())
@@ -490,19 +531,25 @@ class TestTimeSlotConfigEditInterval:
     def test_edit_nonexistent_day(self):
         cfg = TimeSlotConfig()
         with pytest.raises(KeyError, match="No intervals for day"):
-            cfg.edit_interval("MON", 0, {"start": "08:00", "end": "12:00", "spacing": 60})
+            cfg.edit_interval(
+                "MON", 0, {"start": "08:00", "end": "12:00", "spacing": 60}
+            )
 
     def test_edit_invalid_index(self):
         cfg = TimeSlotConfig()
         cfg.add_interval("MON", {"start": "08:00", "end": "12:00", "spacing": 60})
         with pytest.raises(IndexError):
-            cfg.edit_interval("MON", 5, {"start": "09:00", "end": "13:00", "spacing": 30})
+            cfg.edit_interval(
+                "MON", 5, {"start": "09:00", "end": "13:00", "spacing": 30}
+            )
 
     def test_edit_with_invalid_interval_raises(self):
         cfg = TimeSlotConfig()
         cfg.add_interval("MON", {"start": "08:00", "end": "12:00", "spacing": 60})
         with pytest.raises(ValueError):
-            cfg.edit_interval("MON", 0, {"start": "12:00", "end": "08:00", "spacing": 60})
+            cfg.edit_interval(
+                "MON", 0, {"start": "12:00", "end": "08:00", "spacing": 60}
+            )
 
     def test_edit_negative_index(self):
         cfg = TimeSlotConfig()
@@ -582,6 +629,7 @@ class TestTimeSlotConfigGenerateSlots:
 # Edge cases for day names
 # ============================================================
 
+
 class TestDayNameEdgeCases:
     def test_lowercase_day(self):
         cfg = TimeSlotConfig()
@@ -614,6 +662,7 @@ class TestDayNameEdgeCases:
 # Stress / boundary tests
 # ============================================================
 
+
 class TestBoundaryConditions:
     def test_full_day_hourly(self):
         cfg = TimeSlotConfig()
@@ -633,7 +682,7 @@ class TestBoundaryConditions:
         cfg = TimeSlotConfig()
         for hour in range(0, 24, 2):
             start = f"{hour:02d}:00"
-            end = f"{hour+1:02d}:00"
+            end = f"{hour + 1:02d}:00"
             cfg.add_interval("MON", {"start": start, "end": end, "spacing": 15})
         assert len(cfg.times["MON"]) == 12
 
@@ -652,6 +701,7 @@ class TestBoundaryConditions:
 # Type coercion and edge cases in from_dict
 # ============================================================
 
+
 class TestFromDictTypeCoercion:
     def test_spacing_as_float(self):
         d = {"start": "08:00", "end": "12:00", "spacing": 30.5}
@@ -660,22 +710,29 @@ class TestFromDictTypeCoercion:
         assert isinstance(iv.spacing, int)
 
     def test_professors_with_non_string_values(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "professors": [123, "Dr. A", None, 45.6]}
+        d = {
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "professors": [123, "Dr. A", None, 45.6],
+        }
         iv = TimeInterval.from_dict(d)
         # All should be converted to strings, None becomes "None" then stripped
         assert "123" in iv.professors
         assert "Dr. A" in iv.professors
 
     def test_labs_with_integers(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "labs": [1, 2, 3]}
+        d = {"start": "08:00", "end": "12:00", "spacing": 30, "labs": [1, 2, 3]}
         iv = TimeInterval.from_dict(d)
         assert iv.labs == ["1", "2", "3"]
 
     def test_courses_mixed_types(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "courses": ["CS101", 102, "  ", "MATH201"]}
+        d = {
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "courses": ["CS101", 102, "  ", "MATH201"],
+        }
         iv = TimeInterval.from_dict(d)
         assert "CS101" in iv.courses
         assert "102" in iv.courses
@@ -687,6 +744,7 @@ class TestFromDictTypeCoercion:
 # Config serialization edge cases
 # ============================================================
 
+
 class TestConfigSerializationEdgeCases:
     def test_to_dict_empty_times(self):
         cfg = TimeSlotConfig(times={})
@@ -697,7 +755,7 @@ class TestConfigSerializationEdgeCases:
         d = {
             "times": {"MON": [{"start": "08:00", "end": "12:00", "spacing": 60}]},
             "extra_key": "should be ignored",
-            "another": 123
+            "another": 123,
         }
         cfg = TimeSlotConfig.from_dict(d)
         assert "MON" in cfg.times
@@ -711,19 +769,22 @@ class TestConfigSerializationEdgeCases:
     def test_complex_roundtrip(self):
         cfg = TimeSlotConfig()
         # Add various intervals across days
-        cfg.add_interval("MON", {
-            "start": "08:00", "end": "12:00", "spacing": 60,
-            "professors": ["Dr. Smith", "Dr. Jones"],
-            "labs": ["Lab A"],
-            "courses": ["CS101", "CS102"]
-        })
-        cfg.add_interval("MON", {
-            "start": "13:00", "end": "17:00", "spacing": 30
-        })
-        cfg.add_interval("TUE", {
-            "start": "09:00", "end": "11:00", "spacing": 15,
-            "courses": ["MATH201"]
-        })
+        cfg.add_interval(
+            "MON",
+            {
+                "start": "08:00",
+                "end": "12:00",
+                "spacing": 60,
+                "professors": ["Dr. Smith", "Dr. Jones"],
+                "labs": ["Lab A"],
+                "courses": ["CS101", "CS102"],
+            },
+        )
+        cfg.add_interval("MON", {"start": "13:00", "end": "17:00", "spacing": 30})
+        cfg.add_interval(
+            "TUE",
+            {"start": "09:00", "end": "11:00", "spacing": 15, "courses": ["MATH201"]},
+        )
 
         # Roundtrip
         d = cfg.to_dict()
@@ -740,6 +801,7 @@ class TestConfigSerializationEdgeCases:
 # ============================================================
 # Interval mutation tests
 # ============================================================
+
 
 class TestIntervalMutation:
     def test_direct_times_mutation(self):
@@ -760,10 +822,15 @@ class TestIntervalMutation:
 # Unicode and special string handling
 # ============================================================
 
+
 class TestUnicodeHandling:
     def test_unicode_professor_names(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "professors": ["Dr. Müller", "Prof. 田中", "Señor García"]}
+        d = {
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "professors": ["Dr. Müller", "Prof. 田中", "Señor García"],
+        }
         iv = TimeInterval.from_dict(d)
         assert "Dr. Müller" in iv.professors
         assert "Prof. 田中" in iv.professors
@@ -775,8 +842,12 @@ class TestUnicodeHandling:
         assert "月曜日" in cfg.times
 
     def test_emoji_in_lab_name(self):
-        d = {"start": "08:00", "end": "12:00", "spacing": 30,
-             "labs": ["Lab 🔬", "Room 💻"]}
+        d = {
+            "start": "08:00",
+            "end": "12:00",
+            "spacing": 30,
+            "labs": ["Lab 🔬", "Room 💻"],
+        }
         iv = TimeInterval.from_dict(d)
         assert "Lab 🔬" in iv.labs
 
@@ -784,6 +855,7 @@ class TestUnicodeHandling:
 # ============================================================
 # Error message verification
 # ============================================================
+
 
 class TestErrorMessages:
     def test_invalid_time_format_message(self):
@@ -816,6 +888,7 @@ class TestErrorMessages:
 # ============================================================
 # Concurrent-style operations (sequential but testing state)
 # ============================================================
+
 
 class TestSequentialOperations:
     def test_add_remove_add_same_day(self):
@@ -853,6 +926,7 @@ class TestSequentialOperations:
 # ============================================================
 # Dataclass behavior tests
 # ============================================================
+
 
 class TestDataclassBehavior:
     def test_interval_equality(self):
