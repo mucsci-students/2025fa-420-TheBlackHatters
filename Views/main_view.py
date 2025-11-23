@@ -1722,7 +1722,7 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
                     dayVar.get(), data["index"], interval_data
                 )
             else:
-                ontroller.add_time_interval(dayVar.get(), interval_data)
+                controller.add_time_interval(dayVar.get(), interval_data)
             refresh(target="ConfigPage")
         except Exception as e:
             error_label = ctk.CTkLabel(
