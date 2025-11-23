@@ -663,3 +663,154 @@ def test_editFaculty_times_missing_days_are_added():
     updated = dm.getFaculty()[0]
     for day in ["MON", "TUE", "WED", "THU", "FRI"]:
         assert day in updated["times"]
+
+def test_editFaculty_no_faculty_data():
+    """Should raise when faculty list missing or empty."""
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    with pytest.raises(ValueError, match="No faculty data"):
+        dm.editFaculty("Smith", {"minimum_credits": 3})
+
+
+def test_editFaculty_name_not_found():
+    """Should raise when faculty name doesn't match any entry."""
+    dm = DataManager()
+    dm.data = {"config": {"faculty": [{"name": "Jones"}]}}
+
+    with pytest.raises(ValueError, match="not found"):
+        dm.editFaculty("Smith", {"maximum_credits": 10})
+
+
+def test_editFaculty_invalid_numeric_update():
+    """Should raise when numeric fields cannot be converted."""
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 3,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
+            ]
+        }
+    }
+
+    with pytest.raises(ValueError, match="Invalid integer for 'maximum_credits'"):
+        dm.editFaculty("Smith", {"maximum_credits": "bad-number"})
+
+
+def test_editFaculty_times_day_not_list_error():
+    """Should raise when times[key] is not a list."""
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 3,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
+            ]
+        }
+    }
+
+    with pytest.raises(ValueError, match="must be a list of time strings"):
+        dm.editFaculty("Smith", {"times": {"MON": "not-a-list"}})
+
+
+def test_editFaculty_preferences_invalid_type():
+    """Should raise when *_preferences is not a dict."""
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 3,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
+            ]
+        }
+    }
+
+    with pytest.raises(ValueError, match="course_preferences' must be a dict"):
+        dm.editFaculty("Smith", {"course_preferences": "bad"})
+
+
+def test_editFaculty_schema_completion_fills_missing_fields():
+    """Ensure missing required fields are auto-inserted."""
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 3,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
+            ]
+        }
+    }
+
+    # Remove 'unique_course_limit' from updates to force default insertion
+    dm.editFaculty("Smith", {"minimum_credits": 5})
+
+    updated = dm.getFaculty()[0]
+
+    # Required field exists
+    assert "unique_course_limit" in updated
+    assert isinstance(updated["unique_course_limit"], int)
+
+
+def test_editFaculty_cascade_rename_updates_courses():
+    """Changing faculty name should update course faculty references."""
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 1,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
+            ],
+            "courses": [
+                {"course_id": "CMSC 101", "faculty": ["Smith"]},
+                {"course_id": "CMSC 102", "faculty": ["Other"]},
+            ],
+        }
+    }
+
+    dm.editFaculty("Smith", {"name": "Smythe"})
+
+    # First course should update reference
+    assert dm.data["config"]["courses"][0]["faculty"] == ["Smythe"]
+    # Other course remains unchanged
+    assert dm.data["config"]["courses"][1]["faculty"] == ["Other"]
