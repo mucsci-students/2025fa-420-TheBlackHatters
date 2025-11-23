@@ -500,7 +500,9 @@ def test_removeClassPattern_invalid_index():
     with pytest.raises(IndexError):
         dm.removeClassPattern(1)
 
+
 # Additional faculty validations
+
 
 def test_addFaculty_rejects_non_dict():
     dm = DataManager()
@@ -563,24 +565,28 @@ def test_addFaculty_invalid_preference_type():
 
 # Edit faculty
 
+
 def test_editFaculty_ignores_unknown_fields():
     dm = DataManager()
     dm.data = {
         "config": {
             "faculty": [
-                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
-                 "unique_course_limit": 1, "times": {"MON": []},
-                 "course_preferences": {}, "room_preferences": {},
-                 "lab_preferences": {}}
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 1,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
             ]
         }
     }
 
     # update contains unknown key "something_else"
-    dm.editFaculty(
-        "Smith",
-        {"something_else": 123, "minimum_credits": 10}
-    )
+    dm.editFaculty("Smith", {"something_else": 123, "minimum_credits": 10})
 
     updated = dm.getFaculty()[0]
     assert updated["minimum_credits"] == 10
@@ -592,10 +598,16 @@ def test_editFaculty_rejects_invalid_times_structure():
     dm.data = {
         "config": {
             "faculty": [
-                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
-                 "unique_course_limit": 1, "times": {"MON": []},
-                 "course_preferences": {}, "room_preferences": {},
-                 "lab_preferences": {}}
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 1,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
             ]
         }
     }
@@ -609,10 +621,16 @@ def test_editFaculty_rejects_times_bad_day_key():
     dm.data = {
         "config": {
             "faculty": [
-                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
-                 "unique_course_limit": 1, "times": {"MON": []},
-                 "course_preferences": {}, "room_preferences": {},
-                 "lab_preferences": {}}
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 1,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
             ]
         }
     }
@@ -626,10 +644,16 @@ def test_editFaculty_times_missing_days_are_added():
     dm.data = {
         "config": {
             "faculty": [
-                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
-                 "unique_course_limit": 1, "times": {"MON": []},
-                 "course_preferences": {}, "room_preferences": {},
-                 "lab_preferences": {}}
+                {
+                    "name": "Smith",
+                    "minimum_credits": 1,
+                    "maximum_credits": 2,
+                    "unique_course_limit": 1,
+                    "times": {"MON": []},
+                    "course_preferences": {},
+                    "room_preferences": {},
+                    "lab_preferences": {},
+                }
             ]
         }
     }
