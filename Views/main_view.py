@@ -1501,7 +1501,185 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
         existing_labs = data.get("interval", {}).get("labs", [])
         existing_courses = data.get("interval", {}).get("courses", [])
     
-    # ... rest of the function remains the same ...
+    # Professors/Faculty section
+    profFrame = ctk.CTkFrame(container, fg_color="transparent")
+    profFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(
+        profFrame, 
+        text="Restrict to Faculty:", 
+        anchor="w", 
+        font=("Arial", 18, "bold")
+    ).pack(anchor="w", padx=10, pady=(10, 5))
+
+    prof_vars = []
+    prof_widgets = []
+
+    def update_prof_dropdowns(*args):
+        selected = {var.get() for var in prof_vars if var.get() != "None"}
+        for var, dropdown in prof_widgets:
+            current = var.get()
+            available = [p for p in all_faculty if p not in selected or p == current]
+            if "None" not in available:
+                available.insert(0, "None")
+            dropdown.configure(values=available)
+
+    def add_prof_dropdown(selected="None"):
+        row = ctk.CTkFrame(profFrame, fg_color="transparent")
+        row.pack(fill="x", padx=20, pady=2)
+    
+        var = ctk.StringVar(value=selected)
+        dropdown = ctk.CTkOptionMenu(
+            row, variable=var, values=["None"] + all_faculty, width=300, font=("Arial", 16)
+        )
+        dropdown.pack(side="left", padx=5)
+    
+        var.trace_add("write", update_prof_dropdowns)
+        prof_vars.append(var)
+        prof_widgets.append((var, dropdown))
+        update_prof_dropdowns()
+
+    # Populate with existing or add one empty
+    if existing_professors:
+        for prof in existing_professors:
+            add_prof_dropdown(prof)
+    else:
+        add_prof_dropdown("None")
+
+    ctk.CTkButton(
+        profFrame, text="Add Faculty", width=100, command=lambda: add_prof_dropdown("None")
+    ).pack(padx=20, pady=5)
+
+    # Rooms/Labs section  
+    roomFrame = ctk.CTkFrame(container, fg_color="transparent")
+    roomFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(
+        roomFrame, 
+        text="Restrict to Rooms:", 
+        anchor="w", 
+        font=("Arial", 18, "bold")
+    ).pack(anchor="w", padx=10, pady=(10, 5))
+
+    room_vars = []
+    room_widgets = []
+
+    def update_room_dropdowns(*args):
+        selected = {var.get() for var in room_vars if var.get() != "None"}
+        for var, dropdown in room_widgets:
+            current = var.get()
+            available = [r for r in all_rooms if r not in selected or r == current]
+            if "None" not in available:
+                available.insert(0, "None")
+            dropdown.configure(values=available)
+
+    def add_room_dropdown(selected="None"):
+        row = ctk.CTkFrame(roomFrame, fg_color="transparent")
+        row.pack(fill="x", padx=20, pady=2)
+    
+        var = ctk.StringVar(value=selected)
+        dropdown = ctk.CTkOptionMenu(
+            row, variable=var, values=["None"] + all_rooms, width=300, font=("Arial", 16)
+        )
+        dropdown.pack(side="left", padx=5)
+    
+        var.trace_add("write", update_room_dropdowns)
+        room_vars.append(var)
+        room_widgets.append((var, dropdown))
+        update_room_dropdowns()
+
+    # Populate with existing or add one empty
+    if existing_labs:  # Note: "labs" key actually stores rooms in your model
+        for room in existing_labs:
+            add_room_dropdown(room)
+    else:
+        add_room_dropdown("None")
+    ctk.CTkButton(
+        roomFrame, text="Add Room", width=100, command=lambda: add_room_dropdown("None")
+    ).pack(padx=20, pady=5)
+
+    # Courses section
+    courseFrame = ctk.CTkFrame(container, fg_color="transparent")
+    courseFrame.pack(fill="x", pady=5, padx=5)
+
+    ctk.CTkLabel(
+        courseFrame, 
+        text="Restrict to Courses:", 
+        anchor="w", 
+        font=("Arial", 18, "bold")
+    ).pack(anchor="w", padx=10, pady=(10, 5))
+
+    course_vars = []
+    course_widgets = []
+
+    def update_course_dropdowns(*args):
+        selected = {var.get() for var in course_vars if var.get() != "None"}
+        for var, dropdown in course_widgets:
+            current = var.get()
+            available = [c for c in all_courses if c not in selected or c == current]
+            if "None" not in available:
+                available.insert(0, "None")
+            dropdown.configure(values=available)
+
+    def add_course_dropdown(selected="None"):
+        row = ctk.CTkFrame(courseFrame, fg_color="transparent")
+        row.pack(fill="x", padx=20, pady=2)
+    
+        var = ctk.StringVar(value=selected)
+        dropdown = ctk.CTkOptionMenu(
+            row, variable=var, values=["None"] + all_courses, width=300, font=("Arial", 16)
+        )
+        dropdown.pack(side="left", padx=5)
+    
+        var.trace_add("write", update_course_dropdowns)
+        course_vars.append(var)
+        course_widgets.append((var, dropdown))
+        update_course_dropdowns()
+
+    # Populate with existing or add one empty
+    if existing_courses:
+        for course in existing_courses:
+            add_course_dropdown(course)
+    else:
+        add_course_dropdown("None")
+    ctk.CTkButton(
+        courseFrame, text="Add Course", width=100, command=lambda: add_course_dropdown("None")
+    ).pack(padx=20, pady=5)
+
+    # Save button
+    def onSave():
+        interval_data = {
+            "start": startVar.get(),
+            "end": endVar.get(),
+            "spacing": int(spacingVar.get()),
+            "professors": [v.get() for v in prof_vars if v.get() != "None"],
+            "labs": [v.get() for v in room_vars if v.get() != "None"],  # "labs" key stores rooms
+            "courses": [v.get() for v in course_vars if v.get() != "None"]
+        }
+    
+        try:
+            if is_editing:
+                controller.edit_time_interval(dayVar.get(), data["index"], interval_data)
+            else:
+                controller.add_time_interval(dayVar.get(), interval_data)
+            refresh(target="ConfigPage")
+        except Exception as e:
+            error_label = ctk.CTkLabel(
+                container, 
+                text=f"Error: {str(e)}", 
+                text_color="red", 
+                font=("Arial", 14, "bold")
+            )
+            error_label.pack(pady=10)
+
+    ctk.CTkButton(
+        container,
+        text="Save Time Slot",
+        width=150,
+        height=40,
+        font=("Arial", 18, "bold"),
+        command=onSave
+    ).pack(pady=20)
 
 def viewAllTimeSlots(controller, refresh):
     """Display all time slots in a popup window with delete functionality"""
