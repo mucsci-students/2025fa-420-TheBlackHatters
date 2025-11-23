@@ -1,5 +1,7 @@
 import json
+from typing import Optional
 import Models.Faculty_model as FacultyModel
+from Models.Time_slot_model import TimeSlotConfig
 
 # This will manage all of the data for the whole config file.
 
@@ -455,83 +457,98 @@ class DataManager:
         faculty_list[idx] = updated
         print(f"Updated faculty: {old_name} → {new_name}")
 
-    def getTimeSlotConfig(self) -> TimeSlotConfig:
-        """Get or create the time_slot_config structure."""
+    @requireData
+    def editFaculty(self, name: str, updates: dict):
+        """
+        Safely update an existing faculty member.
+        Only known fields are allowed.
+        Validates weekdays as MON–FRI and preserves JSON schema structure.
+        """
+        ALLOWED_FIELDS = {
+            "name",
+            "minimum_credits",
+            "maximum_credits",
+            "unique_course_limit",
+            "times",
+            "course_preferences",
+            "room_preferences",
+            "lab_preferences",
+        }
+        ALLOWED_DAYS = {"MON", "TUE", "WED", "THU", "FRI"}
 
-        cfg = self.data.get("time_slot_config")
+        faculty_list = self.data["config"].get("faculty", [])
+        if not faculty_list:
+            raise ValueError("No faculty data found.")
 
-        if cfg is None:
-            # Create empty structure
-            empty = {"times": {}, "classes": []}
-            self.data["time_slot_config"] = empty
-            cfg = empty
+        # Find faculty by name (case-insensitive)
+        idx = next(
+            (
+                i
+                for i, f in enumerate(faculty_list)
+                if f.get("name", "").lower() == name.lower()
+            ),
+            None,
+        )
+        if idx is None:
+            raise ValueError(f"Faculty '{name}' not found.")
 
-        # NO NORMALIZATION - keep the day names as they are in the JSON
-        return TimeSlotConfig.from_dict(cfg)
-    
-# Provide compatibility helpers used by other models
-    @property
-    def config(self) -> dict:      
-        """Return the internal config dict, creating it if missing."""
-        if self.data is None:
-            self.data = {}
-        return self.data.setdefault("config", {})
-    def save_config(self, path: Optional[str] = None) -> None:
-        """Persist the current data/config to disk. Wrapper for `saveData`."""
-        self.saveData(path or self.filePath)
-# --- DataManager time-slot helpers ---
-    def saveTimeSlotConfig(self, timeslot_config: TimeSlotConfig) -> None:
-        """Overwrite data['time_slot_config'] with the given model and persist to disk."""
-        self.data["time_slot_config"] = timeslot_config.to_dict()
-    
-    # Always save to disk when time slots are modified
-        if self.filePath:
-            try:
-                self.saveData()
-                print(f"✓ Time slot config saved to {self.filePath}")
-            except Exception as e:
-                print(f"✗ Failed to save time slot config: {e}")
-                raise  # Re-raise so the UI knows it failed
-    # Convenience wrappers for common operations:
+        current = faculty_list[idx]
+        updated = current.copy()
 
-    def list_all_generated_slots(self) -> dict:
-        """Return mapping day -> list of HH:MM slots (generated from intervals)."""
-        ts = self.getTimeSlotConfig()
-        return ts.generate_all_slots()
+        for key, val in (updates or {}).items():
+            if key not in ALLOWED_FIELDS:
+                print(f"[WARN] Ignoring unknown faculty field: '{key}'")
+                continue
 
-    # Replace the time slot methods in Data_manager.py with these fixed versions:
+            # Validate types and structures
+            if key in ("minimum_credits", "maximum_credits", "unique_course_limit"):
+                if not isinstance(val, int):
+                    try:
+                        val = int(val)
+                    except Exception:
+                        raise ValueError(f"Invalid integer for '{key}': {val}")
 
-    def add_time_interval(self, day: str, interval_dict: dict) -> None:
-        """Add a time interval, normalizing the day name to uppercase abbreviation."""
-        # Normalize day name to uppercase 3-letter abbreviation
-        day_normalized = self._normalize_day_name(day)
+            elif key == "times":
+                if not isinstance(val, dict):
+                    raise ValueError("'times' must be a dict[str, list[str]]")
+                # Check valid weekday keys
+                for d in list(val.keys()):
+                    if d not in ALLOWED_DAYS:
+                        raise ValueError(
+                            f"Invalid day '{d}' in times; must be one of {sorted(ALLOWED_DAYS)}"
+                        )
+                    if not isinstance(val[d], list):
+                        raise ValueError(
+                            f"'times[{d}]' must be a list of time strings."
+                        )
+                # Ensure all allowed days exist
+                for d in ALLOWED_DAYS:
+                    val.setdefault(d, [])
+            elif key.endswith("_preferences"):
+                if not isinstance(val, dict):
+                    raise ValueError(f"'{key}' must be a dict[str, int]")
+            updated[key] = val
 
-        ts = self.getTimeSlotConfig()
-        ts.add_interval(day_normalized, interval_dict)
-        self.saveTimeSlotConfig(ts)
+        # Ensure schema completeness
+        for k in ALLOWED_FIELDS:
+            if k not in updated:
+                updated[k] = {} if k.endswith("_preferences") or k == "times" else 0
+        if "name" not in updated or not updated["name"]:
+            updated["name"] = current["name"]
 
-    def edit_time_interval(self, day: str, index: int, new_interval_dict: dict) -> None:
-        """Edit a time interval, normalizing the day name."""
-        day_normalized = self._normalize_day_name(day)
+        # Cascade rename if needed
+        old_name = current.get("name")
+        new_name = updated.get("name", old_name)
+        if new_name != old_name:
+            for course in self.data["config"].get("courses", []):
+                if old_name in course.get("faculty", []):
+                    course["faculty"] = [
+                        new_name if x == old_name else x for x in course["faculty"]
+                    ]
 
-        ts = self.getTimeSlotConfig()
-        ts.edit_interval(day_normalized, index, new_interval_dict)
-        self.saveTimeSlotConfig(ts)
-
-    def remove_time_interval(self, day: str, index: int) -> None:
-        """Remove a time interval, normalizing the day name."""
-        day_normalized = self._normalize_day_name(day)
-
-        ts = self.getTimeSlotConfig()
-        ts.remove_interval(day_normalized, index)
-        self.saveTimeSlotConfig(ts)
-
-    def get_time_intervals_for_day(self, day: str) -> List[dict]:
-        """Get intervals for a specific day, normalizing the day name."""
-        day_normalized = self._normalize_day_name(day)
-
-        ts = self.getTimeSlotConfig()
-        return [iv.to_dict() for iv in ts.get_intervals(day_normalized)]
+        faculty_list[idx] = updated
+        print(f"Updated faculty: {old_name} → {new_name}")
+        # Add these methods to your DataManager class (after the faculty methods)
 
     def _normalize_day_name(self, day: str) -> str:
         """Normalize day name to uppercase 3-letter abbreviation (MON, TUE, etc.)"""
@@ -544,10 +561,88 @@ class DataManager:
             "SATURDAY": "SAT", "SAT": "SAT",
             "SUNDAY": "SUN", "SUN": "SUN"
         }
-
+    
         day_upper = day.strip().upper()
-
+    
         # Return mapped value or original if not found
         return day_map.get(day_upper, day_upper[:3].upper())
 
-    # Also update getTimeSlotConfig to NOT normalize (remove that section):
+    @requireData
+    def getTimeSlotConfig(self) -> TimeSlotConfig:
+        """Get or create the time_slot_config structure."""
+    
+        cfg = self.data.get("time_slot_config")
+    
+        if cfg is None:
+            # Create empty structure
+            empty = {"times": {}, "classes": []}
+            self.data["time_slot_config"] = empty
+            cfg = empty
+        # NO NORMALIZATION - keep the day names as they are in the JSON
+        return TimeSlotConfig.from_dict(cfg)
+
+    @requireData
+    def saveTimeSlotConfig(self, timeslot_config: TimeSlotConfig) -> None:
+        """Overwrite data['time_slot_config'] with the given model and persist to disk."""
+        self.data["time_slot_config"] = timeslot_config.to_dict()
+
+        # Always save to disk when time slots are modified
+        if self.filePath:
+            try:
+                self.saveData()
+                print(f"✓ Time slot config saved to {self.filePath}")
+            except Exception as e:
+                print(f"✗ Failed to save time slot config: {e}")
+                raise  # Re-raise so the UI knows it failed
+
+    @requireData
+    def get_time_intervals_for_day(self, day: str) -> List[dict]:
+        """Get intervals for a specific day, normalizing the day name."""
+        day_normalized = self._normalize_day_name(day)
+    
+        ts = self.getTimeSlotConfig()
+        return [iv.to_dict() for iv in ts.get_intervals(day_normalized)]
+
+    @requireData
+    def list_all_generated_slots(self) -> dict:
+        """Return mapping day -> list of HH:MM slots (generated from intervals)."""
+        ts = self.getTimeSlotConfig()
+        return ts.generate_all_slots()
+
+    @requireData
+    def add_time_interval(self, day: str, interval_dict: dict) -> None:
+        """Add a time interval, normalizing the day name to uppercase abbreviation."""
+        # Normalize day name to uppercase 3-letter abbreviation
+        day_normalized = self._normalize_day_name(day)
+    
+        ts = self.getTimeSlotConfig()
+        ts.add_interval(day_normalized, interval_dict)
+        self.saveTimeSlotConfig(ts)
+
+    @requireData
+    def edit_time_interval(self, day: str, index: int, new_interval_dict: dict) -> None:
+        """Edit a time interval, normalizing the day name."""
+        day_normalized = self._normalize_day_name(day)
+    
+        ts = self.getTimeSlotConfig()
+        ts.edit_interval(day_normalized, index, new_interval_dict)
+        self.saveTimeSlotConfig(ts)
+
+    @requireData
+    def remove_time_interval(self, day: str, index: int) -> None:
+        """Remove a time interval, normalizing the day name."""
+        day_normalized = self._normalize_day_name(day)
+    
+        ts = self.getTimeSlotConfig()
+        ts.remove_interval(day_normalized, index)
+        self.saveTimeSlotConfig(ts)
+    # Provide compatibility helpers used by other models
+    @property
+    def config(self) -> dict:
+        """Return the internal config dict, creating it if missing."""
+        if self.data is None:
+            self.data = {}
+        return self.data.setdefault("config", {})
+    def save_config(self, path: Optional[str] = None) -> None:
+        """Persist the current data/config to disk. Wrapper for `saveData`."""
+        self.saveData(path or self.filePath)
