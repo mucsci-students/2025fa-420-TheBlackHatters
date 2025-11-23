@@ -1689,24 +1689,40 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
 
     # Save button
     def onSave():
+        # Validate inputs
+        try:
+            spacing_value = spacingVar.get().strip()
+            if not spacing_value:
+                raise ValueError("Spacing cannot be empty")
+            spacing_int = int(spacing_value)
+            if spacing_int <= 0:
+                raise ValueError("Spacing must be greater than 0")
+        except ValueError as e:
+            error_label = ctk.CTkLabel(
+                container,
+                text=f"Error: Invalid spacing value - {str(e)}",
+                text_color="red",
+                font=("Arial", 14, "bold"),
+            )
+            error_label.pack(pady=10)
+            return
+
         interval_data = {
             "start": startVar.get(),
             "end": endVar.get(),
-            "spacing": int(spacingVar.get()),
+            "spacing": spacing_int,
             "professors": [v.get() for v in prof_vars if v.get() != "None"],
-            "labs": [
-                v.get() for v in room_vars if v.get() != "None"
-            ],  # "labs" key stores rooms
+            "labs": [v.get() for v in room_vars if v.get() != "None"],
             "courses": [v.get() for v in course_vars if v.get() != "None"],
         }
 
         try:
-            if is_editing:
+            if is_editing and data is not None:  # Add null check here
                 controller.edit_time_interval(
                     dayVar.get(), data["index"], interval_data
                 )
             else:
-                controller.add_time_interval(dayVar.get(), interval_data)
+                ontroller.add_time_interval(dayVar.get(), interval_data)
             refresh(target="ConfigPage")
         except Exception as e:
             error_label = ctk.CTkLabel(
@@ -1717,6 +1733,14 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
             )
             error_label.pack(pady=10)
 
+    ctk.CTkButton(
+        container,
+        text="Save Time Slot",
+        width=150,
+        height=40,
+        font=("Arial", 18, "bold"),
+        command=onSave,
+    ).pack(pady=20)
     ctk.CTkButton(
         container,
         text="Save Time Slot",
