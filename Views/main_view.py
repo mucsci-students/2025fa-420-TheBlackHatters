@@ -1,4 +1,3 @@
-from curses.ascii import ctrl
 import customtkinter as ctk
 from tkinter import StringVar
 from Controller.main_controller import (
@@ -1571,7 +1570,8 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
         except ValueError as e:
             error_label.configure(text=f"Invalid spacing value! Must be a number.")
         except Exception as e:
-            error_label.configure(text=f"Error: {str(e)}")
+            print(f"✗ Failed to save time slot config: {e}")  # Added {e} in f-string
+            raise
     ctk.CTkButton(
         frame,
         text="Save Changes",
@@ -1580,6 +1580,7 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
         height=40,
         command=onSave
     ).pack(side="bottom", pady=15)
+
     def deleteTimeSlot(day, idx, ctrl, refresh):
         """Helper function to delete a time slot"""
         ctrl.remove_time_interval(day, idx)
