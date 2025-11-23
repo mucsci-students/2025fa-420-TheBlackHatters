@@ -499,3 +499,143 @@ def test_removeClassPattern_invalid_index():
 
     with pytest.raises(IndexError):
         dm.removeClassPattern(1)
+
+# Additional faculty validations
+
+def test_addFaculty_rejects_non_dict():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    with pytest.raises(ValueError, match="Faculty entry must be a dictionary"):
+        dm.addFaculty(["not", "a", "dict"])
+
+
+def test_addFaculty_missing_name():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    with pytest.raises(ValueError, match="must include a valid 'name'"):
+        dm.addFaculty({"maximum_credits": 10})
+
+
+def test_addFaculty_invalid_numeric_fields():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    # minimum_credits cannot convert to int
+    with pytest.raises(ValueError, match="Invalid integer for 'minimum_credits'"):
+        dm.addFaculty({"name": "Smith", "minimum_credits": "abc"})
+
+
+def test_addFaculty_invalid_times_not_dict():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    # times must be dict[str, list[str]]
+    with pytest.raises(ValueError, match="'times' must be a dict"):
+        dm.addFaculty({"name": "Smith", "times": "MON 9-5"})
+
+
+def test_addFaculty_invalid_times_bad_day_key():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    with pytest.raises(ValueError, match="Invalid day 'SAT'"):
+        dm.addFaculty({"name": "Smith", "times": {"SAT": ["9:00-10:00"]}})
+
+
+def test_addFaculty_invalid_times_day_not_list():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    with pytest.raises(ValueError, match="must be a list of time strings"):
+        dm.addFaculty({"name": "Smith", "times": {"MON": "not-a-list"}})
+
+
+def test_addFaculty_invalid_preference_type():
+    dm = DataManager()
+    dm.data = {"config": {"faculty": []}}
+
+    # room_preferences must be dict[str,int]
+    with pytest.raises(ValueError, match="room_preferences' must be a dict"):
+        dm.addFaculty({"name": "Smith", "room_preferences": "bad"})
+
+
+# Edit faculty
+
+def test_editFaculty_ignores_unknown_fields():
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
+                 "unique_course_limit": 1, "times": {"MON": []},
+                 "course_preferences": {}, "room_preferences": {},
+                 "lab_preferences": {}}
+            ]
+        }
+    }
+
+    # update contains unknown key "something_else"
+    dm.editFaculty(
+        "Smith",
+        {"something_else": 123, "minimum_credits": 10}
+    )
+
+    updated = dm.getFaculty()[0]
+    assert updated["minimum_credits"] == 10
+    assert "something_else" not in updated
+
+
+def test_editFaculty_rejects_invalid_times_structure():
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
+                 "unique_course_limit": 1, "times": {"MON": []},
+                 "course_preferences": {}, "room_preferences": {},
+                 "lab_preferences": {}}
+            ]
+        }
+    }
+
+    with pytest.raises(ValueError, match="'times' must be a dict"):
+        dm.editFaculty("Smith", {"times": "not a dict"})
+
+
+def test_editFaculty_rejects_times_bad_day_key():
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
+                 "unique_course_limit": 1, "times": {"MON": []},
+                 "course_preferences": {}, "room_preferences": {},
+                 "lab_preferences": {}}
+            ]
+        }
+    }
+
+    with pytest.raises(ValueError, match="Invalid day 'SAT'"):
+        dm.editFaculty("Smith", {"times": {"SAT": ["9:00-10:00"]}})
+
+
+def test_editFaculty_times_missing_days_are_added():
+    dm = DataManager()
+    dm.data = {
+        "config": {
+            "faculty": [
+                {"name": "Smith", "minimum_credits": 1, "maximum_credits": 2,
+                 "unique_course_limit": 1, "times": {"MON": []},
+                 "course_preferences": {}, "room_preferences": {},
+                 "lab_preferences": {}}
+            ]
+        }
+    }
+
+    dm.editFaculty("Smith", {"times": {"MON": ["9:00-10:00"]}})
+
+    updated = dm.getFaculty()[0]
+    for day in ["MON", "TUE", "WED", "THU", "FRI"]:
+        assert day in updated["times"]
