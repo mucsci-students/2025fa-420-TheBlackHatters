@@ -4,7 +4,8 @@
 #
 # This is a CLI for the labs.
 #   With this we can add, modify, and remove labs,
-#   make this changes directly to the json file. 
+#   make this changes directly to the json file.
+
 
 def viewLabs(LabModel):
     return print(f"Current Labs In System: {LabModel.toJson()}.")
@@ -18,6 +19,7 @@ def addLabCli(LabModel):
     LabModel.add(name)
     viewLabs(LabModel)
 
+
 # This will prompt the user to enther the name they want to remove
 def removeLabCli(LabModel):
     print("Enter Lab name to remove: ")
@@ -28,14 +30,13 @@ def removeLabCli(LabModel):
 
 
 # This will prompt the user to enter the lab name they want to change
-# and the name they want to change to 
+# and the name they want to change to
 def modifyLabCli(LabModel):
     oldName = input("Lab name to modify: ")
     newName = input("Enter new Lab name: ")
 
     LabModel.modify(oldName, newName)
     viewLabs(LabModel)
-
 
 
 # Main Labs Cli Controller
@@ -61,5 +62,3 @@ def mainLabControler(LabModel):
             return
         else:
             print("Invalid option. ")
-    
-    

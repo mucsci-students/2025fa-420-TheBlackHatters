@@ -4,16 +4,19 @@
 #
 # This is a CLI for the Rooms.
 #   With this we can add, modify, and remove rooms,
-#   make this changes directly to the json file. 
+#   make this changes directly to the json file.
+
 
 def viewRooms(RoomModel):
     return print(f"Current Rooms In System: {RoomModel.toJson()}.")
+
 
 # This will prompt the user to enter the name they want to add
 def addRoomCli(RoomModel):
     name = input("Enter Room name to Add:  ")
     RoomModel.add(name)
     viewRooms(RoomModel)
+
 
 # This will prompt the user to enther the name they want to remove
 def removeRoomCli(RoomModel):
@@ -23,7 +26,7 @@ def removeRoomCli(RoomModel):
 
 
 # This will prompt the user to enter the room name they want to change
-# and the name they want to change to 
+# and the name they want to change to
 def modifyRoomCli(RoomModel):
     oldName = input("Enter Room name to modify: ")
     newName = input("Enter new Room name: ")
@@ -32,10 +35,8 @@ def modifyRoomCli(RoomModel):
     viewRooms(RoomModel)
 
 
-
-# ROOM CONTROLER! 
+# ROOM CONTROLER!
 def mainRoomControler(RoomModel):
-
     while True:
         print("\n--- Room Controler ---")
         print("1. View Rooms")
@@ -57,5 +58,3 @@ def mainRoomControler(RoomModel):
             return
         else:
             print("Invalid option. ")
-    
-    

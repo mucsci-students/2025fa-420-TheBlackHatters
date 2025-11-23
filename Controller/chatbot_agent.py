@@ -1,63 +1,259 @@
 # ChatbotAgent.py
+# Author: Fletcher Burton
 
 import os
-import re
 import json
 import traceback
-from typing import List, Dict, Optional, Tuple
-from pydantic import BaseModel, Field
+from typing import List, Dict, Optional, Union
 from dotenv import load_dotenv
-from langchain.chat_models import init_chat_model
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.tools import StructuredTool
-from langgraph.prebuilt import create_react_agent
 
-from Controller.main_controller import DM  # DataManager singleton
+import Controller.main_controller as ctrl
 
-# Load .env for OPENAI_API_KEY if present
+DM = ctrl.DM
+
 load_dotenv()
 
 
-# -------------------------------
-# Pydantic schemas (for tools API)
-# -------------------------------
-
+# Pydantic Schemas
 class AddItemArgs(BaseModel):
     category: str = Field(description="room | lab | course | faculty")
-    data: dict = Field(default_factory=dict, description="Values to add for the item.")
+    data: dict = Field(default_factory=dict)
 
 
 class EditItemArgs(BaseModel):
     category: str = Field(description="room | lab | course | faculty")
-    identifier: str = Field(description="Primary key of the item (e.g. course_id or faculty name)")
-    updates: dict = Field(description="Fields to replace on the item.")
+    identifier: str = Field(description="Unique ID or name to edit.")
+    updates: dict = Field(default_factory=dict)
 
 
 class DeleteItemArgs(BaseModel):
     category: str = Field(description="room | lab | course | faculty")
-    identifier: str = Field(description="The item to remove (e.g. 'CMSC 140', 'Roddy 136').")
-
-
-class KeyPathArgs(BaseModel):
-    key_path: str = Field(description="Dot/bracket notation path into DM.data")
-    new_value: str = Field(description="JSON string or raw string for the new value.")
+    identifier: str = Field(description="Unique ID or name to delete.")
 
 
 class NoArgs(BaseModel):
     pass
 
 
-# -------------------------------
+# Intent Classification Schema
+# --- Insert CourseDetails schema here ---
+
+
+class CourseDetails(BaseModel):
+    course_id: str
+    credits: int
+    room: List[str] = []
+    lab: List[str] = []
+    conflicts: List[str] = []
+    faculty: List[str] = []
+
+
+# Inserted FacultyDetails schema
+class FacultyDetails(BaseModel):
+    name: str
+    minimum_credits: int
+    maximum_credits: int
+    unique_course_limit: int
+    times: Dict[str, List[str]] = {}
+    course_preferences: Dict[str, int] = {}
+    room_preferences: Dict[str, int] = {}
+    lab_preferences: Dict[str, int] = {}
+
+
+class Intent(BaseModel):
+    intent: str = Field(description="add | edit | delete | show")
+    category: str = Field(description="course | faculty | room | lab")
+    identifier: Optional[str] = Field(default=None)
+    details: Optional[Union[CourseDetails, FacultyDetails, dict]] = Field(default=None)
+
+
+class UnifiedRouter:
+    """
+    Uses GPT-5-mini to decide whether the message is conversational or actionable.
+    If conversational -> return text
+    If actionable -> return structured JSON intent
+    """
+
+    def __init__(self):
+        self.llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
+        self.intent_parser = PydanticOutputParser(pydantic_object=Intent)
+
+        self.system_prompt = """
+        You are a scheduling assistant for managing rooms, labs, courses, and faculty.
+
+        When the user issues a request that starts with or clearly implies viewing data, such as:
+            - "view faculty"
+            - "show faculty"
+            - "list faculty"
+            - "display faculty"
+            - "see faculty"
+            - "view courses"
+            - "show courses"
+            - "list courses"
+            - "display courses"
+            - "see courses"
+            - "view rooms"
+            - "show rooms"
+            - "list rooms"
+            - "display rooms"
+            - "see rooms"
+            - "view labs"
+            - "show labs"
+            - "list labs"
+            - "display labs"
+            - "see labs"
+
+        you MUST return a JSON intent with:
+            intent: "show"
+            category: one of "faculty", "course", "room", or "lab" matching what the user asked to view
+            identifier: null
+            details: {}
+
+        This rule MUST override any other reasoning. Do NOT treat these as add/edit/delete commands and do NOT ask follow-up questions; simply return the structured JSON intent.
+
+        Decide what the user wants:
+        - If the user is asking a general or conversational question (like greetings, help, explanation),
+          respond naturally in text (not JSON).
+        - If the user wants to perform an action (add/edit/delete/show something),
+          return JSON describing the intent with these fields:
+            intent: add | edit | delete | show
+            category: course | faculty | room | lab
+            identifier: optional name/id
+            details: dictionary with other info
+        For COURSES, you MUST always output the field "course_id" inside the "details" object. Do NOT use "name" or "title" for courses.
+
+        For COURSES, the "details" object MUST match this exact structure:
+
+        {
+          "course_id": "(Course type name, ex: CMSC, BIO) ###",
+          "credits": <integer>,
+          "room": [ "RoomName1", "RoomName2", ... ],
+          "lab": [ "LabName1", "LabName2", ... ],
+          "conflicts": [ "(Course type name, ex: CMSC, BIO) ###", ... ],
+          "faculty": [ "FacultyName1", ... ]
+        }
+
+        Rules:
+        - Lists MUST contain ONLY item names, with no added explanation text.
+        - Do NOT include sentences, phrases, or descriptive language inside lists.
+        - Do NOT include any extra fields.
+        - Do NOT rename any field; use these exact keys.
+
+        For FACULTY, the "details" object MUST match this exact structure:
+
+        {
+          "name": "Faculty Name",
+          "minimum_credits": <integer>,
+          "maximum_credits": <integer>,
+          "unique_course_limit": <integer>,
+          "times": {
+            "MON": ["HH:MM-HH:MM", ...],
+            "TUE": ["HH:MM-HH:MM", ...],
+            "WED": ["HH:MM-HH:MM", ...],
+            "THU": ["HH:MM-HH:MM", ...],
+            "FRI": ["HH:MM-HH:MM", ...]
+          },
+          "course_preferences": { "CMSC ###": <int>, ... },
+          "room_preferences": { "RoomName": <int>, ... },
+          "lab_preferences": { "LabName": <int>, ... }
+        }
+
+        Rules:
+        - Times must be lists of time ranges only, no descriptive text.
+        - Preference maps must only contain key → integer.
+        - No SAT or SUN keys.
+        - No extra fields allowed.
+        - No explanations, sentences, or descriptive language in values.
+
+        The model MUST produce clean JSON that fits these schemas exactly when returning an action intent.
+
+        Respond with **either**:
+          1. Natural language answer (plain text)
+          2. JSON matching {format_instructions}
+          
+        When the user says:
+            - "view faculty"
+            - "show faculty"
+            - "list faculty"
+            - "display faculty"
+            - "see faculty"
+
+            You MUST output the following intent JSON:
+
+            {
+            "intent": "show",
+            "category": "faculty",
+            "identifier": null,
+            "details": {}
+            }
+            
+        For ROOMS, the "details" object MUST match this exact structure:
+
+        {
+          "name": "RoomName"
+        }
+
+        For LABS, the "details" object MUST match this exact structure:
+
+        {
+          "name": "LabName"
+        }
+
+        Rules:
+        - For rooms and labs, "name" must be the human-readable identifier (e.g., "Roddy 123", "Mac").
+        - Do NOT add any extra fields besides "name".
+        """
+
+    def route(self, text: str):
+        """
+        Ask GPT-5-mini to decide response type.
+        Returns either a string (conversation) or an Intent object.
+        """
+        full_prompt = f"""{self.system_prompt}
+
+    User message: {text}
+
+    Respond with either:
+    1. Plain text (if conversational)
+    2. JSON matching this schema:
+    {self.intent_parser.get_format_instructions()}
+    """
+        raw = self.llm.invoke(full_prompt).content
+        result = str(raw).strip() if raw is not None else ""
+
+        # Try to parse JSON → Intent
+        try:
+            return self.intent_parser.parse(result)
+        except Exception:
+            # Not JSON → treat as conversational response
+            return result
+
+
 # Chatbot Agent
-# -------------------------------
+
 
 class ChatbotAgent:
     """
-    Natural-language CRUD over the scheduler config (rooms, labs, courses, faculty).
-    Returns structured dicts that the GUI can use to change tabs & refresh.
+    AI-driven CRUD controller for scheduler configuration.
+    Delegates intent recognition to OpenAI (IntentClassifier).
     """
 
     def __init__(self, config_path_getter):
         self.get_config_path = config_path_getter
+
+        from Controller import main_controller
+
+        if hasattr(main_controller, "DM") and os.path.exists(self.get_config_path()):
+            try:
+                with open(self.get_config_path(), "r") as f:
+                    main_controller.DM.data = json.load(f)
+                main_controller.DM.filePath = self.get_config_path()
+            except Exception as e:
+                print(f"[ChatbotAgent] Warning: could not reload config: {e}")
 
         self.disabled = False
         if not os.getenv("OPENAI_API_KEY"):
@@ -67,23 +263,12 @@ class ChatbotAgent:
             self.disabled = True
             return
 
-        # Model is not used to generate text; we keep it set up for parity with your stack.
-        self.model = init_chat_model(
-            "gpt-5-mini",
-            model_provider="openai",
-            temperature=0.0,
-            max_tokens=256,
-        )
-        # Register tools (we call them directly; create_react_agent kept for compatibility)
+        self.router = UnifiedRouter()
         self.tools = self._create_tools()
-        self.agent_executor = create_react_agent(self.model, self.tools)
-
+        self.model = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
         self.last_user_input = ""
 
-    # -----------
-    # UI helpers
-    # -----------
-
+    # UI helper
     @staticmethod
     def _switch_tab_for(category: str) -> str:
         m = {
@@ -101,7 +286,9 @@ class ChatbotAgent:
         return m.get(category.lower(), "Faculty")
 
     @staticmethod
-    def _ok(response: str, category: str, action: str, payload: Optional[dict] = None) -> dict:
+    def _ok(
+        response: str, category: str, action: str, payload: Optional[dict] = None
+    ) -> dict:
         return {
             "response": response,
             "category": category,
@@ -120,6 +307,343 @@ class ChatbotAgent:
             "error": True,
         }
 
+    # --- Helpers to normalize faculty payloads from messy LLM output / free text ---
+
+    @staticmethod
+    def _to_int(value, default=None):
+        if value is None:
+            return default
+        if isinstance(value, (int, float)):
+            return int(value)
+        s = str(value).strip()
+        # pick the first integer in the string
+        import re
+
+        m = re.search(r"-?\d+", s)
+        return int(m.group(0)) if m else default
+
+    @staticmethod
+    def _to_pref_dict(obj):
+        """
+        Accepts:
+          - {"A": 2, "B": 3}
+          - [{"name": "A", "weight": 2}, {"name": "B", "weight": 3}]
+          - [("A", 2), ("B", 3)]
+          - ["A:2", "B:3"]
+        Returns a clean dict[str,int].
+        """
+        if not obj:
+            return {}
+        if isinstance(obj, dict):
+            # Coerce values to int
+            return {str(k): ChatbotAgent._to_int(v, 0) for k, v in obj.items()}
+        out = {}
+        if isinstance(obj, list):
+            for item in obj:
+                if isinstance(item, dict):
+                    name = (
+                        item.get("name")
+                        or item.get("id")
+                        or item.get("course")
+                        or item.get("room")
+                        or item.get("lab")
+                    )
+                    weight = ChatbotAgent._to_int(item.get("weight"), 0)
+                    if name:
+                        out[str(name)] = weight
+                elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                    out[str(item[0])] = ChatbotAgent._to_int(item[1], 0)
+                else:
+                    # "CMSC 124 weight 4" or "Roddy 2:3"
+                    s = str(item)
+                    import re
+
+                    m = re.search(
+                        r"([A-Za-z0-9#\-\s]+?)\s*(?:weight|:)\s*(\d+)", s, re.I
+                    )
+                    if m:
+                        out[m.group(1).strip()] = int(m.group(2))
+        return out
+
+    @staticmethod
+    def _parse_time_span(span: str):
+        """
+        '7am to 5pm' -> '07:00-17:00'
+        '08:30-12:00' passthrough
+        """
+        if not span:
+            return None
+        s = (
+            span.strip()
+            .lower()
+            .replace("–", "-")
+            .replace("—", "-")
+            .replace(" to ", "-")
+        )
+        import re
+
+        # If already HH:MM-HH:MM
+        if re.match(r"^\d{1,2}:\d{2}-\d{1,2}:\d{2}$", s):
+            return s
+
+        # Accept '7am-5pm', '7 am - 5 pm', '8-4pm' etc.
+        def hm(tok):
+            m = re.match(r"^\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*$", tok)
+            if not m:
+                return None
+            h = int(m.group(1))
+            mi = int(m.group(2) or 0)
+            ampm = (m.group(3) or "").lower()
+            if ampm == "pm" and h != 12:
+                h += 12
+            if ampm == "am" and h == 12:
+                h = 0
+            return f"{h:02d}:{mi:02d}"
+
+        parts = [p for p in re.split(r"\s*-\s*", s) if p]
+        if len(parts) != 2:
+            return None
+        a, b = hm(parts[0]), hm(parts[1])
+        return f"{a}-{b}" if a and b else None
+
+    @staticmethod
+    def _weekday_key(name: str):
+        name = (name or "").strip().lower()
+        mapping = {
+            "monday": "MON",
+            "mon": "MON",
+            "tuesday": "TUE",
+            "tue": "TUE",
+            "tues": "TUE",
+            "wednesday": "WED",
+            "wed": "WED",
+            "thursday": "THU",
+            "thu": "THU",
+            "thur": "THU",
+            "thurs": "THU",
+            "friday": "FRI",
+            "fri": "FRI",
+            "saturday": "SAT",
+            "sat": "SAT",
+            "sunday": "SUN",
+            "sun": "SUN",
+        }
+        return mapping.get(name)
+
+    def _extract_times_from_text(self, text: str):
+        """
+        Pull day→time from raw user input like:
+        'available on Monday from 7am to 5pm, tuesday from 4pm to 6pm, friday 8am to 4pm'
+        """
+        import re
+
+        times = {}
+        # Patterns: "<day> from X to Y" OR "<day> X to Y"
+        day_re = r"(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)"
+        span_re = (
+            r"(?:(?:from\s+)?([0-9:\sampAMP\.]+?)\s*(?:to|-)\s*([0-9:\sampAMP\.]+))"
+        )
+        for m in re.finditer(day_re + r"\s+" + span_re, text, re.I):
+            day = self._weekday_key(m.group(1))
+            start, end = m.group(2), m.group(3)
+            span = self._parse_time_span(f"{start}-{end}")
+            if day and span:
+                times.setdefault(day, []).append(span)
+
+        # Also handle a looser comma series like "monday 7am-5pm, tuesday 4pm-6pm"
+        for m in re.finditer(
+            day_re + r"\s+([0-9:\sampAMP\.]+-[0-9:\sampAMP\.]+)", text, re.I
+        ):
+            day = self._weekday_key(m.group(1))
+            span = self._parse_time_span(m.group(2))
+            if day and span:
+                times.setdefault(day, []).append(span)
+
+        return times
+
+    def _normalize_faculty_payload(self, data: dict, raw_text: str) -> dict:
+        """
+        Returns a new dict that satisfies DM.addFaculty’s schema.
+        Pulls missing fields out of raw_text if needed.
+        """
+        norm = {}
+
+        # --- name ---
+        name = (data or {}).get("name")
+        if not name:
+            import re
+
+            m = re.search(r"(?:named|called)\s+([A-Z][A-Za-z0-9_\-\s]*)", raw_text)
+            if m:
+                name = m.group(1).strip()
+        if not name:
+            raise ValueError("Faculty must include a valid 'name' field.")
+        norm["name"] = name
+
+        # --- numeric fields ---
+        norm["minimum_credits"] = self._to_int(
+            data.get("minimum_credits") or data.get("min_credits"), 0
+        )
+        norm["maximum_credits"] = self._to_int(
+            data.get("maximum_credits") or data.get("max_credits"), 0
+        )
+        norm["unique_course_limit"] = self._to_int(
+            data.get("unique_course_limit")
+            or data.get("unique_limit")
+            or data.get("unique_courses"),
+            0,
+        )
+
+        # Try to extract numbers from the raw text if still 0
+        import re
+
+        if not norm["minimum_credits"]:
+            m = re.search(
+                r"min(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I
+            )
+            if m:
+                norm["minimum_credits"] = int(m.group(1))
+        if not norm["maximum_credits"]:
+            m = re.search(
+                r"max(?:imum)?\s*credits?\s*(?:is|=)?\s*(\d+)", raw_text, re.I
+            )
+            if m:
+                norm["maximum_credits"] = int(m.group(1))
+        if not norm["unique_course_limit"]:
+            m = re.search(
+                r"unique\s*course\s*limit\s*(?:of|is|=)?\s*(\d+)", raw_text, re.I
+            )
+            if m:
+                norm["unique_course_limit"] = int(m.group(1))
+
+        # --- availability ("times") ---
+        # Use ONLY structured times from the LLM. Do NOT infer from raw text.
+        clean_times = {}
+        times = data.get("times") or {}
+
+        if isinstance(times, dict):
+            for k, spans in times.items():
+                day = self._weekday_key(k)
+                if not day:
+                    continue
+                if isinstance(spans, list):
+                    clean_times[day] = [
+                        self._parse_time_span(s)
+                        for s in spans
+                        if self._parse_time_span(s)
+                    ]
+                else:
+                    parsed = self._parse_time_span(str(spans))
+                    if parsed:
+                        clean_times.setdefault(day, []).append(parsed)
+
+        # Ensure all weekdays exist
+        for d in ["MON", "TUE", "WED", "THU", "FRI"]:
+            clean_times.setdefault(d, [])
+
+        norm["times"] = clean_times
+
+        # --- preferences ---
+        # Use ONLY the structured values from the LLM. Do NOT infer from raw text.
+        course_pref_input = data.get("course_preferences") or {}
+        room_pref_input = data.get("room_preferences") or {}
+        lab_pref_input = data.get("lab_preferences") or {}
+
+        norm["course_preferences"] = self._to_pref_dict(course_pref_input)
+        norm["room_preferences"] = self._to_pref_dict(room_pref_input)
+        norm["lab_preferences"] = self._to_pref_dict(lab_pref_input)
+
+        # Persist all required faculty fields even if empty
+        ALLOWED_FIELDS = [
+            "name",
+            "minimum_credits",
+            "maximum_credits",
+            "unique_course_limit",
+            "times",
+            "course_preferences",
+            "room_preferences",
+            "lab_preferences",
+        ]
+
+        for k in ALLOWED_FIELDS:
+            if k not in norm:
+                if k == "times":
+                    norm[k] = {"MON": [], "TUE": [], "WED": [], "THU": [], "FRI": []}
+                elif k.endswith("_preferences"):
+                    norm[k] = {}
+                elif k in ("minimum_credits", "maximum_credits", "unique_course_limit"):
+                    norm[k] = 0
+                else:
+                    norm[k] = ""
+
+        # Ensure times includes all weekdays
+        for d in ["MON", "TUE", "WED", "THU", "FRI"]:
+            norm["times"].setdefault(d, [])
+
+        return norm
+
+    def _normalize_course_payload(self, data: dict, raw_text: str) -> dict:
+        """
+        Normalize and sanitize a course payload without guessing intent.
+        OpenAI must provide the structure — this only ensures correct schema shape.
+        Required course schema:
+
+        {
+            "course_id": str,
+            "credits": int,
+            "room": list[str],
+            "lab": list[str],
+            "conflicts": list[str],
+            "faculty": list[str]
+        }
+        """
+        clean = dict(data or {})
+
+        # --- Enforce required fields ---------------------------------------------
+
+        REQUIRED_LIST_FIELDS = ["room", "lab", "conflicts", "faculty"]
+
+        # course_id ---------------------------------------------------------------
+        course_id = clean.get("course_id") or clean.get("name") or clean.get("title")
+        if not course_id:
+            raise ValueError(
+                "Missing required field: 'course_id'. The LLM must supply this."
+            )
+        clean["course_id"] = str(course_id).strip()
+
+        # credits ---------------------------------------------------------------
+        credits = (
+            clean.get("credits") or clean.get("credit_hours") or clean.get("hours")
+        )
+        try:
+            clean["credits"] = int(credits)
+        except Exception:
+            raise ValueError(
+                "Missing or invalid 'credits'. The LLM must provide an integer."
+            )
+
+        # list fields ------------------------------------------------------------
+        for field in REQUIRED_LIST_FIELDS:
+            val = clean.get(field)
+
+            if val is None:
+                clean[field] = []
+            elif isinstance(val, list):
+                clean[field] = [str(x).strip() for x in val]
+            else:
+                clean[field] = [str(val).strip()]
+
+        # Ensure persistence of all required fields, even if empty
+        required_fields = ["room", "lab", "conflicts", "faculty"]
+        for f in required_fields:
+            if f not in clean or clean[f] is None:
+                clean[f] = []
+        # Ensure credits exists
+        if "credits" not in clean:
+            clean["credits"] = 0
+
+        return clean
+
     # -------------------------
     # Tool: view / update value
     # -------------------------
@@ -127,46 +651,18 @@ class ChatbotAgent:
     def _tool_view_config(self):
         if not hasattr(DM, "data") or not DM.data:
             return "No configuration loaded."
-        cfg = DM.data.get("config", {})
+        cfg = (DM.data or {}).get("config", {})
         rooms = len(cfg.get("rooms", []))
         labs = len(cfg.get("labs", []))
         courses = len(cfg.get("courses", []))
         faculty = len(cfg.get("faculty", []))
         return f"Config summary: {rooms} rooms, {labs} labs, {courses} courses, {faculty} faculty."
 
-    def _tool_update_config_value(self, key_path: str, new_value: str):
-        try:
-            if not hasattr(DM, "data") or not DM.data:
-                return "No configuration loaded. Import a config first."
-
-            ref = DM.data
-            keys = key_path.split(".")
-            for k in keys[:-1]:
-                if "[" in k and "]" in k:
-                    name, idx = k[:-1].split("[")
-                    ref = ref[name][int(idx)]
-                else:
-                    ref = ref[k]
-
-            final_key = keys[-1]
-            val = json.loads(new_value) if new_value.strip().startswith(("{", "[", '"')) else new_value
-            if "[" in final_key and "]" in final_key:
-                name, idx = final_key[:-1].split("[")
-                ref[name][int(idx)] = val
-            else:
-                ref[final_key] = val
-
-            DM.saveData(self.get_config_path())
-            return f"Updated {key_path}."
-        except Exception as e:
-            traceback.print_exc()
-            return f"Error updating {key_path}: {e}"
-
     def _tool_show_details(self, target: str = ""):
-        # Kept simple for now
         try:
-            cfg = DM.data.get("config", {})
-            t = (target or "").strip().lower()
+            data = DM.data or {}
+            cfg = data.get("config", {})
+            t = (target or "").lower()
             if t in ("rooms", "room"):
                 return {"rooms": cfg.get("rooms", [])}
             if t in ("labs", "lab"):
@@ -179,506 +675,108 @@ class ChatbotAgent:
         except Exception as e:
             return f"Error: {e}"
 
-    # -------------------------
-    # Parsing helpers
-    # -------------------------
+    def _tool_update_config_value(self, key_path: str, new_value: str):
+        try:
+            if not hasattr(DM, "data") or not DM.data:
+                return "No configuration loaded. Import a config first."
 
-    @staticmethod
-    def _find_first_course_id(text: str) -> Optional[str]:
-        """
-        Accept ANY token sequence that looks like 'Word(s) number' (e.g., "BIO 345", "EDU 112", "CMSC 140"),
-        OR a single token with letters+digits ("CS150", "PHYS204").
-        If multiple matches, prefer the one nearest 'course' mention.
-        """
-        # Generic patterns (liberal)
-        patterns = [
-            r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b",       # Word 123 / Word123 / Word123A
-            r"\b[A-Za-z]{2,}\s+[A-Za-z]{2,}\s*\d{1,4}\b"  # Two words then digits (e.g., "Data Sci 200")
-        ]
-        for pat in patterns:
-            m = re.search(pat, text)
-            if m:
-                return m.group(0).strip()
-        return None
+            ref = DM.data
+            keys = key_path.split(".")
+            for k in keys[:-1]:
+                ref = ref[k]
+            ref[keys[-1]] = json.loads(new_value)
+            DM.saveData(self.get_config_path())
+            return f"Updated {key_path}."
+        except Exception as e:
+            return f"Error updating {key_path}: {e}"
 
-    @staticmethod
-    def _find_number_after(text: str, key: str) -> Optional[int]:
-        m = re.search(rf"{key}\s*(?:of|is|=|to)?\s*(\d+)", text, flags=re.IGNORECASE)
-        return int(m.group(1)) if m else None
-
-    @staticmethod
-    def _extract_faculty_names_from_text(text: str) -> List[str]:
-        # Heuristic: Proper names (capitalized words, optionally two tokens)
-        names = re.findall(r"\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)?\b", text)
-        # Remove common nouns that collide
-        blacklist = {"Room", "Lab", "Building", "Course", "Credits", "Add", "Delete", "Edit"}
-        return [n for n in names if n not in blacklist]
-
-    @staticmethod
-    def _extract_rooms_from_text(text: str, known_rooms: List[str]) -> List[str]:
-        res = []
-        lower = text.lower()
-        # Include any known rooms explicitly mentioned
-        for r in known_rooms:
-            if r.lower() in lower:
-                res.append(r)
-        # Also catch patterns like "Roddy 73", "Muncy 445"
-        for m in re.findall(r"\b[A-Z][a-zA-Z]+\s*\d+\b", text):
-            if m not in res:
-                res.append(m)
-        # Deduplicate while preserving order
-        return list(dict.fromkeys(res))
-
-    @staticmethod
-    def _extract_labs_from_text(text: str, known_labs: List[str]) -> List[str]:
-        res = []
-        lower = text.lower()
-        for l in known_labs:
-            if l.lower() in lower:
-                res.append(l)
-        # Also allow single tokens like "Linux", "Mac"
-        for m in re.findall(r"\b[A-Z][a-zA-Z0-9]+\b", text):
-            if m in ("Lab", "Room"):
-                continue
-            if m not in res and any(m.lower() == k.lower() for k in known_labs):
-                res.append(m)
-        return list(dict.fromkeys(res))
-
-    @staticmethod
-    def _extract_conflicts_from_text(text: str, known_rooms: List[str] = None, known_labs: List[str] = None) -> List[
-        str]:
-        """
-        Extract course-like tokens (e.g., CMSC 161, BIO 120) while excluding known rooms/labs
-        and ignoring numeric-only or verb fragments like 'be 5'.
-        """
-        known_rooms = [r.lower() for r in (known_rooms or [])]
-        known_labs = [l.lower() for l in (known_labs or [])]
-
-        # Match only tokens that have letters immediately followed by digits
-        matches = re.findall(r"\b[A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?\b", text)
-        results = []
-        for m in matches:
-            lower_m = m.lower()
-            if lower_m in known_rooms or lower_m in known_labs:
-                continue
-            # Skip nonsense like "be 5" or verbs before digits
-            if re.match(r"be\s*\d+", m, re.IGNORECASE):
-                continue
-            results.append(m.strip())
-        return list(dict.fromkeys(results))
-
-    @staticmethod
-    def _parse_times_from_text(text: str) -> Dict[str, List[str]]:
-        """
-        Parse phrases like:
-            "MON 10:00-12:00"
-            "Monday 11am-4pm"
-            "on mon 09:00-10:50, wed 14:00-15:00"
-        Build a dict with ONLY the mentioned days; all others omitted (caller will clear).
-        """
-        day_map = {
-            "mon": "MON", "monday": "MON",
-            "tue": "TUE", "tues": "TUE", "tuesday": "TUE",
-            "wed": "WED", "wednesday": "WED",
-            "thu": "THU", "thur": "THU", "thurs": "THU", "thursday": "THU",
-            "fri": "FRI", "friday": "FRI",
-            "sat": "SAT", "saturday": "SAT",
-            "sun": "SUN", "sunday": "SUN",
-        }
-
-        def to_24h(t: str) -> str:
-            t = t.strip().lower()
-            m = re.match(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", t)
-            if not m:
-                return t  # Already like 13:10
-            hh = int(m.group(1))
-            mm = int(m.group(2) or 0)
-            ap = (m.group(3) or "").lower()
-            if ap == "pm" and hh != 12:
-                hh += 12
-            if ap == "am" and hh == 12:
-                hh = 0
-            return f"{hh:02d}:{mm:02d}"
-
-        results: Dict[str, List[str]] = {}
-        # Pattern captures things like "mon 10:00-12:00", "monday 11am-4pm"
-        for m in re.finditer(
-            r"\b(mon|monday|tue|tues|tuesday|wed|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday)\b[^0-9a-zA-Z]+([0-9:apm\s]+)-([0-9:apm\s]+)",
-            text, flags=re.IGNORECASE,
-        ):
-            raw_day, start_s, end_s = m.group(1), m.group(2), m.group(3)
-            day = day_map[raw_day.lower()]
-            start_24 = to_24h(start_s)
-            end_24 = to_24h(end_s)
-            results.setdefault(day, []).append(f"{start_24}-{end_24}")
-
-        # Also allow compact forms: "mon 10-12", "wed 9-15"
-        for m in re.finditer(
-            r"\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b\s+(\d{1,2})(?::(\d{2}))?-(\d{1,2})(?::(\d{2}))?",
-            text, flags=re.IGNORECASE,
-        ):
-            raw_day, sh, sm, eh, em = m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
-            day = day_map[raw_day.lower()]
-            sm_i = int(sm or 0)
-            em_i = int(em or 0)
-            start = f"{int(sh):02d}:{sm_i:02d}"
-            end = f"{int(eh):02d}:{em_i:02d}"
-            results.setdefault(day, []).append(f"{start}-{end}")
-
-        return results
-
-    # -------------------------
-    # ADD / EDIT / DELETE tools
-    # -------------------------
+    # -----------------------------
+    # CRUD tool wrappers
+    # -----------------------------
 
     def _tool_add_item(self, category: str, data: dict):
         try:
-            if not hasattr(DM, "data") or not DM.data:
-                return self._err("No configuration loaded. Import a config first.", category, "add")
+            if category == "room":
+                DM.addRoom(data.get("name", "Unnamed Room"))
+                return self._ok("Room added.", category, "add")
 
-            text = (self.last_user_input or "")
-            category = category.lower().strip()
-            cfg = DM.data.get("config", {})
+            if category == "lab":
+                DM.addLab(data.get("name", "Unnamed Lab"))
+                return self._ok("Lab added.", category, "add")
 
-            if category in ("room", "rooms"):
-                # Room name from text or data
-                name = data.get("name")
-                if not name:
-                    # accept e.g., "Roddy 136", or last token after "room"
-                    m = re.search(r"(?:room\s+|roddy\s+)?([A-Z][A-Za-z]+\s*\d+)", text, re.IGNORECASE)
-                    name = m.group(1).strip() if m else None
-                if not name:
-                    return self._err("Please specify a room name to add.", category, "add")
-                try:
-                    DM.addRoom(name)
-                    return self._ok(f"Room '{name}' added (not yet saved).", category, "add")
-                except Exception as e:
-                    return self._err(f"Failed to add room '{name}': {e}", category, "add")
+            if category == "faculty":
+                # Convert FacultyDetails → dict
+                if isinstance(data, FacultyDetails):
+                    data = data.dict()
 
-            if category in ("lab", "labs"):
-                name = data.get("name")
-                if not name:
-                    # Improved: match patterns like "lab called Windows", "add a lab named Science Lab 3"
-                    m = re.search(
-                        r"(?:lab(?:\s+(?:called|named|is|called\s+as))?\s+)([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)",
-                        text,
-                        re.IGNORECASE,
-                    )
-                    if not m:
-                        # Fallback: standalone capitalized word after "lab"
-                        m = re.search(r"lab\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)", text, re.IGNORECASE)
-                    name = m.group(1).strip() if m else None
+                clean = self._normalize_faculty_payload(data, self.last_user_input)
 
-                if not name:
-                    return self._err("Please specify a lab name to add.", category, "add")
+                DM.addFaculty(clean)
+                return self._ok(f"Faculty '{clean['name']}' added.", category, "add")
 
-                try:
-                    DM.addLab(name)
-                    return self._ok(f"Lab '{name}' added (not yet saved).", category, "add")
-                except Exception as e:
-                    return self._err(f"Failed to add lab '{name}': {e}", category, "add")
-
-            if category in ("faculty", "professor", "instructor", "teacher"):
-                # Build a full faculty object with sensible defaults
-                new_fac = dict(data) if data else {}
-                if "name" not in new_fac or not new_fac["name"]:
-                    names = self._extract_faculty_names_from_text(text)
-                    if names:
-                        new_fac["name"] = names[0]
-                if "name" not in new_fac or not new_fac["name"]:
-                    return self._err("Faculty must include a name.", "faculty", "add")
-
-                new_fac.setdefault("minimum_credits", self._find_number_after(text, "minimum credits") or 0)
-                new_fac.setdefault("maximum_credits", self._find_number_after(text, "maximum credits") or 12)
-                new_fac.setdefault("unique_course_limit", self._find_number_after(text, "unique course limit") or 1)
-
-                # Times: if specified, put ONLY those days; others empty
-                parsed_times = self._parse_times_from_text(text)
-                if parsed_times:
-                    all_days = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
-                    new_fac["times"] = {d: parsed_times.get(d, []) for d in all_days}
-                else:
-                    # sensible default 9-5 M-F
-                    new_fac["times"] = {d: (["09:00-17:00"] if d in ["MON","TUE","WED","THU","FRI"] else []) for d in ["MON","TUE","WED","THU","FRI","SAT","SUN"]}
-
-                # Preferences (fully replace if provided in data; otherwise parse from text)
-                cp = data.get("course_preferences")
-                rp = data.get("room_preferences")
-                lp = data.get("lab_preferences")
-
-                if cp is None:
-                    cp = {}
-                    # Parse entries like CMSC 362=5
-                    for m in re.finditer(r"\b([A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?)\s*=\s*(\d+)\b", text):
-                        cp[m.group(1).upper().replace("  ", " ")] = int(m.group(2))
-                if rp is None:
-                    rp = {}
-                    for m in re.finditer(r"\b([A-Z][A-Za-z]+\s*\d+)\s*=\s*(\d+)\b", text):
-                        rp[m.group(1)] = int(m.group(2))
-                if lp is None:
-                    lp = {}
-                    for m in re.finditer(r"\b(Linux|Mac|Windows|AI|Data|GPU)\b\s*=\s*(\d+)\b", text, re.IGNORECASE):
-                        lp[m.group(1).capitalize()] = int(m.group(2))
-
-                new_fac["course_preferences"] = cp
-                new_fac["room_preferences"] = rp
-                new_fac["lab_preferences"] = lp
-
-                try:
-                    DM.addFaculty(new_fac)
-                    return self._ok(f"Faculty '{new_fac['name']}' added (not yet saved).", "faculty", "add")
-                except Exception as e:
-                    return self._err(f"Failed to add faculty '{new_fac.get('name','?')}': {e}", "faculty", "add")
-
-            if category in ("course", "courses"):
-                course_id = data.get("course_id") or self._find_first_course_id(text)
-                if not course_id:
-                    return self._err("Please include a course id to add (e.g., 'add course BIO 345').", "course", "add")
-
-                credits = data.get("credits")
-                if credits is None:
-                    # parse "... with 4 credits" or "... has 3 credits"
-                    m = re.search(r"(\d+)\s*credits?", text, re.IGNORECASE)
-                    credits = int(m.group(1)) if m else 4
-
-                known_rooms = cfg.get("rooms", [])
-                known_labs = cfg.get("labs", [])
-                known_faculty = [f.get("name") for f in cfg.get("faculty", []) if isinstance(f, dict)]
-
-                rooms = data.get("room") or self._extract_rooms_from_text(text, known_rooms)
-                labs = data.get("lab") or self._extract_labs_from_text(text, known_labs)
-                faculty = data.get("faculty") or [n for n in self._extract_faculty_names_from_text(text) if n in known_faculty]
-
-                # Conflicts from text (remove self if present)
-                conflicts = data.get("conflicts")
-                if conflicts is None:
-                    conflicts = [c for c in self._extract_conflicts_from_text(text) if c.upper() != course_id.upper()]
-
-                new_course = {
-                    "course_id": course_id,
-                    "credits": credits,
-                    "room": rooms,
-                    "lab": labs,
-                    "faculty": faculty,
-                    "conflicts": conflicts,
-                }
-
-                try:
-                    DM.addCourse(new_course)
-                    return self._ok(f"Course '{course_id}' added (not yet saved).", "course", "add")
-                except Exception as e:
-                    return self._err(f"Failed to add course '{course_id}': {e}", "course", "add")
+            if category == "course":
+                clean = self._normalize_course_payload(data, self.last_user_input)
+                DM.addCourse(clean)
+                return self._ok(
+                    f"Course '{clean['course_id']}' added.", category, "add"
+                )
 
             return self._err(f"Unknown category '{category}'.", category, "add")
+
         except Exception as e:
             traceback.print_exc()
             return self._err(f"Error adding {category}: {e}", category, "add")
 
     def _tool_edit_item(self, category: str, identifier: str, updates: dict):
         try:
-            if not hasattr(DM, "data") or not DM.data:
-                return self._err("No configuration loaded. Import a config first.", category, "edit")
+            if category == "room":
+                DM.editRoom(identifier, updates.get("name", identifier))
+                return self._ok(f"Room '{identifier}' updated.", category, "edit")
 
-            category = category.lower().strip()
-            cfg = DM.data.get("config", {})
+            if category == "lab":
+                DM.editLabs(identifier, updates.get("name", identifier))
+                return self._ok(f"Lab '{identifier}' updated.", category, "edit")
 
-            # ROOMS
-            if category in ("room", "rooms"):
-                rooms = cfg.get("rooms", [])
-                target = next((r for r in rooms if r.lower() == identifier.lower()), None)
-                if not target:
-                    return self._err(f"Room '{identifier}' not found.", category, "edit")
+            if category == "faculty":
+                # Convert FacultyDetails → dict
+                if isinstance(updates, FacultyDetails):
+                    updates = updates.dict()
 
-                new_name = updates.get("name")
-                if not new_name:
-                    # Look for patterns like "to Roddy 894" or "be called Roddy 894"
-                    m = re.search(r"(?:to|called|named|be called)\s+([A-Z][A-Za-z]+\s*\d+)", self.last_user_input,
-                                  re.IGNORECASE)
-                    if m:
-                        new_name = m.group(1).strip()
+                clean_updates = self._normalize_faculty_payload(
+                    updates, self.last_user_input
+                )
 
-                if not new_name:
-                    return self._err("Provide 'name' to rename the room.", category, "edit")
+                # Remove name field if it’s just the same identifier
+                if clean_updates.get("name", "").lower() == identifier.lower():
+                    clean_updates.pop("name", None)
 
-                DM.editRoom(target, new_name)
-                return self._ok(f"Room '{target}' renamed to '{new_name}' (not yet saved).", category, "edit")
+                DM.editFaculty(identifier, clean_updates)
+                return self._ok(f"Faculty '{identifier}' updated.", category, "edit")
 
-            # LABS
-            if category in ("lab", "labs"):
-                labs = cfg.get("labs", [])
-                target = next((l for l in labs if l.lower() == identifier.lower()), None)
-                if not target:
-                    return self._err(f"Lab '{identifier}' not found.", category, "edit")
-
-                new_name = updates.get("name")
-                if not new_name:
-                    m = re.search(r"(?:to|called|named|be called)\s+([A-Z][A-Za-z0-9]+(?:\s+\d+)?)",
-                                  self.last_user_input, re.IGNORECASE)
-                    if m:
-                        new_name = m.group(1).strip()
-
-                if not new_name:
-                    return self._err("Provide 'name' to rename the lab.", category, "edit")
-
-                DM.editLabs(target, new_name)
-                return self._ok(f"Lab '{target}' renamed to '{new_name}' (not yet saved).", category, "edit")
-            # COURSES
-            if category in ("course", "courses"):
-                # Build updates from text if not provided
-                text = self.last_user_input
-                payload = dict(updates or {})
-                # credits
-                if "credits" not in payload:
-                    m = re.search(r"(\d+)\s*credits?", text, re.IGNORECASE)
-                    if m:
-                        payload["credits"] = int(m.group(1))
-
-                # rooms / labs / faculty / conflicts — full replacements if provided in updates
-                known_rooms = cfg.get("rooms", [])
-                known_labs = cfg.get("labs", [])
-                known_faculty = [f.get("name") for f in cfg.get("faculty", []) if isinstance(f, dict)]
-
-                if "room" not in payload:
-                    rooms = self._extract_rooms_from_text(text, known_rooms)
-                    rooms = [r for r in rooms if
-                             not re.match(r"^[A-Z]{2,}\s*\d+$", r)]
-                    if rooms:
-                        payload["room"] = rooms
-                if "lab" not in payload:
-                    labs = self._extract_labs_from_text(text, known_labs)
-                    if labs:
-                        payload["lab"] = labs
-                if "faculty" not in payload:
-                    fac = [n for n in self._extract_faculty_names_from_text(text) if n in known_faculty]
-                    if fac:
-                        payload["faculty"] = fac
-                if "conflicts" not in payload:
-                    conf = [
-                        c for c in self._extract_conflicts_from_text(text, known_rooms, known_labs)
-                        if c.upper() != identifier.upper()
-                    ]
-                    if conf:
-                        payload["conflicts"] = conf
-
-                try:
-                    DM.editCourse(identifier, payload, target_index=updates.get("_index"))
-                    return self._ok(f"Course '{identifier}' updated in memory.", "course", "edit", payload=payload)
-                except Exception as e:
-                    return self._err(f"Failed to edit course '{identifier}': {e}", "course", "edit")
-
-            # FACULTY
-            if category in ("faculty", "professor", "instructor", "teacher"):
-                text = self.last_user_input
-                fac = DM.getFacultyByName(identifier)
-                if not fac:
-                    return self._err(f"Faculty '{identifier}' not found.", "faculty", "edit")
-
-                # Start from an empty replacement payload (we REPLACE dicts completely)
-                new_fac = fac.copy()
-
-                # numeric limits
-                min_c = self._find_number_after(text, "minimum credits")
-                max_c = self._find_number_after(text, "maximum credits")
-                uniq = self._find_number_after(text, "unique course limit")
-                if min_c is not None:
-                    new_fac["minimum_credits"] = min_c
-                if max_c is not None:
-                    new_fac["maximum_credits"] = max_c
-                if uniq is not None:
-                    new_fac["unique_course_limit"] = uniq
-
-                # Availability: replace entire times with ONLY days mentioned; rest empty
-                parsed_times = self._parse_times_from_text(text)
-                if parsed_times:
-                    all_days = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
-                    new_fac["times"] = {d: parsed_times.get(d, []) for d in all_days}
-
-                # Preferences: fully replace if present (explicit or parsed)
-                cp = updates.get("course_preferences")
-                rp = updates.get("room_preferences")
-                lp = updates.get("lab_preferences")
-
-                if cp is None:
-                    cp = {}
-                    for m in re.finditer(r"\b([A-Za-z]{2,}\s*\d{1,4}[A-Za-z]?)\s*=\s*(\d+)\b", text):
-                        cp[m.group(1).upper().replace("  ", " ")] = int(m.group(2))
-                if rp is None:
-                    rp = {}
-                    for m in re.finditer(r"\b([A-Z][A-Za-z]+\s*\d+)\s*=\s*(\d+)\b", text):
-                        rp[m.group(1)] = int(m.group(2))
-                if lp is None:
-                    lp = {}
-                    for m in re.finditer(r"\b(Linux|Mac|Windows|AI|Data|GPU)\b\s*=\s*(\d+)\b", text, re.IGNORECASE):
-                        lp[m.group(1).capitalize()] = int(m.group(2))
-
-                if cp:
-                    new_fac["course_preferences"] = cp
-                if rp:
-                    new_fac["room_preferences"] = rp
-                if lp:
-                    new_fac["lab_preferences"] = lp
-
-                # Commit into DM.data directly (faculty is a list of dicts)
-                fac_list = DM.data["config"]["faculty"]
-                for i, fobj in enumerate(fac_list):
-                    if isinstance(fobj, dict) and fobj.get("name", "").lower() == identifier.lower():
-                        fac_list[i] = new_fac
-                        break
-
-                return self._ok(f"Faculty '{identifier}' updated in memory.", "faculty", "edit", payload=new_fac)
+            if category == "course":
+                DM.editCourse(identifier, updates)
+                return self._ok(f"Course '{identifier}' updated.", category, "edit")
 
             return self._err(f"Unknown category '{category}'.", category, "edit")
+
         except Exception as e:
             traceback.print_exc()
             return self._err(f"Error editing {category}: {e}", category, "edit")
 
     def _tool_delete_item(self, category: str, identifier: str):
         try:
-            if not hasattr(DM, "data") or not DM.data:
-                return self._err("No configuration loaded. Import a config first.", category, "delete")
-
-            category = category.lower().strip()
-
-            if category in ("room", "rooms"):
-                try:
-                    DM.removeRoom(identifier)
-                    return self._ok(f"Room '{identifier}' removed (not yet saved).", category, "delete")
-                except Exception as e:
-                    return self._err(f"Failed to remove room '{identifier}': {e}", category, "delete")
-
-            if category in ("lab", "labs"):
-                try:
-                    labs = DM.data["config"].get("labs", [])
-                    target = next((l for l in labs if l.lower() == identifier.lower()), None)
-                    if not target:
-                        return self._err(f"Lab '{identifier}' not found.", category, "delete")
-
-                    labs.remove(target)
-                    return self._ok(f"Lab '{target}' removed (not yet saved).", category, "delete")
-                except Exception as e:
-                    return self._err(f"Failed to remove lab '{identifier}': {e}", category, "delete")
-
-            if category in ("course", "courses"):
-                try:
-                    DM.removeCourse(identifier)
-                    return self._ok(f"Course '{identifier}' removed (not yet saved).", category, "delete")
-                except Exception as e:
-                    return self._err(f"Failed to remove course '{identifier}': {e}", category, "delete")
-
-            if category in ("faculty", "professor", "instructor", "teacher"):
-                try:
-                    # DataManager expects exact name
-                    fac = DM.getFacultyByName(identifier)
-                    if not fac:
-                        return self._err(f"Faculty '{identifier}' not found.", "faculty", "delete")
-                    # Remove by exact name
-                    # Reuse removeFaculty API which checks dependencies
-                    from Controller.main_controller import DataManager as _DMType  # type hint only
-                    DM.removeFaculty(identifier)
-                    return self._ok(f"Faculty '{identifier}' removed (not yet saved).", "faculty", "delete")
-                except Exception as e:
-                    return self._err(f"Failed to remove faculty '{identifier}': {e}", "faculty", "delete")
-
+            if category == "room":
+                DM.removeRoom(identifier)
+                return self._ok(f"Room '{identifier}' deleted.", category, "delete")
+            if category == "lab":
+                DM.removeLabs(identifier)
+                return self._ok(f"Lab '{identifier}' deleted.", category, "delete")
+            if category == "faculty":
+                DM.removeFaculty(identifier)
+                return self._ok(f"Faculty '{identifier}' deleted.", category, "delete")
+            if category == "course":
+                DM.removeCourse(identifier)
+                return self._ok(f"Course '{identifier}' deleted.", category, "delete")
             return self._err(f"Unknown category '{category}'.", category, "delete")
         except Exception as e:
             traceback.print_exc()
@@ -698,148 +796,79 @@ class ChatbotAgent:
                 return_direct=True,
             ),
             StructuredTool.from_function(
-                name="update_config_value",
-                func=self._tool_update_config_value,
-                description="Update a value via dot/bracket path into DM.data.",
-                args_schema=KeyPathArgs,
-                return_direct=True,
-            ),
-            StructuredTool.from_function(
                 name="show_details",
                 func=self._tool_show_details,
-                description="Show details for rooms/labs/courses/faculty.",
+                description="Show detailed list for given category.",
                 return_direct=True,
             ),
             StructuredTool.from_function(
                 name="add_item",
                 func=self._tool_add_item,
-                description="Add a room | lab | course | faculty.",
+                description="Add a new item (room, lab, course, or faculty).",
                 args_schema=AddItemArgs,
                 return_direct=True,
             ),
             StructuredTool.from_function(
                 name="edit_item",
                 func=self._tool_edit_item,
-                description="Edit a room | lab | course | faculty (full replace semantics for prefs/availability).",
+                description="Edit an existing item.",
                 args_schema=EditItemArgs,
                 return_direct=True,
             ),
             StructuredTool.from_function(
                 name="delete_item",
                 func=self._tool_delete_item,
-                description="Delete a room | lab | course | faculty.",
+                description="Delete an existing item.",
                 args_schema=DeleteItemArgs,
                 return_direct=True,
             ),
         ]
 
-    # -------------------------
-    # Intent routing
-    # -------------------------
-
-    @staticmethod
-    def _detect_category(text: str) -> Optional[str]:
-        t = text.lower()
-        # Priority: course first, then faculty, then room, then lab
-        if any(w in t for w in ("course", "class", "cmsc", "edu", "bio", "math")):
-            return "course"
-        if any(w in t for w in ("faculty", "professor", "instructor", "teacher")):
-            return "faculty"
-        if any(w in t for w in ("room", "roddy", "hall", "building")):
-            return "room"
-        if "lab" in t:
-            return "lab"
-        return None
-
-    @staticmethod
-    def _detect_action(text: str) -> Optional[str]:
-        t = text.lower()
-        if any(w in t for w in ("add", "create", "new")):
-            return "add"
-        if any(w in t for w in ("edit", "update", "change", "modify", "set")):
-            return "edit"
-        if any(w in t for w in ("delete", "remove", "drop")):
-            return "delete"
-        if any(w in t for w in ("show", "list", "display")):
-            return "show"
-        return None
-
-    @staticmethod
-    def _extract_identifier(text: str, category: str) -> Optional[str]:
-        if category == "course":
-            return ChatbotAgent._find_first_course_id(text)
-        if category == "faculty":
-            names = ChatbotAgent._extract_faculty_names_from_text(text)
-            return names[0] if names else None
-        if category == "room":
-            m = re.search(r"(?:room\s+|roddy\s+)?([A-Z][A-Za-z]+\s*\d+)", text, re.IGNORECASE)
-            return m.group(1).strip() if m else None
-        if category == "lab":
-            # Match lab names after "lab" or before "lab" in sentences
-            # Handles: "delete the Windows lab", "remove lab Science Lab 3", "delete lab Linux"
-            m = re.search(
-                r"(?:lab\s+(?:called|named|is)?\s*([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*))"
-                r"|(?:the\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)\s+lab)",
-                text,
-                re.IGNORECASE,
-            )
-            if m:
-                # Use whichever capture group matched
-                name = m.group(1) or m.group(2)
-                return name.strip()
-            return None
-        return None
-
-    # -------------------------
-    # Public query entrypoint
-    # -------------------------
+    # -----------------------------
+    # Main Query Entrypoint
+    # -----------------------------
 
     def query(self, user_input: str):
-        """
-        Returns either a string (on hard error) or a dict:
-        {
-          "response": "...",
-          "category": "course|room|lab|faculty",
-          "action": "add|edit|delete|show",
-          "switch_tab": "Courses|Rooms|Labs|Faculty",
-          "payload": {...}
-        }
-        """
         if self.disabled:
             return "Chatbot is disabled (no API key)."
 
+        self.last_user_input = user_input or ""
         try:
-            self.last_user_input = user_input or ""
-            action = self._detect_action(self.last_user_input) or "add"  # default to add if vague
-            category = self._detect_category(self.last_user_input) or "course"
+            routed = self.router.route(self.last_user_input)
 
-            # SHOW
-            if action == "show":
+            # Conversational response
+            if isinstance(routed, str):
+                return {
+                    "response": routed,
+                    "category": "general",
+                    "action": "chat",
+                    "switch_tab": "Faculty",
+                }
+
+            # Action intent -> run CRUD logic
+            intent = routed.intent
+            category = routed.category
+            identifier = routed.identifier
+            details = routed.details or {}
+
+            if intent == "show":
                 res = self._tool_show_details(category)
-                return self._ok("Showing details.", category, "show", payload=res if isinstance(res, dict) else None)
+                return self._ok("Showing details.", category, "show", payload=res)
+            if intent == "add":
+                return self._tool_add_item(category, details)
+            if intent == "edit":
+                if not identifier:
+                    return self._err("Missing identifier for edit.", category, "edit")
+                return self._tool_edit_item(category, identifier, updates=details)
+            if intent == "delete":
+                if not identifier:
+                    return self._err(
+                        "Missing identifier for delete.", category, "delete"
+                    )
+                return self._tool_delete_item(category, identifier)
 
-            # DELETE
-            if action == "delete":
-                ident = self._extract_identifier(self.last_user_input, category)
-                if not ident:
-                    return self._err(f"Please specify which {category} to delete.", category, "delete")
-                return self._tool_delete_item(category, ident)
-
-            # EDIT
-            if action == "edit":
-                ident = self._extract_identifier(self.last_user_input, category)
-                if not ident:
-                    return self._err(f"Please specify which {category} to edit.", category, "edit")
-                # No pre-baked updates: parser inside _tool_edit_item builds replacements as needed
-                return self._tool_edit_item(category, ident, updates={})
-
-            # ADD (default)
-            if action == "add":
-                return self._tool_add_item(category, data={})
-
-            # Fallback
-            return self._err("I couldn't determine your intent. Try 'add course BIO 345'.", category, "unknown")
+            return self._err("Unknown intent.", category, intent)
 
         except Exception as e:
             traceback.print_exc()
-            return {"response": f"Error: {e}"}
+            return {"response": f"Error processing input: {e}"}

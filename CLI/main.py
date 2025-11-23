@@ -9,16 +9,20 @@
 #
 
 # Imports
-import sys, os
+import sys
+import os
 from contextlib import contextmanager
-import json, csv
+import json
+import csv
 import click
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
-from CLI.room_cli import *
-from CLI.lab_cli import *
+
+# from CLI.room_cli import *
+from CLI.room_cli import mainRoomControler
+from CLI.lab_cli import mainLabControler
 from scheduler import (
     Scheduler,
     load_config_from_file,
@@ -55,7 +59,7 @@ def parseJson(path):
     other = {
         "time_slot_config": fileData.get("time_slot_config", {}),
         "limit": fileData.get("limit", {}),
-        "optimizer_flags": fileData.get("optimizer_flags", {})
+        "optimizer_flags": fileData.get("optimizer_flags", {}),
     }
 
     # just return the others here as well.
@@ -101,7 +105,7 @@ def saveConfig(path, rooms, labs, courses, faculty, other):
         },
         "time_slot_config": other.get("time_slot_config", {}),
         "limit": other.get("limit", int),
-        "optimizer_flags": other.get("optimizer_flags", {})
+        "optimizer_flags": other.get("optimizer_flags", {}),
     }
 
     with open(path, "w") as file:
@@ -159,7 +163,7 @@ def runScheduler(otherData):
                 "faculty_lab",
                 "same_room",
                 "same_lab",
-                "pack_rooms"
+                "pack_rooms",
             ]
             selectedOptimizeList = []
 
@@ -272,6 +276,7 @@ def whatAction(rooms, labs, courses, faculty, other):
             saveConfig(filePath, rooms, labs, courses, faculty, other)
         elif choice == "5":
             from CLI.chatbot_cli import main as chatbot_main
+
             saveConfig(filePath, rooms, labs, courses, faculty, other)
             chatbot_main(filePath)
         elif choice == "6":
@@ -311,7 +316,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
                 # Checks if the provided path is valid
                 if os.path.exists(userPath):
                     # If so, makes it the input path
-                    filePath = userPath
+                    # filePath = userPath ?  output/example.json
                     print("Config Loaded Successfully")
                     return
                 else:
@@ -322,7 +327,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
         elif choice == "2":
             # Gives a blank config
             name = input("Enter the file name: (i.e newconfig)")
-            filePath = createEmptyJson(name)
+            createEmptyJson(name)
         elif choice == "3":
             ##Faculty
             whatAction(rooms, labs, courses, faculty, other)
@@ -353,20 +358,20 @@ def displayConfig(rooms, labs, courses, faculty):
     # Rooms
     print("Rooms:")
     if hasattr(rooms, "rooms"):
-        for r in rooms.rooms:
-            print(f"  - {r}")
+        for room in rooms.rooms:
+            print(f"  - {room}")
     else:
-        for r in rooms:
-            print(f"  - {r}")
+        for room in rooms:
+            print(f"  - {room}")
 
     # Labs
     print("\nLabs:")
     if hasattr(labs, "labs"):
-        for l in labs.labs:
-            print(f"  - {l}")
+        for lab in labs.labs:
+            print(f"  - {lab}")
     else:
-        for l in labs:
-            print(f"  - {l}")
+        for lab in labs:
+            print(f"  - {lab}")
 
     # Courses
     print("\nCourses:")
@@ -478,14 +483,7 @@ def main(cli, tests):
     else:
         # Suppress any prints/outputs while GUI runs
         # Use this after developement, final Commit for sprint.
-
-        ################# UNCOMMENT THIS PORTION ===========
         # with suppressOutput():
-        #     app = SchedulerApp()
-        #     app.mainloop()
-        ################ UNCOMMENT THIS PORTION ===========
-
-        # This for developement, remove this, uncomment the top
         app = SchedulerApp()
         app.mainloop()
 
