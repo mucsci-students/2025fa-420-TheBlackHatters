@@ -65,11 +65,11 @@ class TestParseTimeToMinutes:
 
     def test_invalid_none(self):
         with pytest.raises(ValueError, match="Invalid time format"):
-            parse_time_to_minutes(None)
+            parse_time_to_minutes(None)  # type: ignore[arg-type]
 
     def test_invalid_integer_input(self):
         with pytest.raises(ValueError, match="Invalid time format"):
-            parse_time_to_minutes(1200)
+            parse_time_to_minutes(1200)  # type: ignore[arg-type]
 
     def test_invalid_with_spaces(self):
         with pytest.raises(ValueError, match="Invalid time format"):
