@@ -849,7 +849,6 @@ def test_labs_controller_edit_calls_dm():
     ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab")  # type: ignore
 
 
-
 def test_course_controller_remove_calls_dm():
     """Test that course removal calls DataManager"""
     c = ctrl.CourseController()

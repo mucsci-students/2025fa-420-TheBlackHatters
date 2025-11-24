@@ -20,7 +20,7 @@ from Controller.controllerUtils import (
     exportOneScheduleHTML,
     exportSchedulesBTN,
 )
-from typing import Optional 
+from typing import Optional
 
 # should create controllers for other things too
 roomCtr = RoomsController()

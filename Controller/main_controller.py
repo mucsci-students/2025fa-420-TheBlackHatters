@@ -110,6 +110,7 @@ def checkFileContent(data, pathEntaryVar):
 
     return True
 
+
 # stupid
 def stupid():
     # just to make the CI stuff happy, without
