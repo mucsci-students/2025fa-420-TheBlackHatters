@@ -1,31 +1,35 @@
 import customtkinter as ctk
 from tkinter import StringVar
+from Controller.chatbot_agent import ChatbotAgent
 from Controller.main_controller import (
     RoomsController,
     LabsController,
     FacultyController,
+    CourseController,
     configImportBTN,
     configExportBTN,
     generateSchedulesBtn,
     importSchedulesBTN,
+)
+from pathlib import Path
+from Controller.controllerUtils import (
+    orderedSchedules,
+    parseMeeting,
+    getTimeRange,
+    exportOneSchedulePDF,
+    exportOneScheduleHTML,
     exportSchedulesBTN,
     CourseController,
     ClassPatternController,
 )
-
-import math
-import re
-from typing import Optional, cast
-from Controller.chatbot_agent import ChatbotAgent
-
-from datetime import datetime
-
+from typing import Optional
 
 # should create controllers for other things too
 roomCtr = RoomsController()
 facultyCtr = FacultyController()
 labCtr = LabsController()
 courseCtr = CourseController()
+# timeSlotCtr = TimeSlotController()
 
 
 # The config page has left/right. This function when called with with data will fill the left side.
@@ -186,9 +190,8 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
 
     # if we have data given here we just display the data
     # for example when someone clicks edit.
-    if data:
-        if data is not None:
-            nameEntry.insert(0, data.get("name", ""))
+    if data is not None:
+        nameEntry.insert(0, data.get("name", ""))
 
     # This is to display the credit things
     # we need to place, Label and Entry to for each of those we need a frame
@@ -1692,83 +1695,6 @@ def facultyScheduleViewer(
                 ).pack(side="left", padx=5)
 
 
-def sortSchedulesByTime(data):
-    # Priority for the days, no classes on SAT, SUN but who knows..
-    dayOrder = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5, "SUN": 6}
-
-    def getEarliestMeeting(schedule):
-        times = []
-        for entry in schedule[4:]:
-            try:
-                day, time_range = entry.split()
-                startTime = time_range.split("-")[0]
-                hour, minute = map(int, startTime.split(":"))
-                times.append((dayOrder[day], hour, minute))
-            except Exception:
-                continue
-        return min(times) if times else (float("inf"), float("inf"), float("inf"))
-
-    # sort using the funciton we give it, usingt he times
-    return sorted(data, key=getEarliestMeeting)
-
-
-def filterDurations(times, dur):
-    valid = []
-    for t in times:
-        t = t.replace("^", "").strip()
-        try:
-            day, time_range = t.split(" ")
-            start, end = time_range.split("-")
-
-            fmt = "%H:%M"
-            start_time = datetime.strptime(start, fmt)
-            end_time = datetime.strptime(end, fmt)
-
-            duration = (end_time - start_time).seconds / 60
-            if duration == dur:
-                valid.append(t)
-        except ValueError:
-            continue
-    return valid
-
-
-def orderedSchedules(schedules, order):
-    schedules = sortSchedulesByTime(schedules)
-    reoderedSchedules = []
-    if not schedules:
-        return schedules
-
-    if order == "Default":
-        return schedules
-    else:
-        result = {}
-        for row in schedules:
-            course, faculty, room, lab, *days = row
-            if order == "Rooms & Labs":
-                if room not in result:
-                    result[room] = []
-
-                result[room].append([course, faculty] + days)
-            elif order == "Faculty":
-                if faculty not in result:
-                    result[faculty] = []
-
-                result[faculty].append([course, room, lab] + days)
-
-        for row in schedules:
-            course, faculty, room, lab, *days = row
-            if order == "Rooms & Labs":
-                if lab not in (None, "None"):
-                    if lab not in result:
-                        result[lab] = []
-                    times = filterDurations(days, 110)
-                    result[lab].append([course, faculty] + times)
-
-        reoderedSchedules.append(result)
-
-    return reoderedSchedules
-
-
 def plotWeeklyOrderSchedules(schedules, parentFrame, order):
     schedules = orderedSchedules(schedules, order)
     days = ["MON", "TUE", "WED", "THU", "FRI"]
@@ -1777,50 +1703,34 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
     dayWidth = 170
     leftMargin = 50
 
-    def parseMeeting(meeting):
-        try:
-            day, times = meeting.split()
-            times = times.replace("^", "")
-            startStr, endStr = times.split("-")
-            fmt = "%H:%M"
-            start = datetime.strptime(startStr, fmt)
-            end = datetime.strptime(endStr, fmt)
-            return day, start, end
-        except Exception:
-            return None, None, None
-
-    def getTimeRange(data):
-        times = []
-        time_pattern = re.compile(r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})")
-        for _class in data:
-            for item in _class:
-                match = time_pattern.search(item)
-                if match:
-                    start_h, start_m, end_h, end_m = map(int, match.groups())
-                    start = start_h + start_m / 60
-                    end = end_h + end_m / 60
-                    times.append((start, end))
-
-        if not times:
-            return None
-
-        earliest_start = min(t[0] for t in times)
-        latest_end = max(t[1] for t in times)
-        rounded_latest_end = math.ceil(latest_end)
-
-        return (int(earliest_start), rounded_latest_end)
-
-    ctk.CTkLabel(
-        parentFrame,
-        text=f"By {order}:",
-        width=120,
-        height=50,
-        anchor="w",
-        font=("Arial", 30, "bold"),
-    ).pack(padx=10, pady=10)
-
     for schedule_dict in schedules:
         for room, classes in schedule_dict.items():
+            # print(f"Rooms: {room},  Classes: {classes} \n")
+
+            # Header: room name + export buttons
+            header_frame = ctk.CTkFrame(parentFrame, fg_color="transparent")
+            header_frame.pack(pady=(10, 0), anchor="center")
+
+            # Export PDF button
+            ctk.CTkButton(
+                header_frame,
+                text="Export PDF",
+                width=120,
+                command=lambda room=room, classes=classes: handleExportPDF(
+                    room, classes
+                ),
+            ).pack(side="left", padx=5)
+
+            # Export HTML button
+            ctk.CTkButton(
+                header_frame,
+                text="Export HTML",
+                width=120,
+                command=lambda room=room, classes=classes: handleExportHTML(
+                    room, classes
+                ),
+            ).pack(side="left", padx=5)
+
             startHour, endHour = getTimeRange(classes)
             canvasWidth = leftMargin + len(days) * dayWidth + 20
             canvasHeight = (endHour - startHour) * hourHeight + 100
@@ -1866,7 +1776,6 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                     leftMargin, y, leftMargin + len(days) * dayWidth, y, fill="#cccccc"
                 )
 
-            # Draw each class in this room
             COLORLIST = [
                 "#6fa8dc",
                 "#93c47d",
@@ -1916,33 +1825,6 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                         fill="white",
                         justify="center",
                     )
-
-
-def plotWeeklySchedule(schedules):
-    popup = ctk.CTkToplevel()
-    popup.title("Weekly Schedule")
-    popup.minsize(1200, 700)
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("dark-blue")
-    popup.attributes("-fullscreen", True)
-
-    popup.bind("<Escape>", lambda e: popup.attributes("-fullscreen", False))
-
-    container = ctk.CTkScrollableFrame(popup, fg_color="transparent")
-    container.pack(fill="both", expand=True)
-
-    roomFrame = ctk.CTkFrame(container, fg_color="transparent")
-    roomFrame.pack(expand=True, pady=10, padx=10)
-
-    plotWeeklyOrderSchedules(schedules, roomFrame, "Rooms & Labs")
-
-    facultyFrame = ctk.CTkFrame(container, fg_color="transparent")
-    facultyFrame.pack(expand=True, pady=(10, 50), padx=10)
-
-    plotWeeklyOrderSchedules(schedules, facultyFrame, "Faculty")
-
-    popup.lift()
-    popup.focus_force()
 
 
 # this is the actual App
@@ -2302,6 +2184,7 @@ class SchedulerApp(ctk.CTk):
     def _undo_faculty_edit(self, action):
         """Undo a faculty edit"""
         old_faculty_data = action["data"]["old_faculty_data"]
+        # old_name = old_faculty_data['name']
         new_name = action["data"]["new_faculty_data"]["name"]
         facultyCtr.removeFaculty(new_name, refresh=None)
         facultyCtr.addFaculty(old_faculty_data, refresh=None)
@@ -2587,12 +2470,7 @@ class SchedulerApp(ctk.CTk):
             chatbot_entry.delete(0, "end")
 
             print(f"[CHATBOT INPUT] {text}")
-
-            if app.chat_agent is None:
-                print("[ERROR] Chat agent not initialized.")
-                return
-
-            response = app.chat_agent.query(text)
+            response = app.chat_agent.query(text)  # type: ignore
             print("[Chatbot Response]", response)
 
             if isinstance(response, dict):
@@ -2608,9 +2486,9 @@ class SchedulerApp(ctk.CTk):
 
                 # FIX: persist new tab before refresh
                 if switch_tab:
-                    app.selected_tabs["ConfigPage"] = switch_tab
+                    app.selected_tabs["ConfigPage"] = switch_tab  # type: ignore
 
-                app.refresh(target="ConfigPage")
+                app.refresh(target="ConfigPage")  # type: ignore
 
             else:
                 app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
@@ -2670,13 +2548,16 @@ class SchedulerApp(ctk.CTk):
         )
         pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
+        #
+        def onExport():
+            exportSchedulesBTN(self.deafultSchedules, self.schedulesImportedPath)
+            showSuccessPopup()
+
         exportBtn = ctk.CTkButton(
             importFrame,
             text="Export All",
             width=150,
-            command=lambda: exportSchedulesBTN(
-                self.deafultSchedules, self.schedulesImportedPath
-            ),
+            command=lambda: onExport(),
         )
 
         exportBtn.pack(side="left", padx=(0, 10))
@@ -2702,34 +2583,33 @@ class SchedulerApp(ctk.CTk):
         schedulesFrame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         schedulesFrame.pack(expand=True, fill="both", padx=10, pady=10)
 
+        def createDropdown(parent):
+            dropDownFrame = ctk.CTkFrame(parent, fg_color="transparent")
+            dropDownFrame.pack(side="right", padx=(0, 10))
+            dropDownLabel = ctk.CTkLabel(
+                dropDownFrame,
+                width=100,
+                text="Order By: ",
+                font=("Arial", 15, "bold"),
+            )
+            dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
+            dropdown = ctk.CTkOptionMenu(
+                dropDownFrame,
+                width=150,
+                values=["Default", "Rooms & Labs", "Faculty"],
+                command=lambda choice: self.orderByChoice(
+                    choice, self.deafultSchedules
+                ),
+            )
+            dropdown.set(self.selectedOrderBy)
+            return dropdown
+
         if (
             self.deafultSchedules is not None
             and self.deafultSchedules != {}
             and self.deafultSchedules != []
         ):
             if self.selectedSchView == "Table":
-
-                def createDropdown(parent):
-                    dropDownFrame = ctk.CTkFrame(parent, fg_color="transparent")
-                    dropDownFrame.pack(side="right", padx=(0, 10))
-                    dropDownLabel = ctk.CTkLabel(
-                        dropDownFrame,
-                        width=100,
-                        text="Order By: ",
-                        font=("Arial", 15, "bold"),
-                    )
-                    dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
-                    dropdown = ctk.CTkOptionMenu(
-                        dropDownFrame,
-                        width=150,
-                        values=["Default", "Rooms & Labs", "Faculty"],
-                        command=lambda choice: self.orderByChoice(
-                            choice, self.deafultSchedules
-                        ),
-                    )
-                    dropdown.set(self.selectedOrderBy)
-                    return dropdown
-
                 if self.selectedOrderBy == "Default":
                     defaultScheduleViewer(
                         schedulesFrame,
@@ -2761,19 +2641,43 @@ class SchedulerApp(ctk.CTk):
                         createDropdown,
                     )
             elif self.selectedSchView == "Default":
-                roomFrame = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
-                roomFrame.pack(expand=True, pady=10, padx=10)
+                if (
+                    self.selectedOrderBy == "Rooms & Labs"
+                    or self.selectedOrderBy == "Default"
+                ):
+                    roomWrapper = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
+                    roomWrapper.pack(fill="both", expand=True)
 
-                plotWeeklyOrderSchedules(
-                    self.deafultSchedules[self.schIndex], roomFrame, "Rooms & Labs"
-                )
+                    topFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    topFrame.pack(fill="x")
 
-                facultyFrame = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
-                facultyFrame.pack(expand=True, pady=(10, 50), padx=10)
+                    dropdown = createDropdown(topFrame)
+                    dropdown.pack(fill="x", pady=10)
 
-                plotWeeklyOrderSchedules(
-                    self.deafultSchedules[self.schIndex], facultyFrame, "Faculty"
-                )
+                    bottomFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    bottomFrame.pack(fill="both", expand=True)
+
+                    plotWeeklyOrderSchedules(
+                        self.deafultSchedules[self.schIndex],
+                        bottomFrame,
+                        "Rooms & Labs",
+                    )
+                elif self.selectedOrderBy == "Faculty":
+                    roomWrapper = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
+                    roomWrapper.pack(fill="both", expand=True)
+
+                    topFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    topFrame.pack(fill="x")
+
+                    dropdown = createDropdown(topFrame)
+                    dropdown.pack(fill="x", pady=10)
+
+                    bottomFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    bottomFrame.pack(fill="both", expand=True)
+
+                    plotWeeklyOrderSchedules(
+                        self.deafultSchedules[self.schIndex], bottomFrame, "Faculty"
+                    )
 
         nextPrevious = ctk.CTkFrame(frame, fg_color="transparent")
         nextPrevious.pack(pady=10)
