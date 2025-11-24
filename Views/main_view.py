@@ -1741,14 +1741,6 @@ def dataTimeSlotsRight(frame, controller, refresh, data=None):
         font=("Arial", 18, "bold"),
         command=onSave,
     ).pack(pady=20)
-    ctk.CTkButton(
-        container,
-        text="Save Time Slot",
-        width=150,
-        height=40,
-        font=("Arial", 18, "bold"),
-        command=onSave,
-    ).pack(pady=20)
 
 
 def viewAllTimeSlots(controller, refresh):
