@@ -1,11 +1,9 @@
 # cli.py
-from Models import Timeslots_model
 from Models.Timeslots_model import TimeSlotModel
 
 # Timeslot Controller.
 def mainTimeslotController(timeslots):
-    times = timeslots.get("times")
-
+    #times = timeslots.get("times")
     model = TimeSlotModel(timeslots)
 
     while True:
