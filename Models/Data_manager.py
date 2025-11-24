@@ -1,7 +1,5 @@
 import json
-from typing import List, Optional
 import Models.Faculty_model as FacultyModel
-from Models.Time_slot_model import TimeSlotConfig
 
 
 # This will manage all of the data for the whole config file.

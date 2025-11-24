@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import customtkinter as ctk
 from tkinter import StringVar
 from Controller.chatbot_agent import ChatbotAgent
@@ -10,19 +12,16 @@ from Controller.main_controller import (
     configExportBTN,
     generateSchedulesBtn,
     importSchedulesBTN,
+    ClassPatternController
 )
-from pathlib import Path
 from Controller.controllerUtils import (
     orderedSchedules,
     parseMeeting,
     getTimeRange,
-    exportOneSchedulePDF,
     exportOneScheduleHTML,
-    exportSchedulesBTN,
-    CourseController,
-    ClassPatternController,
+    exportSchedulesBTN, exportOneSchedulePDF,
 )
-from typing import Optional
+from typing import Optional, cast
 
 # should create controllers for other things too
 roomCtr = RoomsController()
@@ -1484,6 +1483,44 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
         command=save,
     ).pack(pady=20)
 
+def showSuccessPopup(message="Successfully exported!"):
+    popup = ctk.CTkToplevel()
+    popup.title("Success")
+    popup.geometry("300x150")
+    popup.grab_set()
+
+    ctk.CTkLabel(popup, text=message, font=("Arial", 16)).pack(pady=20)
+
+    ctk.CTkButton(popup, text="OK", width=80, command=popup.destroy).pack(pady=10)
+
+
+def showErrorPopup(message="An error occurred during export!"):
+    popup = ctk.CTkToplevel()
+    popup.title("Error")
+    popup.geometry("300x150")
+    popup.grab_set()
+
+    ctk.CTkLabel(popup, text=message, font=("Arial", 16), text_color="red").pack(
+        pady=20
+    )
+
+    ctk.CTkButton(popup, text="OK", width=80, command=popup.destroy).pack(pady=10)
+
+def handleExportPDF(room, classes, output_dir="output"):
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        exportOneSchedulePDF([room, classes], output_dir)
+        showSuccessPopup("PDF exported successfully!")
+    except Exception as e:
+        showErrorPopup(f"Failed to export PDF:\n{e}")
+
+def handleExportHTML(room, classes, output_dir="output"):
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        exportOneScheduleHTML([room, classes], output_dir)
+        showSuccessPopup("HTML exported successfully!")
+    except Exception as e:
+        showErrorPopup(f"Failed to export HTML:\n{e}")
 
 def defaultScheduleViewer(
     frame, schedules, pathEntaryVar, idx, numOfSch, createDropdown, order=None
@@ -2551,7 +2588,6 @@ class SchedulerApp(ctk.CTk):
         #
         def onExport():
             exportSchedulesBTN(self.deafultSchedules, self.schedulesImportedPath)
-            showSuccessPopup()
 
         exportBtn = ctk.CTkButton(
             importFrame,

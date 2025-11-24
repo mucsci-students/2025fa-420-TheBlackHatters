@@ -47,6 +47,9 @@ def generateSchedulesBtn(limit, optimize, progressCallback):
     DM.updateLimit(limit)
     DM.updateOptimizerFlags(optimize)
 
+    if DM.data and "config" in DM.data:
+        DM.data["config"].pop("class_patterns", None)
+
     config = CombinedConfig(**(DM.data or {}))
 
     scheduler = Scheduler(config)
