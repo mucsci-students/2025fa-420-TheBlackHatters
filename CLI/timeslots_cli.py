@@ -31,19 +31,33 @@ def mainTimeslotController(timeslots):
             if choice == "1":
                 start = input("Start time (HH:MM): ").strip()
                 end = input("End time (HH:MM): ").strip()
-                spacing = int(input("Spacing (minutes): ").strip())
+                spacing_in = input("Spacing (minutes): ").strip()
+                try:
+                    spacing = int(spacing_in)
+                except ValueError:
+                    print("Spacing must be an integer number of minutes.")
+                    continue
 
                 try:
                     model.add_slot(day, start, spacing, end)
                     print("Slot added.")
-                except Exception as e:
+                except ValueError as e:
                     print("Error:", e)
 
             elif choice == "2":
-                idx = int(input("Index of slot to edit: ").strip())
-                while idx > (len(slots) - 1):
-                    print("Invalid Index!")
+                if not slots:
+                    print("No slots available to edit for this day.")
+                    continue
+
+                try:
                     idx = int(input("Index of slot to edit: ").strip())
+                except ValueError:
+                    print("Please enter a valid integer index.")
+                    continue
+
+                if not (0 <= idx < len(slots)):
+                    print("Invalid index!")
+                    continue
                 slot = slots[idx]
 
                 new_start = input(f"Start ({slot['start']}): ").strip() or None
@@ -60,14 +74,20 @@ def mainTimeslotController(timeslots):
                     print("Error:", e)
 
             elif choice == "3":
-                idx = int(input("Index of slot to delete: ").strip())
+                try:
+                    idx = int(input("Index of slot to delete: ").strip())
+                except ValueError:
+                    print("Please enter a valid integer index.")
+                    continue
+
                 try:
                     removed = model.delete_slot(day, idx)
                     print("Deleted slot:", removed)
-                except Exception as e:
+                except IndexError as e:
                     print("Error:", e)
 
             elif choice == "0":
                 break
+
             else:
                 print("Invalid choice.")

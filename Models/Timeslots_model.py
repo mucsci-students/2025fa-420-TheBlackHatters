@@ -36,10 +36,10 @@ class TimeSlotModel:
         self,
         day: str,
         index: int,
-        start: str = None,
-        spacing: int = None,
-        end: str = None,
-    ):
+        start: str | None = None,
+        spacing: int | None = None,
+        end: str | None = None,
+    ) -> None:
         if day not in self.times or not (0 <= index < len(self.times[day])):
             raise IndexError("Invalid slot index")
 
