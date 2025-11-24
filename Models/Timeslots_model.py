@@ -3,14 +3,14 @@
 import re
 
 
-
-#Returns True if 'HH:MM' is formatted correctly and represents a real time.
+# Returns True if 'HH:MM' is formatted correctly and represents a real time.
 def validate_time(t: str) -> bool:
     TIME_PATTERN = re.compile(r"^\d{2}:\d{2}$")
     if not TIME_PATTERN.match(t):
         return False
     hh, mm = map(int, t.split(":"))
     return 0 <= hh <= 23 and 0 <= mm <= 59
+
 
 # Timeslot modifications.
 class TimeSlotModel:
@@ -28,15 +28,18 @@ class TimeSlotModel:
             raise ValueError("Invalid time format")
 
         self.times.setdefault(day, []).append(
-            {
-            "start": start,
-            "spacing": spacing,
-            "end": end
-            }
+            {"start": start, "spacing": spacing, "end": end}
         )
 
     # Edit a specific slot on a day.
-    def edit_slot(self, day: str, index: int, start: str = None, spacing: int = None, end: str = None):
+    def edit_slot(
+        self,
+        day: str,
+        index: int,
+        start: str = None,
+        spacing: int = None,
+        end: str = None,
+    ):
         if day not in self.times or not (0 <= index < len(self.times[day])):
             raise IndexError("Invalid slot index")
 

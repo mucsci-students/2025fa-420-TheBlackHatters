@@ -31,10 +31,12 @@ def test_validate_time_invalid_values():
     assert validate_time("99:99") is False
 
 
-#Test TimeSlotModel methods:
+# Test TimeSlotModel methods:
 def test_list_slots():
     """list_slots should return saved slots or empty list."""
-    model = TimeSlotModel({"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}})
+    model = TimeSlotModel(
+        {"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}}
+    )
     assert len(model.list_slots("MON")) == 1
     assert model.list_slots("TUE") == []
 
@@ -61,7 +63,9 @@ def test_add_slot_invalid_times():
 
 def test_edit_slot_success():
     """Editing a slot should update its values."""
-    model = TimeSlotModel({"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}})
+    model = TimeSlotModel(
+        {"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}}
+    )
     model.edit_slot("MON", 0, start="09:00", end="11:00", spacing=45)
     slot = model.list_slots("MON")[0]
     assert slot["start"] == "09:00"
@@ -71,7 +75,9 @@ def test_edit_slot_success():
 
 def test_edit_slot_invalid_index():
     """Invalid index or day should raise IndexError."""
-    model = TimeSlotModel({"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}})
+    model = TimeSlotModel(
+        {"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}}
+    )
     with pytest.raises(IndexError):
         model.edit_slot("MON", 5, start="10:00")
     with pytest.raises(IndexError):
@@ -80,7 +86,9 @@ def test_edit_slot_invalid_index():
 
 def test_edit_slot_invalid_time():
     """Invalid times during edit should raise ValueError."""
-    model = TimeSlotModel({"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}})
+    model = TimeSlotModel(
+        {"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}}
+    )
     with pytest.raises(ValueError):
         model.edit_slot("MON", 0, start="99:00")
     with pytest.raises(ValueError):
@@ -89,7 +97,9 @@ def test_edit_slot_invalid_time():
 
 def test_delete_slot_success():
     """A valid delete should remove the slot and return it."""
-    model = TimeSlotModel({"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}})
+    model = TimeSlotModel(
+        {"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}}
+    )
     deleted = model.delete_slot("MON", 0)
     assert deleted["start"] == "08:00"
     assert model.list_slots("MON") == []
@@ -97,7 +107,9 @@ def test_delete_slot_success():
 
 def test_delete_slot_invalid_index():
     """Deleting with invalid index/day should raise IndexError."""
-    model = TimeSlotModel({"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}})
+    model = TimeSlotModel(
+        {"times": {"MON": [{"start": "08:00", "spacing": 60, "end": "12:00"}]}}
+    )
     with pytest.raises(IndexError):
         model.delete_slot("MON", 5)
     with pytest.raises(IndexError):

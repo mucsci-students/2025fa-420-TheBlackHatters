@@ -56,9 +56,8 @@ def parseJson(path):
     Faculty = config.get("faculty")
     Timeslots = fileData.get("time_slot_config")
 
-
     other = {
-        #Leaving this in case something else uses it
+        # Leaving this in case something else uses it
         "time_slot_config": fileData.get("time_slot_config", {}),
         "limit": fileData.get("limit", {}),
         "optimizer_flags": fileData.get("optimizer_flags", {}),
@@ -329,7 +328,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, timeslots, othe
             name = input("Enter the file name: (i.e newconfig)")
             createEmptyJson(name)
         elif choice == "3":
-            ##Faculty
+            # Go to prompt for config editing.
             whatAction(rooms, labs, courses, faculty, timeslots, other)
         elif choice == "4":
             # Display the current file:
@@ -425,14 +424,16 @@ def displayConfig(rooms, labs, courses, faculty, timeslots):
         _print_prefs("Lab Preferences", f.get("lab_preferences", {}))
         print()
 
-    #Timeslots
+    # Timeslots
     print("\nTime Slots:")
     times = timeslots.get("times")
     for day in times:
         slot = times.get(day, [])
         print(f"{day}:")
         for i, slot in enumerate(slot):
-            print(f"  [{i}] {slot['start']} - {slot['end']}, spacing: {slot['spacing']}")
+            print(
+                f"  [{i}] {slot['start']} - {slot['end']}, spacing: {slot['spacing']}"
+            )
 
     print("\n=============================\n")
 
@@ -444,7 +445,9 @@ def runCLI():
         choice = input("Enter choice: ")
         if choice == "1":
             ##Faculty
-            configurationPrompt(filePath, rooms, labs, courses, faculty, timeslots, other)
+            configurationPrompt(
+                filePath, rooms, labs, courses, faculty, timeslots, other
+            )
             input("Press Enter to continue...")
         elif choice == "2":
             # Run Scheduler
