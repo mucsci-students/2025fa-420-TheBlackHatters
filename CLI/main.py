@@ -291,7 +291,7 @@ def whatAction(rooms, labs, courses, faculty, timeslots, other):
             if "class_patterns" not in other or other["class_patterns"] is None:
                 other["class_patterns"] = []
             mainMeetingPatternController(other["class_patterns"])
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
 
         elif choice == "7":
             from CLI.chatbot_cli import main as chatbot_main
@@ -448,7 +448,6 @@ def displayConfig(rooms, labs, courses, faculty, timeslots, other):
             print(
                 f"  [{i}] {slot['start']} - {slot['end']}, spacing: {slot['spacing']}"
             )
-
 
     # --- Class Meeting Patterns ---
     patterns = []

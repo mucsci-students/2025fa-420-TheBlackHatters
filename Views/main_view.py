@@ -12,14 +12,15 @@ from Controller.main_controller import (
     configExportBTN,
     generateSchedulesBtn,
     importSchedulesBTN,
-    ClassPatternController
+    ClassPatternController,
 )
 from Controller.controllerUtils import (
     orderedSchedules,
     parseMeeting,
     getTimeRange,
     exportOneScheduleHTML,
-    exportSchedulesBTN, exportOneSchedulePDF,
+    exportSchedulesBTN,
+    exportOneSchedulePDF,
 )
 from typing import Optional, cast
 
@@ -1483,6 +1484,7 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
         command=save,
     ).pack(pady=20)
 
+
 def showSuccessPopup(message="Successfully exported!"):
     popup = ctk.CTkToplevel()
     popup.title("Success")
@@ -1506,6 +1508,7 @@ def showErrorPopup(message="An error occurred during export!"):
 
     ctk.CTkButton(popup, text="OK", width=80, command=popup.destroy).pack(pady=10)
 
+
 def handleExportPDF(room, classes, output_dir="output"):
     try:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -1514,6 +1517,7 @@ def handleExportPDF(room, classes, output_dir="output"):
     except Exception as e:
         showErrorPopup(f"Failed to export PDF:\n{e}")
 
+
 def handleExportHTML(room, classes, output_dir="output"):
     try:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -1521,6 +1525,7 @@ def handleExportHTML(room, classes, output_dir="output"):
         showSuccessPopup("HTML exported successfully!")
     except Exception as e:
         showErrorPopup(f"Failed to export HTML:\n{e}")
+
 
 def defaultScheduleViewer(
     frame, schedules, pathEntaryVar, idx, numOfSch, createDropdown, order=None
