@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import customtkinter as ctk
 from tkinter import StringVar
 from Controller.chatbot_agent import ChatbotAgent
@@ -10,17 +12,17 @@ from Controller.main_controller import (
     configExportBTN,
     generateSchedulesBtn,
     importSchedulesBTN,
+    ClassPatternController,
 )
-from pathlib import Path
 from Controller.controllerUtils import (
     orderedSchedules,
     parseMeeting,
     getTimeRange,
-    exportOneSchedulePDF,
     exportOneScheduleHTML,
     exportSchedulesBTN,
+    exportOneSchedulePDF,
 )
-from typing import Optional
+from typing import Optional, cast
 
 # should create controllers for other things too
 roomCtr = RoomsController()
@@ -1275,6 +1277,214 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     ).pack(side="bottom", pady=15)
 
 
+def dataPatternsLeft(frame, controller, refresh, data=None, app_instance=None):
+    container = ctk.CTkFrame(frame, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # --- ADD BUTTON ---
+    def onAdd():
+        refresh(target="ConfigPage", data={"pattern_edit_mode": "add"})
+
+    ctk.CTkButton(container, text="Add", width=120, height=20, command=onAdd).pack(
+        side="top", padx=5, pady=(0, 10)
+    )
+
+    # --- LIST EXISTING PATTERNS ---
+    patterns = controller.listPatterns()
+
+    for idx, pattern in enumerate(patterns):
+        row = ctk.CTkFrame(container, fg_color="transparent")
+        row.pack(fill="x", pady=4, padx=5)
+
+        label_text = f"Pattern #{idx + 1}"
+
+        ctk.CTkLabel(row, text=label_text, font=("Arial", 14, "bold"), anchor="w").pack(
+            side="left", fill="x", expand=True
+        )
+
+        def onDelete(i=idx):
+            controller.removePattern(i, refresh)
+
+        def onEdit(i=idx, p=pattern):
+            refresh(
+                target="ConfigPage",
+                data={"pattern_edit_mode": "edit", "pattern_index": i, "pattern": p},
+            )
+
+        ctk.CTkButton(row, text="Delete", width=40, height=24, command=onDelete).pack(
+            side="left", padx=4
+        )
+        ctk.CTkButton(row, text="Edit", width=40, height=24, command=onEdit).pack(
+            side="left", padx=4
+        )
+
+
+def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
+    DAY_DISPLAY = {
+        "Monday": "MON",
+        "Tuesday": "TUE",
+        "Wednesday": "WED",
+        "Thursday": "THU",
+        "Friday": "FRI",
+    }
+
+    DAY_REVERSE = {v: k for k, v in DAY_DISPLAY.items()}
+
+    edit_mode = None
+    pattern = None
+    pattern_index = None
+
+    if isinstance(data, dict):
+        edit_mode = data.get("pattern_edit_mode")
+        pattern = data.get("pattern")
+        pattern_index = data.get("pattern_index")
+
+    # --- CREDITS ---
+    row_credits = ctk.CTkFrame(frame, fg_color="transparent")
+    row_credits.pack(fill="x", pady=5)
+    ctk.CTkLabel(row_credits, text="Credits:", font=("Arial", 22, "bold")).pack(
+        side="left"
+    )
+
+    entry_credits = ctk.CTkEntry(row_credits, width=80, font=("Arial", 22))
+    entry_credits.pack(side="left", padx=10)
+    if pattern:
+        entry_credits.insert(0, str(pattern.get("credits", "")))
+
+    # --- START TIME ---
+    row_start = ctk.CTkFrame(frame, fg_color="transparent")
+    row_start.pack(fill="x", pady=5)
+    ctk.CTkLabel(
+        row_start, text="Start Time (optional):", font=("Arial", 22, "bold")
+    ).pack(side="left")
+
+    entry_start = ctk.CTkEntry(
+        row_start, width=120, font=("Arial", 22), placeholder_text="HH:MM"
+    )
+    entry_start.pack(side="left", padx=10)
+    if pattern and "start_time" in pattern:
+        entry_start.insert(0, pattern["start_time"])
+
+    # --- DISABLED ---
+    disabled_var = ctk.BooleanVar(
+        value=pattern.get("disabled", False) if pattern else False
+    )
+    ctk.CTkCheckBox(
+        frame, text="Disabled", variable=disabled_var, font=("Arial", 20)
+    ).pack(anchor="w", pady=5)
+
+    # --- MEETINGS SECTION ---
+    ctk.CTkLabel(frame, text="Meetings:", font=("Arial", 26, "bold")).pack(
+        anchor="w", pady=(15, 5)
+    )
+
+    meetings_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    meetings_frame.pack(fill="x", pady=5)
+
+    meeting_rows = []
+
+    def add_meeting_row(meeting=None):
+        row = ctk.CTkFrame(meetings_frame, fg_color="transparent")
+        row.pack(fill="x", pady=3)
+
+        # Day selector
+        display_day = (
+            DAY_REVERSE.get(meeting.get("day"), "Monday") if meeting else "Monday"
+        )
+
+        day_var = ctk.StringVar(value=display_day)
+        day_menu = ctk.CTkOptionMenu(
+            row, values=list(DAY_DISPLAY.keys()), variable=day_var
+        )
+        day_menu.pack(side="left", padx=5)
+
+        # Duration
+        dur_entry = ctk.CTkEntry(
+            row, width=80, font=("Arial", 18), placeholder_text="minutes"
+        )
+        dur_entry.pack(side="left", padx=5)
+        if meeting:
+            dur_entry.insert(0, str(meeting.get("duration", "")))
+
+        # Lab
+        lab_var = ctk.BooleanVar(value=meeting.get("lab", False) if meeting else False)
+        ctk.CTkCheckBox(row, text="Lab", variable=lab_var).pack(side="left", padx=5)
+
+        # Delete row
+        def remove_row():
+            meeting_rows.remove((row, day_var, dur_entry, lab_var))
+            row.destroy()
+
+        ctk.CTkButton(row, text="Remove", width=60, command=remove_row).pack(
+            side="left", padx=5
+        )
+
+        meeting_rows.append((row, day_var, dur_entry, lab_var))
+
+    # Load existing meetings or default one row
+    if pattern:
+        for m in pattern["meetings"]:
+            add_meeting_row(m)
+    else:
+        add_meeting_row()
+
+    # Add row button
+    ctk.CTkButton(
+        frame, text="Add Meeting", width=120, command=lambda: add_meeting_row()
+    ).pack(pady=10)
+
+    # --- ERROR POPUP ---
+    def show_error(msg):
+        top = ctk.CTkToplevel()
+        top.title("Error")
+        ctk.CTkLabel(top, text=msg, font=("Arial", 18), text_color="red").pack(pady=20)
+        ctk.CTkButton(top, text="Close", command=top.destroy).pack(pady=10)
+
+    # --- SAVE ---
+    def save():
+        credits = entry_credits.get().strip()
+        start_time = entry_start.get().strip() or None
+
+        # Build meetings
+        meeting_list = []
+        for _, day_var, dur_entry, lab_var in meeting_rows:
+            d = dur_entry.get().strip()
+            if not d:
+                show_error("Meeting duration cannot be empty.")
+                return
+
+            meeting_list.append(
+                {"day": DAY_DISPLAY[day_var.get()], "duration": d, "lab": lab_var.get()}
+            )
+
+        new_pattern = {
+            "credits": credits,
+            "meetings": meeting_list,
+        }
+        if start_time:
+            new_pattern["start_time"] = start_time
+        if disabled_var.get():
+            new_pattern["disabled"] = True
+
+        if edit_mode == "edit":
+            err = controller.editPattern(pattern_index, new_pattern, refresh)
+            if err:
+                show_error(err)
+        else:
+            err = controller.addPattern(new_pattern, refresh)
+            if err:
+                show_error(err)
+
+    ctk.CTkButton(
+        frame,
+        text="Save Changes",
+        width=150,
+        height=40,
+        font=("Arial", 22, "bold"),
+        command=save,
+    ).pack(pady=20)
+
+
 def showSuccessPopup(message="Successfully exported!"):
     popup = ctk.CTkToplevel()
     popup.title("Success")
@@ -2176,7 +2386,7 @@ class SchedulerApp(ctk.CTk):
         tabview.add("Courses")
         tabview.add("Rooms")
         tabview.add("Labs")
-        tabview.add("Time Slots")
+        tabview.add("Meeting Patterns")
 
         # this sets the current tabview, to current when we refresh
         if "ConfigPage" in self.selected_tabs:
@@ -2256,14 +2466,24 @@ class SchedulerApp(ctk.CTk):
             ),
         )
 
-        # One chatbot instance for the entire app
-        app = frame.winfo_toplevel()
-        if not hasattr(app, "chat_agent"):
-            setattr(
-                app,
-                "chat_agent",
-                ChatbotAgent(lambda: getattr(app, "configPath").get()),  # type: ignore
-            )
+        localPatternCtr = ClassPatternController()
+
+        self.createTwoColumn(
+            tabview.tab("Meeting Patterns"),
+            lambda frame: dataPatternsLeft(
+                frame, localPatternCtr, self.refresh, app_instance=self
+            ),
+            lambda frame: dataPatternsRight(
+                frame, localPatternCtr, self.refresh, data, app_instance=self
+            ),
+        )
+
+        # Tell the type checker that this *is* our SchedulerApp
+        app = cast("SchedulerApp", frame.winfo_toplevel())
+
+        # Only create it once
+        if app.chat_agent is None:
+            app.chat_agent = ChatbotAgent(lambda: app.configPath.get())
 
         chatbot_bar = ctk.CTkFrame(frame, fg_color="#2A2A2A")
         chatbot_bar.pack(side="bottom", fill="x", padx=10, pady=(10, 10))
@@ -2373,7 +2593,6 @@ class SchedulerApp(ctk.CTk):
         #
         def onExport():
             exportSchedulesBTN(self.deafultSchedules, self.schedulesImportedPath)
-            showSuccessPopup()
 
         exportBtn = ctk.CTkButton(
             importFrame,

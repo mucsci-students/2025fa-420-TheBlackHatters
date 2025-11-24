@@ -1,7 +1,5 @@
 import json
-from typing import List, Optional
 import Models.Faculty_model as FacultyModel
-from Models.Time_slot_model import TimeSlotConfig
 
 
 # This will manage all of the data for the whole config file.
@@ -9,6 +7,12 @@ from Models.Time_slot_model import TimeSlotConfig
 from Models.Course_model import (
     add_course_to_config,
     delete_course_from_config,
+)
+
+from Models.ClassPattern_model import (
+    add_class_pattern_to_config,
+    modify_class_pattern_in_config,
+    delete_class_pattern_from_config,
 )
 
 
@@ -458,108 +462,28 @@ class DataManager:
         faculty_list[idx] = updated
         print(f"Updated faculty: {old_name} → {new_name}")
 
-    def _normalize_day_name(self, day: str) -> str:
-        """Normalize day name to uppercase 3-letter abbreviation (MON, TUE, etc.)"""
-        day_map = {
-            "MONDAY": "MON",
-            "MON": "MON",
-            "TUESDAY": "TUE",
-            "TUE": "TUE",
-            "WEDNESDAY": "WED",
-            "WED": "WED",
-            "THURSDAY": "THU",
-            "THU": "THU",
-            "FRIDAY": "FRI",
-            "FRI": "FRI",
-            "SATURDAY": "SAT",
-            "SAT": "SAT",
-            "SUNDAY": "SUN",
-            "SUN": "SUN",
-        }
-
-        day_upper = day.strip().upper()
-
-        # Return mapped value or original if not found
-        return day_map.get(day_upper, day_upper[:3].upper())
+    @requireData
+    def getClassPatterns(self):
+        cfg = self.data.setdefault("time_slot_config", {})
+        return cfg.setdefault("classes", [])
 
     @requireData
-    def getTimeSlotConfig(self) -> TimeSlotConfig:
-        """Get or create the time_slot_config structure."""
-
-        cfg = self.data.get("time_slot_config")
-
-        if cfg is None:
-            # Create empty structure
-            empty = {"times": {}, "classes": []}
-            self.data["time_slot_config"] = empty
-            cfg = empty
-        # NO NORMALIZATION - keep the day names as they are in the JSON
-        return TimeSlotConfig.from_dict(cfg)
+    def addClassPattern(self, pattern_dict):
+        cfg = self.data.setdefault("time_slot_config", {})
+        added = add_class_pattern_to_config(cfg, pattern_dict)
+        print(f"Added class pattern (credits={added['credits']})")
+        return added
 
     @requireData
-    def saveTimeSlotConfig(self, timeslot_config: TimeSlotConfig) -> None:
-        """Overwrite data['time_slot_config'] with the given model and persist to disk."""
-        self.data["time_slot_config"] = timeslot_config.to_dict()
-
-        # Always save to disk when time slots are modified
-        if self.filePath:
-            try:
-                self.saveData()
-                print(f"✓ Time slot config saved to {self.filePath}")
-            except Exception as e:
-                print(f"✗ Failed to save time slot config: {e}")
-                raise  # Re-raise so the UI knows it failed
+    def editClassPattern(self, index, updates):
+        cfg = self.data.setdefault("time_slot_config", {})
+        updated = modify_class_pattern_in_config(cfg, index, updates)
+        print(f"Updated class pattern at index {index}.")
+        return updated
 
     @requireData
-    def get_time_intervals_for_day(self, day: str) -> List[dict]:
-        """Get intervals for a specific day, normalizing the day name."""
-        day_normalized = self._normalize_day_name(day)
-
-        ts = self.getTimeSlotConfig()
-        return [iv.to_dict() for iv in ts.get_intervals(day_normalized)]
-
-    @requireData
-    def list_all_generated_slots(self) -> dict:
-        """Return mapping day -> list of HH:MM slots (generated from intervals)."""
-        ts = self.getTimeSlotConfig()
-        return ts.generate_all_slots()
-
-    @requireData
-    def add_time_interval(self, day: str, interval_dict: dict) -> None:
-        """Add a time interval, normalizing the day name to uppercase abbreviation."""
-        # Normalize day name to uppercase 3-letter abbreviation
-        day_normalized = self._normalize_day_name(day)
-
-        ts = self.getTimeSlotConfig()
-        ts.add_interval(day_normalized, interval_dict)
-        self.saveTimeSlotConfig(ts)
-
-    @requireData
-    def edit_time_interval(self, day: str, index: int, new_interval_dict: dict) -> None:
-        """Edit a time interval, normalizing the day name."""
-        day_normalized = self._normalize_day_name(day)
-
-        ts = self.getTimeSlotConfig()
-        ts.edit_interval(day_normalized, index, new_interval_dict)
-        self.saveTimeSlotConfig(ts)
-
-    @requireData
-    def remove_time_interval(self, day: str, index: int) -> None:
-        """Remove a time interval, normalizing the day name."""
-        day_normalized = self._normalize_day_name(day)
-
-        ts = self.getTimeSlotConfig()
-        ts.remove_interval(day_normalized, index)
-        self.saveTimeSlotConfig(ts)
-
-    # Provide compatibility helpers used by other models
-    @property
-    def config(self) -> dict:
-        """Return the internal config dict, creating it if missing."""
-        if self.data is None:
-            self.data = {}
-        return self.data.setdefault("config", {})
-
-    def save_config(self, path: Optional[str] = None) -> None:
-        """Persist the current data/config to disk. Wrapper for `saveData`."""
-        self.saveData(path or self.filePath)
+    def removeClassPattern(self, index):
+        cfg = self.data.setdefault("time_slot_config", {})
+        removed = delete_class_pattern_from_config(cfg, index)
+        print(f"Removed class pattern at index {index}.")
+        return removed

@@ -47,6 +47,9 @@ def generateSchedulesBtn(limit, optimize, progressCallback):
     DM.updateLimit(limit)
     DM.updateOptimizerFlags(optimize)
 
+    if DM.data and "config" in DM.data:
+        DM.data["config"].pop("class_patterns", None)
+
     config = CombinedConfig(**(DM.data or {}))
 
     scheduler = Scheduler(config)
@@ -307,63 +310,53 @@ class CourseController:
             return str(e)
 
 
-# Time Slot Controller
-class TimeSlotController:
-    """Controller wrapper for time-slot operations that delegates to the global DataManager (DM).
-    This keeps view code consistent with other tabs that call a controller which updates DM.
-    """
+class ClassPatternController:
+    global DM
 
     def __init__(self):
         pass
 
-    def list_intervals(self, day: str):
+    def listPatterns(self):
+        """Return all class meeting patterns."""
+        return DM.getClassPatterns()
+
+    def addPattern(self, pattern_dict, refresh=None):
+        """
+        Add a new class meeting pattern.
+        pattern_dict must contain:
+            credits: int
+            meetings: [{day, duration, lab?}]
+            start_time: optional "HH:MM"
+            disabled: optional bool
+        """
         try:
-            return DM.get_time_intervals_for_day(day)
-        except Exception:
-            return []
-
-    def add_time_interval(self, day: str, interval: dict) -> None:
-        DM.add_time_interval(day, interval)
-
-    def edit_time_interval(self, day: str, index: int, interval: dict) -> None:
-        DM.edit_time_interval(day, index, interval)
-
-    def remove_time_interval(self, day: str, index: int) -> None:
-        DM.remove_time_interval(day, index)
-
-    # Convenience wrappers that accept a refresh callable to match other controllers' APIs
-    def add_time_interval_and_refresh(self, day: str, interval: dict, refresh=None):
-        self.add_time_interval(day, interval)
-        if callable(refresh):
-            try:
+            DM.addClassPattern(pattern_dict)
+            if refresh:
                 refresh("ConfigPage")
-            except Exception:
-                pass
+            return None
+        except Exception as e:
+            return str(e)
 
-    def edit_time_interval_and_refresh(
-        self, day: str, index: int, interval: dict, refresh=None
-    ):
-        self.edit_time_interval(day, index, interval)
-        if callable(refresh):
-            try:
+    def editPattern(self, index, updates, refresh=None):
+        """
+        Edit an existing class pattern by index.
+        updates may include:
+            credits, meetings, start_time, disabled
+        """
+        try:
+            DM.editClassPattern(index, updates)
+            if refresh:
                 refresh("ConfigPage")
-            except Exception:
-                pass
+            return None
+        except Exception as e:
+            return str(e)
 
-    def remove_time_interval_and_refresh(self, day: str, index: int, refresh=None):
-        self.remove_time_interval(day, index)
-        if callable(refresh):
-            try:
+    def removePattern(self, index, refresh=None):
+        """Remove class pattern by index."""
+        try:
+            DM.removeClassPattern(index)
+            if refresh:
                 refresh("ConfigPage")
-            except Exception:
-                pass
-
-    # Backwards-compatible helpers used in some older views
-    def get_all(self):
-        # Return a flat list of stored times across days (rarely used)
-        cfg = DM.getTimeSlotConfig()
-        out = []
-        for day, intervals in cfg.times.items():
-            for iv in intervals:
-                out.append({"day": day, **iv.to_dict()})
-        return out
+            return None
+        except Exception as e:
+            return str(e)

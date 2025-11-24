@@ -64,11 +64,18 @@ class FacultyDetails(BaseModel):
     lab_preferences: Dict[str, int] = {}
 
 
+class MeetingDetails(BaseModel):
+    credits: int
+    meetings: List[Dict]  # each dict: { day: "MON", duration: 50, optional lab: true }
+    start_time: Optional[str] = None
+    disabled: Optional[bool] = False
+
+
 class Intent(BaseModel):
-    intent: str = Field(description="add | edit | delete | show")
-    category: str = Field(description="course | faculty | room | lab")
-    identifier: Optional[str] = Field(default=None)
-    details: Optional[Union[CourseDetails, FacultyDetails, dict]] = Field(default=None)
+    intent: str
+    category: str  # now supports class_pattern
+    identifier: Optional[str] = None
+    details: Optional[Union[CourseDetails, FacultyDetails, MeetingDetails, dict]] = None
 
 
 class UnifiedRouter:
@@ -106,6 +113,14 @@ class UnifiedRouter:
             - "list labs"
             - "display labs"
             - "see labs"
+            - "view meeting patterns"
+            - "show meeting patterns"
+            - "list meeting patterns"
+            - "display meeting patterns"
+            - "see meeting patterns"
+            - "view class patterns"
+            - "show class patterns"
+            - "list class patterns"
 
         you MUST return a JSON intent with:
             intent: "show"
@@ -121,7 +136,7 @@ class UnifiedRouter:
         - If the user wants to perform an action (add/edit/delete/show something),
           return JSON describing the intent with these fields:
             intent: add | edit | delete | show
-            category: course | faculty | room | lab
+            category: course | faculty | room | lab | class_pattern
             identifier: optional name/id
             details: dictionary with other info
         For COURSES, you MUST always output the field "course_id" inside the "details" object. Do NOT use "name" or "title" for courses.
@@ -206,6 +221,55 @@ class UnifiedRouter:
         Rules:
         - For rooms and labs, "name" must be the human-readable identifier (e.g., "Roddy 123", "Mac").
         - Do NOT add any extra fields besides "name".
+        
+        For CLASS MEETING PATTERNS, the “category” must be “class_pattern”.
+
+A class meeting pattern uses this exact structure:
+
+{
+  "credits": <integer>,
+  "meetings": [
+    { "day": "MON", "duration": 50, "lab": true/false },
+    ...
+  ],
+  "start_time": "HH:MM" (optional),
+  "disabled": <true/false> (optional)
+}
+
+Rules:
+- day MUST be one of MON,TUE,WED,THU,FRI.
+- duration must be an integer > 0.
+- lab is optional and must be boolean.
+
+When the user says:
+"show meeting patterns", "view meeting patterns", "list meeting patterns"
+
+You MUST return:
+{
+  "intent": "show",
+  "category": "class_pattern",
+  "identifier": null,
+  "details": {}
+}
+
+When the user says:
+    - "view meeting patterns"
+    - "show meeting patterns"
+    - "list meeting patterns"
+    - "display meeting patterns"
+    - "see meeting patterns"
+    - "view class patterns"
+    - "show class patterns"
+    - "list class patterns"
+
+You MUST output:
+
+{
+  "intent": "show",
+  "category": "class_pattern",
+  "identifier": null,
+  "details": {}
+}
         """
 
     def route(self, text: str):
@@ -282,6 +346,12 @@ class ChatbotAgent:
             "professor": "Faculty",
             "instructor": "Faculty",
             "teacher": "Faculty",
+            "class pattern": "Meeting Patterns",
+            "class patterns": "Meeting Patterns",
+            "class_pattern": "Meeting Patterns",
+            "class_patterns": "Meeting Patterns",
+            "meeting pattern": "Meeting Patterns",
+            "meeting patterns": "Meeting Patterns",
         }
         return m.get(category.lower(), "Faculty")
 
@@ -671,6 +741,17 @@ class ChatbotAgent:
                 return {"courses": cfg.get("courses", [])}
             if t in ("faculty", "instructors", "professors"):
                 return {"faculty": cfg.get("faculty", [])}
+            if t in (
+                "meeting patterns",
+                "meeting pattern",
+                "class pattern",
+                "class patterns",
+                "class_pattern",
+                "class_patterns",
+            ):
+                cfg = DM.data or {}
+                ts = cfg.get("time_slot_config", {})
+                return {"class_patterns": ts.get("classes", [])}
             return "Say 'show courses', 'show rooms', etc."
         except Exception as e:
             return f"Error: {e}"
@@ -721,6 +802,12 @@ class ChatbotAgent:
                     f"Course '{clean['course_id']}' added.", category, "add"
                 )
 
+            if category == "class_pattern":
+                # Details may already match MeetingDetails, or raw dict
+                data = data.dict() if isinstance(data, MeetingDetails) else data
+                DM.addClassPattern(data)
+                return self._ok("Class meeting pattern added.", category, "add")
+
             return self._err(f"Unknown category '{category}'.", category, "add")
 
         except Exception as e:
@@ -757,6 +844,55 @@ class ChatbotAgent:
                 DM.editCourse(identifier, updates)
                 return self._ok(f"Course '{identifier}' updated.", category, "edit")
 
+            if category == "class_pattern":
+                import re
+
+                match = re.search(r"\d+", str(identifier))
+                if not match:
+                    raise ValueError(
+                        f"Could not determine pattern index from '{identifier}'"
+                    )
+
+                idx = int(match.group()) - 1
+
+                data_root = DM.data or {}
+                cfg = data_root.get("time_slot_config", {}) or {}
+                classes = cfg.get("classes", [])
+
+                if idx < 0 or idx >= len(classes):
+                    raise ValueError(f"Pattern index {idx + 1} out of range")
+
+                existing = classes[idx]
+
+                # Merge changes
+                merged = existing.copy()
+
+                if "credits" in updates:
+                    merged["credits"] = int(updates["credits"])
+
+                if "start_time" in updates:
+                    merged["start_time"] = updates["start_time"]
+
+                if "disabled" in updates:
+                    merged["disabled"] = bool(updates["disabled"])
+
+                # If meetings published, replace them
+                if "meetings" in updates:
+                    merged["meetings"] = updates["meetings"]
+
+                # Store updated pattern
+                DM.editClassPattern(idx, merged)
+
+                updated_pattern = (
+                    (DM.data or {}).get("time_slot_config", {}).get("classes", [])[idx]
+                )
+                return self._ok(
+                    f"Class pattern #{idx + 1} updated.",
+                    category,
+                    "edit",
+                    payload={"class_pattern": updated_pattern},
+                )
+
             return self._err(f"Unknown category '{category}'.", category, "edit")
 
         except Exception as e:
@@ -777,6 +913,22 @@ class ChatbotAgent:
             if category == "course":
                 DM.removeCourse(identifier)
                 return self._ok(f"Course '{identifier}' deleted.", category, "delete")
+            if category == "class_pattern":
+                import re
+
+                match = re.search(r"\d+", str(identifier))
+                if not match:
+                    raise ValueError(
+                        f"Could not determine pattern index from '{identifier}'"
+                    )
+
+                # Convert "1" → 0, "2" → 1, etc.
+                idx = int(match.group()) - 1
+
+                DM.removeClassPattern(idx)
+                return self._ok(
+                    f"Class pattern #{identifier} deleted.", category, "delete"
+                )
             return self._err(f"Unknown category '{category}'.", category, "delete")
         except Exception as e:
             traceback.print_exc()

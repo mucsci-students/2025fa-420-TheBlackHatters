@@ -13,7 +13,7 @@ def run_tests_cli():
     os.system("clear" if os.name != "nt" else "cls")
     print("=== Test Runner CLI ===\n")
     print("Choose a category of tests to run:\n")
-    print("1. Run Model_tests")
+    print("1. Run Model Tests")
     print("2. Run Controller Tests")
     print("0. Exit\n")
 
