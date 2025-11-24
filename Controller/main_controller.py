@@ -336,3 +336,65 @@ class CourseController:
             return None
         except Exception as e:
             return str(e)
+
+
+# Time Slot Controller
+class TimeSlotController:
+    """Controller wrapper for time-slot operations that delegates to the global DataManager (DM).
+    This keeps view code consistent with other tabs that call a controller which updates DM.
+    """
+
+    def __init__(self):
+        pass
+
+    def list_intervals(self, day: str):
+        try:
+            return DM.get_time_intervals_for_day(day)
+        except Exception:
+            return []
+
+    def add_time_interval(self, day: str, interval: dict) -> None:
+        DM.add_time_interval(day, interval)
+
+    def edit_time_interval(self, day: str, index: int, interval: dict) -> None:
+        DM.edit_time_interval(day, index, interval)
+
+    def remove_time_interval(self, day: str, index: int) -> None:
+        DM.remove_time_interval(day, index)
+
+    # Convenience wrappers that accept a refresh callable to match other controllers' APIs
+    def add_time_interval_and_refresh(self, day: str, interval: dict, refresh=None):
+        self.add_time_interval(day, interval)
+        if callable(refresh):
+            try:
+                refresh("ConfigPage")
+            except Exception:
+                pass
+
+    def edit_time_interval_and_refresh(
+        self, day: str, index: int, interval: dict, refresh=None
+    ):
+        self.edit_time_interval(day, index, interval)
+        if callable(refresh):
+            try:
+                refresh("ConfigPage")
+            except Exception:
+                pass
+
+    def remove_time_interval_and_refresh(self, day: str, index: int, refresh=None):
+        self.remove_time_interval(day, index)
+        if callable(refresh):
+            try:
+                refresh("ConfigPage")
+            except Exception:
+                pass
+
+    # Backwards-compatible helpers used in some older views
+    def get_all(self):
+        # Return a flat list of stored times across days (rarely used)
+        cfg = DM.getTimeSlotConfig()
+        out = []
+        for day, intervals in cfg.times.items():
+            for iv in intervals:
+                out.append({"day": day, **iv.to_dict()})
+        return out
