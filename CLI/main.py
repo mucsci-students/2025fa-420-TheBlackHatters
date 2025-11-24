@@ -346,7 +346,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, timeslots, othe
             whatAction(rooms, labs, courses, faculty, timeslots, other)
         elif choice == "4":
             # Display the current file:
-            displayConfig(rooms, labs, courses, faculty, timeslots, other)
+            displayConfig(rooms, labs, courses, faculty, timeslots)
         elif choice == "0":
             # return to main selection:
             break
