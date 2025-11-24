@@ -61,3 +61,19 @@ This project uses the Observer design pattern throughout the `Views` folder to u
 The Problem: When the user added or modified labs, rooms, courses, ect, we needed the views to update automatically. It was difficult to manually refresh or update an already existing view every time data changed.
 
 The Solution: With the Observer design pattern, we created a refresh method that is called whenever we add, modify, or remove items in the view. This method recreates the view with the updated data, ensuring the interface is always uptodate with the latest configuration data.
+
+**5: Mediator**
+
+In this project, the Mediator design pattern is used to centralize how updates flow between the user interface and the underlying configuration data. The controller acts as the mediator, coordinating communication between the user actions in the views and the model that stores labs, rooms, courses, and other configuration data. The code can be found inside, `Controller/main_controller.py` and inside `Views/main_view.py`. The refresh method reconstructs the view based on the latest configuration state, ensuring the UI is always displaying accurate, up-to-date information.
+
+The Problem: As users added or modified labs, rooms, or courses, keeping every view in sync with the updated configuration became complicated. Without a central coordinating component, each view would need to know when something changed and manually refresh itself—creating tight coupling and repetitive update logic.
+
+The Solution: By treating the main controller as a mediator, all changes (add, modify, remove actions) flow through a single central component. The controller receives the action, updates the model, and then triggers the view refresh process. The views no longer directly communicate with the model or with each other—instead, they rely on the controller to orchestrate updates.
+
+**6: Memento**
+
+This project uses the Memento design pattern to capture and store snapshots of the configuration data whenever the user clicks Save in the GUI. The code implementing this behavior can be found inside `Views/main_view.py` and `Models/Data_manager.py`.
+
+The Problem: When users updated labs, rooms, or courses, or time config stuff we needed a reliable way to preserve the current state of the configuration at the moment they saved. Without a controlled snapshot mechanism, there was a risk of inconsistent saves, accidental overwrites, or losing the ability to recover the previous configuration after incorrect edits. We needed to store the state safely without exposing or duplicating internal model structures.
+
+The Solution: By applying the Memento pattern, we created a system that captures the current configuration state each time the user clicks Save. The view triggers the save action, and the DataManager constructs a memento holding the latest data snapshot.This allows us to ensures the current configuration is consistently stored, and kept separate from the internal structure of the model.

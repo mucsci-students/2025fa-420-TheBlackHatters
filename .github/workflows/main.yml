@@ -30,7 +30,7 @@ jobs:
       run: |
         pip install uv
         uv sync
-        uv pip install pytest pytest-cov ruff typer langchain openai ty
+        uv pip install pytest pytest-cov ruff typer langchain openai ty reportlab
 
     - name: Run Tests
       run: uv run pytest --maxfail=1 --disable-warnings -q --cov --cov-branch --cov-report=xml

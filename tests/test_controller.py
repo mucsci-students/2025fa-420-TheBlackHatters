@@ -4,18 +4,26 @@
 #
 # Tests for main_controller.py functions and controller classes.
 # Uses pytest + unittest.mock to isolate Tkinter and DataManager behavior.
-
+import sys
 import json
 import pytest
 from unittest.mock import Mock, patch
 
-with patch("Controller.main_controller.DataManager", Mock(return_value=Mock())):
+mock = Mock()
+sys.modules["reportlab"] = mock
+sys.modules["reportlab.lib"] = mock
+sys.modules["reportlab.lib.pagesizes"] = mock
+sys.modules["reportlab.pdfgen"] = mock
+sys.modules["reportlab.pdfgen.canvas"] = mock
+sys.modules["reportlab.platypus"] = mock
+
+if True:
     import Controller.main_controller as ctrl
+
+# with patch("Controller.main_controller.DataManager", Mock(return_value=Mock())):
 
 
 # --- Fixtures ---
-
-
 @pytest.fixture(autouse=True)
 def reset_dm(monkeypatch):
     """Provide a mock DataManager for each test run."""
@@ -93,6 +101,7 @@ def test_importSchedulesBTN_invalid_path(monkeypatch):
 
 def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
     fake_save = tmp_path / "all.json"
+
     monkeypatch.setattr(
         "Controller.main_controller.filedialog.asksaveasfilename",
         Mock(return_value=str(fake_save)),
@@ -100,15 +109,19 @@ def test_exportAllSchedulesBTN_writes_json(monkeypatch, tmp_path):
 
     pathVar = Mock()
     data = [{"course": "CMSC 101"}]
+
     ctrl.exportSchedulesBTN(data, pathVar)
 
     written = json.loads(fake_save.read_text())
     assert written == data
-    assert "Schedules have been saved" in pathVar.set.call_args[0][0]
+
+    expected_msg = f"Schedules have been saved to: {fake_save}"
+    assert pathVar.set.call_args[0][0] == expected_msg
 
 
 def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     fake_save = tmp_path / "one.json"
+
     monkeypatch.setattr(
         "Controller.main_controller.filedialog.asksaveasfilename",
         Mock(return_value=str(fake_save)),
@@ -116,25 +129,57 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
 
     pathVar = Mock()
     data = [[{"course": "CMSC 101"}], [{"course": "CMSC 102"}]]
-    ctrl.exportSchedulesBTN(data, pathVar, num=2)
+
+    ctrl.exportSchedulesBTN(data, pathVar)
 
     written = json.loads(fake_save.read_text())
-    assert written == [{"course": "CMSC 102"}]
-    assert "Your 1 Schedule" in pathVar.set.call_args[0][0]
+
+    assert written == data
+
+    expected_msg = f"Schedules have been saved to: {fake_save}"
+    assert pathVar.set.call_args[0][0] == expected_msg
 
 
-def test_exportOneScheduleBTN_invalid_num(tmp_path, monkeypatch):
-    fake = tmp_path / "out.json"
+# def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
+#     fake_save = tmp_path / "out.json"
+
+#     monkeypatch.setattr(
+#         "Controller.main_controller.filedialog.asksaveasfilename",
+#         lambda **kwargs: str(fake_save),
+#     )
+
+#     pathVar = Mock()
+#     data = [[{"course": "X"}], [{"course": "Y"}]]
+
+#     ctrl.exportSchedulesBTN(data, pathVar)
+
+#     written = json.loads(fake_save.read_text())
+
+#     assert written == data
+
+#     expected_msg = f"Schedules have been saved to: {fake_save}"
+#     assert pathVar.set.call_args[0][0] == expected_msg
+
+
+def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
+    fake_save = tmp_path / "out.json"
+
     monkeypatch.setattr(
         "Controller.main_controller.filedialog.asksaveasfilename",
-        lambda **kwargs: str(fake),
+        lambda **kwargs: str(fake_save),
     )
-    data = [[{"course": "X"}], [{"course": "Y"}]]
-    pathVar = Mock()
-    import Controller.main_controller as ctrl
 
-    ctrl.exportSchedulesBTN(data, pathVar, num="bad")
-    assert json.loads(fake.read_text()) == []
+    pathVar = Mock()
+    data = [[{"course": "X"}], [{"course": "Y"}]]
+
+    ctrl.exportSchedulesBTN(data, pathVar)
+
+    written = json.loads(fake_save.read_text())
+
+    assert written == data
+
+    expected_msg = f"Schedules have been saved to: {fake_save}"
+    assert pathVar.set.call_args[0][0] == expected_msg
 
 
 # --- RoomsController ---
@@ -502,7 +547,7 @@ def test_undo_action_data_integrity():
     ctrl.DM.editRoom.assert_called_with("Old Name", "New Name")
 
     # Test faculty edit - verify proper DataManager calls
-    # old_faculty = {"name": "Old", "credits": 12}  # unused
+    # old_faculty = {"name": "Old", "credits": 12}
     new_faculty = {"name": "New", "credits": 10}
 
     c_faculty.editFaculty(new_faculty, "Old", minimal_refresh)
@@ -515,6 +560,8 @@ def test_undo_redo_integration_with_mocked_controllers():
     # Mock the controller calls that would happen during undo/redo
     mock_room_ctr = Mock()
     mock_lab_ctr = Mock()
+    # mock_faculty_ctr = Mock()
+    # mock_course_ctr = Mock()
 
     # Simulate the undo/redo execution logic
     def execute_undo(action):
@@ -799,7 +846,7 @@ def test_labs_controller_edit_calls_dm():
 
     c.editLab("Old Lab", "New Lab", refresh)
 
-    ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab")
+    ctrl.DM.editLabs.assert_called_with("Old Lab", "New Lab")  # type: ignore
 
 
 def test_course_controller_remove_calls_dm():
@@ -835,10 +882,8 @@ def test_configExportBTN_cancelled():
         ctrl.configExportBTN(pathVar)
 
         # Should not call saveData when cancelled
-        with patch.object(ctrl.DM, "saveData") as mock_save:
-            ctrl.configExportBTN(pathVar)
-            mock_save.assert_not_called()
-            pathVar.set.assert_not_called()
+        ctrl.DM.saveData.assert_not_called()  # type: ignore
+        pathVar.set.assert_not_called()
 
 
 def test_generateSchedulesBtn_with_progress_callback():
@@ -1055,7 +1100,7 @@ def test_faculty_controller_edit_creates_new_entry():
     """Test that faculty edit removes old and adds new faculty"""
     c = ctrl.FacultyController()
 
-    # old_faculty = {"name": "OldName", "credits": 12}  # unused
+    # old_faculty = {"name": "OldName", "credits": 12}
     new_faculty = {"name": "NewName", "credits": 10}
 
     c.editFaculty(new_faculty, "OldName", None)

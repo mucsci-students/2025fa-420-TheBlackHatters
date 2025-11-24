@@ -1,32 +1,33 @@
 import customtkinter as ctk
 from tkinter import StringVar
+from Controller.chatbot_agent import ChatbotAgent
 from Controller.main_controller import (
     RoomsController,
     LabsController,
     FacultyController,
+    CourseController,
     configImportBTN,
     configExportBTN,
     generateSchedulesBtn,
     importSchedulesBTN,
-    exportSchedulesBTN,
-    CourseController,
-    TimeSlotController,
 )
-
-import math
-import re
-from typing import Optional, cast
-from Controller.chatbot_agent import ChatbotAgent
-
-from datetime import datetime
-
+from pathlib import Path
+from Controller.controllerUtils import (
+    orderedSchedules,
+    parseMeeting,
+    getTimeRange,
+    exportOneSchedulePDF,
+    exportOneScheduleHTML,
+    exportSchedulesBTN,
+)
+from typing import Optional
 
 # should create controllers for other things too
 roomCtr = RoomsController()
 facultyCtr = FacultyController()
 labCtr = LabsController()
 courseCtr = CourseController()
-timeSlotCtr = TimeSlotController()
+# timeSlotCtr = TimeSlotController()
 
 
 # The config page has left/right. This function when called with with data will fill the left side.
@@ -187,9 +188,8 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
 
     # if we have data given here we just display the data
     # for example when someone clicks edit.
-    if data:
-        if data is not None:
-            nameEntry.insert(0, data.get("name", ""))
+    if data is not None:
+        nameEntry.insert(0, data.get("name", ""))
 
     # This is to display the credit things
     # we need to place, Label and Entry to for each of those we need a frame
@@ -1275,714 +1275,46 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     ).pack(side="bottom", pady=15)
 
 
-def dataTimeSlotsLeft(frame, controller, refresh, data=None):
-    """Display list of time slots on the left side"""
-    container = ctk.CTkFrame(frame, fg_color="transparent")
-    container.pack(fill="both", expand=True, padx=5, pady=5)
-    # Button container
-    button_frame = ctk.CTkFrame(container, fg_color="transparent")
-    button_frame.pack(side="top", fill="x", padx=5, pady=(0, 10))
-
-    def onAdd():
-        refresh(target="ConfigPage")
-
-    # Add button
-    ctk.CTkButton(button_frame, text="Add", width=120, height=20, command=onAdd).pack(
-        side="left", padx=(0, 5)
-    )
-    # View All button
-    ctk.CTkButton(
-        button_frame,
-        text="View All",
-        width=120,
-        height=20,
-        command=lambda: viewAllTimeSlots(controller, refresh),
-    ).pack(side="left", padx=(0, 5))
-
-    # Days in fixed order
-    days = ["MON", "TUE", "WED", "THU", "FRI"]
-
-    for day in days:
-        ctk.CTkLabel(container, text=day, font=("Arial", 14, "bold")).pack(
-            anchor="w", pady=(10, 5), padx=5
-        )
-        intervals = controller.list_intervals(day)
-        if not intervals:
-            ctk.CTkLabel(
-                container,
-                text="  (No intervals)",
-                text_color="gray",
-                font=("Arial", 11),
-            ).pack(anchor="w", padx=20)
-            continue
-        for idx, interval in enumerate(intervals):
-            rowFrame = ctk.CTkFrame(container, fg_color="transparent")
-            rowFrame.pack(fill="x", pady=2, padx=5)
-
-            # Configure grid columns: label takes remaining space, buttons have fixed size
-            rowFrame.grid_columnconfigure(0, weight=1)
-            rowFrame.grid_columnconfigure(1, weight=0)
-            rowFrame.grid_columnconfigure(2, weight=0)
-
-            # Build shorter label text
-            restrictions = []
-            if interval.get("professors"):
-                restrictions.append(f"F:{len(interval['professors'])}")
-            if interval.get("labs"):
-                restrictions.append(f"R:{len(interval['labs'])}")
-            if interval.get("courses"):
-                restrictions.append(f"C:{len(interval['courses'])}")
-
-            restriction_text = f" [{','.join(restrictions)}]" if restrictions else ""
-            label_txt = f"{interval['start']}-{interval['end']} ({interval.get('spacing', 0)}m){restriction_text}"
-            # Label with fixed width to prevent overflow
-            label = ctk.CTkLabel(
-                rowFrame, text=label_txt, font=("Arial", 11), anchor="w"
-            )
-            label.grid(row=0, column=0, sticky="w", padx=(0, 5))
-            # Edit button - fixed position
-            ctk.CTkButton(
-                rowFrame,
-                text="Edit",
-                width=50,
-                height=20,
-                command=lambda d=day, i=idx: onEdit(d, i),
-            ).grid(row=0, column=1, padx=2)
-            # Delete button - fixed position
-            ctk.CTkButton(
-                rowFrame,
-                text="Del",
-                width=50,
-                height=20,
-                fg_color="#d32f2f",
-                hover_color="#b71c1c",
-                command=lambda d=day, i=idx: onDelete(d, i),
-            ).grid(row=0, column=2, padx=(2, 0))
-
-    def onDelete(day, idx):
-        # Confirmation dialog
-        confirm = ctk.CTkToplevel()
-        confirm.title("Confirm Delete")
-        confirm.geometry("350x120")
-        confirm.grab_set()
-
-        ctk.CTkLabel(
-            confirm, text="Delete this time slot?", font=("Arial", 14, "bold")
-        ).pack(pady=15)
-
-        button_frame = ctk.CTkFrame(confirm, fg_color="transparent")
-        button_frame.pack(pady=10)
-
-        def do_delete():
-            controller.remove_time_interval(day, idx)
-            confirm.destroy()
-            refresh(target="ConfigPage")
-
-        ctk.CTkButton(
-            button_frame,
-            text="Delete",
-            width=80,
-            fg_color="#d32f2f",
-            hover_color="#b71c1c",
-            command=do_delete,
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            button_frame, text="Cancel", width=80, command=confirm.destroy
-        ).pack(side="left", padx=5)
-
-    def onEdit(day, idx):
-        intervals = controller.list_intervals(day)
-        if idx < len(intervals):
-            interval = intervals[idx]
-            edit_data = {"day": day, "index": idx, "interval": interval}
-            refresh(target="ConfigPage", data=edit_data)
-
-
-def dataTimeSlotsRight(frame, controller, refresh, data=None):
-    """Display time slot form on the right side"""
-    container = ctk.CTkFrame(frame, fg_color="transparent")
-    container.pack(fill="both", expand=True, padx=5, pady=5)
-
-    # Check if we're editing - ADD NULL CHECK
-    is_editing = (
-        data is not None
-        and isinstance(data, dict)
-        and "day" in data
-        and "index" in data
-    )
-
-    # Title
-    title_text = "Edit Time Slot" if is_editing else "Add Time Slot"
-    ctk.CTkLabel(container, text=title_text, font=("Arial", 24, "bold")).pack(
-        pady=(0, 20)
-    )
-
-    # Day selection - USE ABBREVIATED FORMAT
-    dayFrame = ctk.CTkFrame(container, fg_color="transparent")
-    dayFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        dayFrame, text="Day:", width=120, anchor="w", font=("Arial", 20, "bold")
-    ).pack(side="left", padx=10)
-
-    # FIXED: Added null check for data
-    default_day = "MON"
-    if is_editing and data:
-        default_day = data.get("day", "MON")
-
-    dayVar = ctk.StringVar(value=default_day)
-    dayDropdown = ctk.CTkOptionMenu(
-        dayFrame,
-        variable=dayVar,
-        values=["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
-        width=200,
-        font=("Arial", 18),
-    )
-    dayDropdown.pack(side="left", fill="x", expand=True, padx=5)
-
-    # If editing, disable day selection
-    if is_editing:
-        dayDropdown.configure(state="disabled")
-
-    # Start Time - FIXED: Added null check
-    startFrame = ctk.CTkFrame(container, fg_color="transparent")
-    startFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        startFrame,
-        text="Start Time:",
-        width=120,
-        anchor="w",
-        font=("Arial", 20, "bold"),
-    ).pack(side="left", padx=10)
-
-    default_start = "09:00"
-    if is_editing and data:
-        default_start = data.get("interval", {}).get("start", "09:00")
-
-    startVar = ctk.StringVar(value=default_start)
-    startEntry = ctk.CTkEntry(
-        startFrame, textvariable=startVar, placeholder_text="HH:MM", font=("Arial", 20)
-    )
-    startEntry.pack(side="left", fill="x", expand=True, padx=5)
-
-    # End Time - FIXED: Added null check
-    endFrame = ctk.CTkFrame(container, fg_color="transparent")
-    endFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        endFrame, text="End Time:", width=120, anchor="w", font=("Arial", 20, "bold")
-    ).pack(side="left", padx=10)
-
-    default_end = "10:00"
-    if is_editing and data:
-        default_end = data.get("interval", {}).get("end", "10:00")
-
-    endVar = ctk.StringVar(value=default_end)
-    endEntry = ctk.CTkEntry(
-        endFrame, textvariable=endVar, placeholder_text="HH:MM", font=("Arial", 20)
-    )
-    endEntry.pack(side="left", fill="x", expand=True, padx=5)
-
-    # Spacing - FIXED: Added null check
-    spacingFrame = ctk.CTkFrame(container, fg_color="transparent")
-    spacingFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        spacingFrame,
-        text="Spacing (min):",
-        width=120,
-        anchor="w",
-        font=("Arial", 20, "bold"),
-    ).pack(side="left", padx=10)
-
-    default_spacing = "10"
-    if is_editing and data:
-        default_spacing = str(data.get("interval", {}).get("spacing", 10))
-
-    spacingVar = ctk.StringVar(value=default_spacing)
-    spacingEntry = ctk.CTkEntry(
-        spacingFrame,
-        textvariable=spacingVar,
-        placeholder_text="0-60",
-        font=("Arial", 20),
-    )
-    spacingEntry.pack(side="left", fill="x", expand=True, padx=5)
-
-    # Helper text
-    ctk.CTkLabel(
-        container,
-        text="Format: HH:MM (24-hour format, e.g., 09:00, 14:30)",
-        font=("Arial", 12),
-        text_color="gray",
-    ).pack(pady=10)
-
-    # Get available options for dropdowns
-    all_faculty = sorted({f["name"] for f in facultyCtr.listFaculty()})
-    all_rooms = sorted(roomCtr.listRooms())
-    all_courses = sorted({c["course_id"] for c in courseCtr.listCourses()})
-
-    # Get existing values if editing - FIXED: Added null checks
-    existing_professors = []
-    existing_labs = []
-    existing_courses = []
-
-    if is_editing and data:
-        existing_professors = data.get("interval", {}).get("professors", [])
-        existing_labs = data.get("interval", {}).get("labs", [])
-        existing_courses = data.get("interval", {}).get("courses", [])
-
-    # Professors/Faculty section
-    profFrame = ctk.CTkFrame(container, fg_color="transparent")
-    profFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        profFrame, text="Restrict to Faculty:", anchor="w", font=("Arial", 18, "bold")
-    ).pack(anchor="w", padx=10, pady=(10, 5))
-
-    prof_vars = []
-    prof_widgets = []
-
-    def update_prof_dropdowns(*args):
-        selected = {var.get() for var in prof_vars if var.get() != "None"}
-        for var, dropdown in prof_widgets:
-            current = var.get()
-            available = [p for p in all_faculty if p not in selected or p == current]
-            if "None" not in available:
-                available.insert(0, "None")
-            dropdown.configure(values=available)
-
-    def add_prof_dropdown(selected="None"):
-        row = ctk.CTkFrame(profFrame, fg_color="transparent")
-        row.pack(fill="x", padx=20, pady=2)
-
-        var = ctk.StringVar(value=selected)
-        dropdown = ctk.CTkOptionMenu(
-            row,
-            variable=var,
-            values=["None"] + all_faculty,
-            width=300,
-            font=("Arial", 16),
-        )
-        dropdown.pack(side="left", padx=5)
-
-        var.trace_add("write", update_prof_dropdowns)
-        prof_vars.append(var)
-        prof_widgets.append((var, dropdown))
-        update_prof_dropdowns()
-
-    # Populate with existing or add one empty
-    if existing_professors:
-        for prof in existing_professors:
-            add_prof_dropdown(prof)
-    else:
-        add_prof_dropdown("None")
-
-    ctk.CTkButton(
-        profFrame,
-        text="Add Faculty",
-        width=100,
-        command=lambda: add_prof_dropdown("None"),
-    ).pack(padx=20, pady=5)
-
-    # Rooms/Labs section
-    roomFrame = ctk.CTkFrame(container, fg_color="transparent")
-    roomFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        roomFrame, text="Restrict to Rooms:", anchor="w", font=("Arial", 18, "bold")
-    ).pack(anchor="w", padx=10, pady=(10, 5))
-
-    room_vars = []
-    room_widgets = []
-
-    def update_room_dropdowns(*args):
-        selected = {var.get() for var in room_vars if var.get() != "None"}
-        for var, dropdown in room_widgets:
-            current = var.get()
-            available = [r for r in all_rooms if r not in selected or r == current]
-            if "None" not in available:
-                available.insert(0, "None")
-            dropdown.configure(values=available)
-
-    def add_room_dropdown(selected="None"):
-        row = ctk.CTkFrame(roomFrame, fg_color="transparent")
-        row.pack(fill="x", padx=20, pady=2)
-
-        var = ctk.StringVar(value=selected)
-        dropdown = ctk.CTkOptionMenu(
-            row,
-            variable=var,
-            values=["None"] + all_rooms,
-            width=300,
-            font=("Arial", 16),
-        )
-        dropdown.pack(side="left", padx=5)
-
-        var.trace_add("write", update_room_dropdowns)
-        room_vars.append(var)
-        room_widgets.append((var, dropdown))
-        update_room_dropdowns()
-
-    # Populate with existing or add one empty
-    if existing_labs:  # Note: "labs" key actually stores rooms in your model
-        for room in existing_labs:
-            add_room_dropdown(room)
-    else:
-        add_room_dropdown("None")
-    ctk.CTkButton(
-        roomFrame, text="Add Room", width=100, command=lambda: add_room_dropdown("None")
-    ).pack(padx=20, pady=5)
-
-    # Courses section
-    courseFrame = ctk.CTkFrame(container, fg_color="transparent")
-    courseFrame.pack(fill="x", pady=5, padx=5)
-
-    ctk.CTkLabel(
-        courseFrame, text="Restrict to Courses:", anchor="w", font=("Arial", 18, "bold")
-    ).pack(anchor="w", padx=10, pady=(10, 5))
-
-    course_vars = []
-    course_widgets = []
-
-    def update_course_dropdowns(*args):
-        selected = {var.get() for var in course_vars if var.get() != "None"}
-        for var, dropdown in course_widgets:
-            current = var.get()
-            available = [c for c in all_courses if c not in selected or c == current]
-            if "None" not in available:
-                available.insert(0, "None")
-            dropdown.configure(values=available)
-
-    def add_course_dropdown(selected="None"):
-        row = ctk.CTkFrame(courseFrame, fg_color="transparent")
-        row.pack(fill="x", padx=20, pady=2)
-
-        var = ctk.StringVar(value=selected)
-        dropdown = ctk.CTkOptionMenu(
-            row,
-            variable=var,
-            values=["None"] + all_courses,
-            width=300,
-            font=("Arial", 16),
-        )
-        dropdown.pack(side="left", padx=5)
-
-        var.trace_add("write", update_course_dropdowns)
-        course_vars.append(var)
-        course_widgets.append((var, dropdown))
-        update_course_dropdowns()
-
-    # Populate with existing or add one empty
-    if existing_courses:
-        for course in existing_courses:
-            add_course_dropdown(course)
-    else:
-        add_course_dropdown("None")
-    ctk.CTkButton(
-        courseFrame,
-        text="Add Course",
-        width=100,
-        command=lambda: add_course_dropdown("None"),
-    ).pack(padx=20, pady=5)
-
-    # Save button
-    def onSave():
-        # Validate inputs
-        try:
-            spacing_value = spacingVar.get().strip()
-            if not spacing_value:
-                raise ValueError("Spacing cannot be empty")
-            spacing_int = int(spacing_value)
-            if spacing_int <= 0:
-                raise ValueError("Spacing must be greater than 0")
-        except ValueError as e:
-            error_label = ctk.CTkLabel(
-                container,
-                text=f"Error: Invalid spacing value - {str(e)}",
-                text_color="red",
-                font=("Arial", 14, "bold"),
-            )
-            error_label.pack(pady=10)
-            return
-
-        interval_data = {
-            "start": startVar.get(),
-            "end": endVar.get(),
-            "spacing": spacing_int,
-            "professors": [v.get() for v in prof_vars if v.get() != "None"],
-            "labs": [v.get() for v in room_vars if v.get() != "None"],
-            "courses": [v.get() for v in course_vars if v.get() != "None"],
-        }
-
-        try:
-            if is_editing and data is not None:  # Add null check here
-                controller.edit_time_interval(
-                    dayVar.get(), data["index"], interval_data
-                )
-            else:
-                controller.add_time_interval(dayVar.get(), interval_data)
-            refresh(target="ConfigPage")
-        except Exception as e:
-            error_label = ctk.CTkLabel(
-                container,
-                text=f"Error: {str(e)}",
-                text_color="red",
-                font=("Arial", 14, "bold"),
-            )
-            error_label.pack(pady=10)
-
-    ctk.CTkButton(
-        container,
-        text="Save Time Slot",
-        width=150,
-        height=40,
-        font=("Arial", 18, "bold"),
-        command=onSave,
-    ).pack(pady=20)
-
-
-def viewAllTimeSlots(controller, refresh):
-    """Display all time slots in a popup window with delete functionality"""
+def showSuccessPopup(message="Successfully exported!"):
     popup = ctk.CTkToplevel()
-    popup.title("All Time Slots Overview")
-    popup.geometry("1000x700")
-    popup.minsize(800, 600)
-
-    # Make popup modal
+    popup.title("Success")
+    popup.geometry("300x150")
     popup.grab_set()
-    popup.focus_force()
 
-    def reload_view():
-        """Reload the view after deletions"""
-        popup.destroy()
-        viewAllTimeSlots(controller, refresh)
+    ctk.CTkLabel(popup, text=message, font=("Arial", 16)).pack(pady=20)
 
-    # Main container
-    container = ctk.CTkScrollableFrame(popup, fg_color="transparent")
-    container.pack(fill="both", expand=True, padx=20, pady=20)
+    ctk.CTkButton(popup, text="OK", width=80, command=popup.destroy).pack(pady=10)
 
-    # Title
-    ctk.CTkLabel(
-        container, text="Time Slots Configuration", font=("Arial", 28, "bold")
-    ).pack(pady=(0, 20))
 
-    # Days in order - USE ABBREVIATED FORMAT
-    days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+def showErrorPopup(message="An error occurred during export!"):
+    popup = ctk.CTkToplevel()
+    popup.title("Error")
+    popup.geometry("300x150")
+    popup.grab_set()
 
-    has_any_intervals = False
-    for day in days:
-        intervals = controller.list_intervals(day)
+    ctk.CTkLabel(popup, text=message, font=("Arial", 16), text_color="red").pack(
+        pady=20
+    )
 
-        if not intervals:
-            continue
+    ctk.CTkButton(popup, text="OK", width=80, command=popup.destroy).pack(pady=10)
 
-        has_any_intervals = True
 
-        # Day header
-        day_frame = ctk.CTkFrame(container, fg_color="#2b2b2b", corner_radius=10)
-        day_frame.pack(fill="x", pady=(0, 20))
+def handleExportPDF(room, classes, output_dir="output"):
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        exportOneSchedulePDF([room, classes], output_dir)
+        showSuccessPopup("PDF exported successfully!")
+    except Exception as e:
+        showErrorPopup(f"Failed to export PDF:\n{e}")
 
-        ctk.CTkLabel(
-            day_frame,
-            text=day,  # Display abbreviated format
-            font=("Arial", 22, "bold"),
-            anchor="w",
-        ).pack(anchor="w", padx=15, pady=(10, 5))
 
-        # Each interval
-        for idx, interval in enumerate(intervals):
-            interval_frame = ctk.CTkFrame(
-                day_frame, fg_color="#1f1f1f", corner_radius=8
-            )
-            interval_frame.pack(fill="x", padx=15, pady=5)
-
-            # Top row with time info and action buttons
-            top_row = ctk.CTkFrame(interval_frame, fg_color="transparent")
-            top_row.pack(fill="x", padx=15, pady=(10, 5))
-
-            # Time and spacing info
-            time_info = f"⏰ {interval['start']} — {interval['end']}  |  📊 Spacing: {interval.get('spacing', 0)} minutes"
-            ctk.CTkLabel(
-                top_row, text=time_info, font=("Arial", 16, "bold"), anchor="w"
-            ).pack(side="left", fill="x", expand=True)
-
-            # Action buttons
-            def make_edit_handler(d, i):
-                def handler():
-                    popup.destroy()
-                    intervals_list = controller.list_intervals(d)
-                    if i < len(intervals_list):
-                        edit_data = {
-                            "day": d,
-                            "index": i,
-                            "interval": intervals_list[i],
-                        }
-                        refresh(target="ConfigPage", data=edit_data)
-
-                return handler
-
-            def make_delete_handler(d, i):
-                def handler():
-                    # Confirmation dialog
-                    confirm = ctk.CTkToplevel(popup)
-                    confirm.title("Confirm Delete")
-                    confirm.geometry("400x150")
-                    confirm.grab_set()
-
-                    ctk.CTkLabel(
-                        confirm,
-                        text="Are you sure you want to delete this time slot?",
-                        font=("Arial", 14, "bold"),
-                        wraplength=350,
-                    ).pack(pady=20)
-
-                    button_frame = ctk.CTkFrame(confirm, fg_color="transparent")
-                    button_frame.pack(pady=10)
-
-                    def do_delete():
-                        controller.remove_time_interval(d, i)
-                        confirm.destroy()
-                        reload_view()
-                        refresh(target="ConfigPage")
-
-                    ctk.CTkButton(
-                        button_frame,
-                        text="Delete",
-                        width=100,
-                        fg_color="#d32f2f",
-                        hover_color="#b71c1c",
-                        command=do_delete,
-                    ).pack(side="left", padx=5)
-
-                    ctk.CTkButton(
-                        button_frame, text="Cancel", width=100, command=confirm.destroy
-                    ).pack(side="left", padx=5)
-
-                return handler
-
-            ctk.CTkButton(
-                top_row,
-                text="Edit",
-                width=60,
-                height=28,
-                command=make_edit_handler(day, idx),
-            ).pack(side="right", padx=(5, 0))
-
-            ctk.CTkButton(
-                top_row,
-                text="Delete",
-                width=60,
-                height=28,
-                fg_color="#d32f2f",
-                hover_color="#b71c1c",
-                command=make_delete_handler(day, idx),
-            ).pack(side="right", padx=(5, 0))
-
-            # Restrictions section
-            restrictions_frame = ctk.CTkFrame(interval_frame, fg_color="transparent")
-            restrictions_frame.pack(fill="x", padx=15, pady=(5, 10))
-
-            # Faculty restrictions
-            professors = interval.get("professors", [])
-            if professors:
-                faculty_frame = ctk.CTkFrame(
-                    restrictions_frame, fg_color="#2b2b2b", corner_radius=5
-                )
-                faculty_frame.pack(fill="x", pady=2)
-
-                ctk.CTkLabel(
-                    faculty_frame,
-                    text="👥 Restricted to Faculty:",
-                    font=("Arial", 14, "bold"),
-                    anchor="w",
-                ).pack(anchor="w", padx=10, pady=(5, 2))
-
-                ctk.CTkLabel(
-                    faculty_frame,
-                    text=", ".join(professors),
-                    font=("Arial", 13),
-                    anchor="w",
-                    wraplength=800,
-                ).pack(anchor="w", padx=25, pady=(0, 5))
-
-            # Room restrictions
-            rooms = interval.get("labs", [])  # "labs" key stores rooms
-            if rooms:
-                room_frame = ctk.CTkFrame(
-                    restrictions_frame, fg_color="#2b2b2b", corner_radius=5
-                )
-                room_frame.pack(fill="x", pady=2)
-
-                ctk.CTkLabel(
-                    room_frame,
-                    text="🏫 Restricted to Rooms:",
-                    font=("Arial", 14, "bold"),
-                    anchor="w",
-                ).pack(anchor="w", padx=10, pady=(5, 2))
-
-                ctk.CTkLabel(
-                    room_frame,
-                    text=", ".join(rooms),
-                    font=("Arial", 13),
-                    anchor="w",
-                    wraplength=800,
-                ).pack(anchor="w", padx=25, pady=(0, 5))
-
-            # Course restrictions
-            courses = interval.get("courses", [])
-            if courses:
-                course_frame = ctk.CTkFrame(
-                    restrictions_frame, fg_color="#2b2b2b", corner_radius=5
-                )
-                course_frame.pack(fill="x", pady=2)
-
-                ctk.CTkLabel(
-                    course_frame,
-                    text="📚 Restricted to Courses:",
-                    font=("Arial", 14, "bold"),
-                    anchor="w",
-                ).pack(anchor="w", padx=10, pady=(5, 2))
-
-                ctk.CTkLabel(
-                    course_frame,
-                    text=", ".join(courses),
-                    font=("Arial", 13),
-                    anchor="w",
-                    wraplength=800,
-                ).pack(anchor="w", padx=25, pady=(0, 5))
-
-            # If no restrictions
-            if not professors and not rooms and not courses:
-                ctk.CTkLabel(
-                    restrictions_frame,
-                    text="✓ No restrictions (available to all)",
-                    font=("Arial", 13, "italic"),
-                    text_color="gray",
-                ).pack(anchor="w", padx=10, pady=2)
-
-        # Spacing between days
-        ctk.CTkLabel(day_frame, text="").pack(pady=5)
-
-    # If no intervals at all
-    if not has_any_intervals:
-        ctk.CTkLabel(
-            container,
-            text="No time slots configured yet.\nClick 'Add' to create your first time slot.",
-            font=("Arial", 16),
-            text_color="gray",
-        ).pack(pady=50)
-
-    # Close button
-    ctk.CTkButton(
-        popup,
-        text="Close",
-        width=150,
-        height=40,
-        font=("Arial", 16, "bold"),
-        command=popup.destroy,
-    ).pack(pady=15)
+def handleExportHTML(room, classes, output_dir="output"):
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        exportOneScheduleHTML([room, classes], output_dir)
+        showSuccessPopup("HTML exported successfully!")
+    except Exception as e:
+        showErrorPopup(f"Failed to export HTML:\n{e}")
 
 
 def defaultScheduleViewer(
@@ -2195,83 +1527,6 @@ def facultyScheduleViewer(
                 ).pack(side="left", padx=5)
 
 
-def sortSchedulesByTime(data):
-    # Priority for the days, no classes on SAT, SUN but who knows..
-    dayOrder = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5, "SUN": 6}
-
-    def getEarliestMeeting(schedule):
-        times = []
-        for entry in schedule[4:]:
-            try:
-                day, time_range = entry.split()
-                startTime = time_range.split("-")[0]
-                hour, minute = map(int, startTime.split(":"))
-                times.append((dayOrder[day], hour, minute))
-            except Exception:
-                continue
-        return min(times) if times else (float("inf"), float("inf"), float("inf"))
-
-    # sort using the funciton we give it, usingt he times
-    return sorted(data, key=getEarliestMeeting)
-
-
-def filterDurations(times, dur):
-    valid = []
-    for t in times:
-        t = t.replace("^", "").strip()
-        try:
-            day, time_range = t.split(" ")
-            start, end = time_range.split("-")
-
-            fmt = "%H:%M"
-            start_time = datetime.strptime(start, fmt)
-            end_time = datetime.strptime(end, fmt)
-
-            duration = (end_time - start_time).seconds / 60
-            if duration == dur:
-                valid.append(t)
-        except ValueError:
-            continue
-    return valid
-
-
-def orderedSchedules(schedules, order):
-    schedules = sortSchedulesByTime(schedules)
-    reoderedSchedules = []
-    if not schedules:
-        return schedules
-
-    if order == "Default":
-        return schedules
-    else:
-        result = {}
-        for row in schedules:
-            course, faculty, room, lab, *days = row
-            if order == "Rooms & Labs":
-                if room not in result:
-                    result[room] = []
-
-                result[room].append([course, faculty] + days)
-            elif order == "Faculty":
-                if faculty not in result:
-                    result[faculty] = []
-
-                result[faculty].append([course, room, lab] + days)
-
-        for row in schedules:
-            course, faculty, room, lab, *days = row
-            if order == "Rooms & Labs":
-                if lab not in (None, "None"):
-                    if lab not in result:
-                        result[lab] = []
-                    times = filterDurations(days, 110)
-                    result[lab].append([course, faculty] + times)
-
-        reoderedSchedules.append(result)
-
-    return reoderedSchedules
-
-
 def plotWeeklyOrderSchedules(schedules, parentFrame, order):
     schedules = orderedSchedules(schedules, order)
     days = ["MON", "TUE", "WED", "THU", "FRI"]
@@ -2280,50 +1535,34 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
     dayWidth = 170
     leftMargin = 50
 
-    def parseMeeting(meeting):
-        try:
-            day, times = meeting.split()
-            times = times.replace("^", "")
-            startStr, endStr = times.split("-")
-            fmt = "%H:%M"
-            start = datetime.strptime(startStr, fmt)
-            end = datetime.strptime(endStr, fmt)
-            return day, start, end
-        except Exception:
-            return None, None, None
-
-    def getTimeRange(data):
-        times = []
-        time_pattern = re.compile(r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})")
-        for _class in data:
-            for item in _class:
-                match = time_pattern.search(item)
-                if match:
-                    start_h, start_m, end_h, end_m = map(int, match.groups())
-                    start = start_h + start_m / 60
-                    end = end_h + end_m / 60
-                    times.append((start, end))
-
-        if not times:
-            return None
-
-        earliest_start = min(t[0] for t in times)
-        latest_end = max(t[1] for t in times)
-        rounded_latest_end = math.ceil(latest_end)
-
-        return (int(earliest_start), rounded_latest_end)
-
-    ctk.CTkLabel(
-        parentFrame,
-        text=f"By {order}:",
-        width=120,
-        height=50,
-        anchor="w",
-        font=("Arial", 30, "bold"),
-    ).pack(padx=10, pady=10)
-
     for schedule_dict in schedules:
         for room, classes in schedule_dict.items():
+            # print(f"Rooms: {room},  Classes: {classes} \n")
+
+            # Header: room name + export buttons
+            header_frame = ctk.CTkFrame(parentFrame, fg_color="transparent")
+            header_frame.pack(pady=(10, 0), anchor="center")
+
+            # Export PDF button
+            ctk.CTkButton(
+                header_frame,
+                text="Export PDF",
+                width=120,
+                command=lambda room=room, classes=classes: handleExportPDF(
+                    room, classes
+                ),
+            ).pack(side="left", padx=5)
+
+            # Export HTML button
+            ctk.CTkButton(
+                header_frame,
+                text="Export HTML",
+                width=120,
+                command=lambda room=room, classes=classes: handleExportHTML(
+                    room, classes
+                ),
+            ).pack(side="left", padx=5)
+
             startHour, endHour = getTimeRange(classes)
             canvasWidth = leftMargin + len(days) * dayWidth + 20
             canvasHeight = (endHour - startHour) * hourHeight + 100
@@ -2369,7 +1608,6 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                     leftMargin, y, leftMargin + len(days) * dayWidth, y, fill="#cccccc"
                 )
 
-            # Draw each class in this room
             COLORLIST = [
                 "#6fa8dc",
                 "#93c47d",
@@ -2419,33 +1657,6 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                         fill="white",
                         justify="center",
                     )
-
-
-def plotWeeklySchedule(schedules):
-    popup = ctk.CTkToplevel()
-    popup.title("Weekly Schedule")
-    popup.minsize(1200, 700)
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("dark-blue")
-    popup.attributes("-fullscreen", True)
-
-    popup.bind("<Escape>", lambda e: popup.attributes("-fullscreen", False))
-
-    container = ctk.CTkScrollableFrame(popup, fg_color="transparent")
-    container.pack(fill="both", expand=True)
-
-    roomFrame = ctk.CTkFrame(container, fg_color="transparent")
-    roomFrame.pack(expand=True, pady=10, padx=10)
-
-    plotWeeklyOrderSchedules(schedules, roomFrame, "Rooms & Labs")
-
-    facultyFrame = ctk.CTkFrame(container, fg_color="transparent")
-    facultyFrame.pack(expand=True, pady=(10, 50), padx=10)
-
-    plotWeeklyOrderSchedules(schedules, facultyFrame, "Faculty")
-
-    popup.lift()
-    popup.focus_force()
 
 
 # this is the actual App
@@ -2805,6 +2016,7 @@ class SchedulerApp(ctk.CTk):
     def _undo_faculty_edit(self, action):
         """Undo a faculty edit"""
         old_faculty_data = action["data"]["old_faculty_data"]
+        # old_name = old_faculty_data['name']
         new_name = action["data"]["new_faculty_data"]["name"]
         facultyCtr.removeFaculty(new_name, refresh=None)
         facultyCtr.addFaculty(old_faculty_data, refresh=None)
@@ -3044,17 +2256,14 @@ class SchedulerApp(ctk.CTk):
             ),
         )
 
-        self.createTwoColumn(
-            tabview.tab("Time Slots"),
-            lambda frame: dataTimeSlotsLeft(frame, timeSlotCtr, self.refresh, data),
-            lambda frame: dataTimeSlotsRight(frame, timeSlotCtr, self.refresh, data),
-        )
-        # Tell the type checker that this *is* our SchedulerApp
-        app = cast("SchedulerApp", frame.winfo_toplevel())
-
-        # Only create it once
-        if app.chat_agent is None:
-            app.chat_agent = ChatbotAgent(lambda: app.configPath.get())
+        # One chatbot instance for the entire app
+        app = frame.winfo_toplevel()
+        if not hasattr(app, "chat_agent"):
+            setattr(
+                app,
+                "chat_agent",
+                ChatbotAgent(lambda: getattr(app, "configPath").get()),  # type: ignore
+            )
 
         chatbot_bar = ctk.CTkFrame(frame, fg_color="#2A2A2A")
         chatbot_bar.pack(side="bottom", fill="x", padx=10, pady=(10, 10))
@@ -3083,12 +2292,7 @@ class SchedulerApp(ctk.CTk):
             chatbot_entry.delete(0, "end")
 
             print(f"[CHATBOT INPUT] {text}")
-
-            if app.chat_agent is None:
-                print("[ERROR] Chat agent not initialized.")
-                return
-
-            response = app.chat_agent.query(text)
+            response = app.chat_agent.query(text)  # type: ignore
             print("[Chatbot Response]", response)
 
             if isinstance(response, dict):
@@ -3104,9 +2308,9 @@ class SchedulerApp(ctk.CTk):
 
                 # FIX: persist new tab before refresh
                 if switch_tab:
-                    app.selected_tabs["ConfigPage"] = switch_tab
+                    app.selected_tabs["ConfigPage"] = switch_tab  # type: ignore
 
-                app.refresh(target="ConfigPage")
+                app.refresh(target="ConfigPage")  # type: ignore
 
             else:
                 app.refresh(target="ConfigPage")  # type: ignore[attr-defined]
@@ -3166,13 +2370,16 @@ class SchedulerApp(ctk.CTk):
         )
         pathEntry.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
+        #
+        def onExport():
+            exportSchedulesBTN(self.deafultSchedules, self.schedulesImportedPath)
+            showSuccessPopup()
+
         exportBtn = ctk.CTkButton(
             importFrame,
             text="Export All",
             width=150,
-            command=lambda: exportSchedulesBTN(
-                self.deafultSchedules, self.schedulesImportedPath
-            ),
+            command=lambda: onExport(),
         )
 
         exportBtn.pack(side="left", padx=(0, 10))
@@ -3198,34 +2405,33 @@ class SchedulerApp(ctk.CTk):
         schedulesFrame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
         schedulesFrame.pack(expand=True, fill="both", padx=10, pady=10)
 
+        def createDropdown(parent):
+            dropDownFrame = ctk.CTkFrame(parent, fg_color="transparent")
+            dropDownFrame.pack(side="right", padx=(0, 10))
+            dropDownLabel = ctk.CTkLabel(
+                dropDownFrame,
+                width=100,
+                text="Order By: ",
+                font=("Arial", 15, "bold"),
+            )
+            dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
+            dropdown = ctk.CTkOptionMenu(
+                dropDownFrame,
+                width=150,
+                values=["Default", "Rooms & Labs", "Faculty"],
+                command=lambda choice: self.orderByChoice(
+                    choice, self.deafultSchedules
+                ),
+            )
+            dropdown.set(self.selectedOrderBy)
+            return dropdown
+
         if (
             self.deafultSchedules is not None
             and self.deafultSchedules != {}
             and self.deafultSchedules != []
         ):
             if self.selectedSchView == "Table":
-
-                def createDropdown(parent):
-                    dropDownFrame = ctk.CTkFrame(parent, fg_color="transparent")
-                    dropDownFrame.pack(side="right", padx=(0, 10))
-                    dropDownLabel = ctk.CTkLabel(
-                        dropDownFrame,
-                        width=100,
-                        text="Order By: ",
-                        font=("Arial", 15, "bold"),
-                    )
-                    dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
-                    dropdown = ctk.CTkOptionMenu(
-                        dropDownFrame,
-                        width=150,
-                        values=["Default", "Rooms & Labs", "Faculty"],
-                        command=lambda choice: self.orderByChoice(
-                            choice, self.deafultSchedules
-                        ),
-                    )
-                    dropdown.set(self.selectedOrderBy)
-                    return dropdown
-
                 if self.selectedOrderBy == "Default":
                     defaultScheduleViewer(
                         schedulesFrame,
@@ -3257,19 +2463,43 @@ class SchedulerApp(ctk.CTk):
                         createDropdown,
                     )
             elif self.selectedSchView == "Default":
-                roomFrame = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
-                roomFrame.pack(expand=True, pady=10, padx=10)
+                if (
+                    self.selectedOrderBy == "Rooms & Labs"
+                    or self.selectedOrderBy == "Default"
+                ):
+                    roomWrapper = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
+                    roomWrapper.pack(fill="both", expand=True)
 
-                plotWeeklyOrderSchedules(
-                    self.deafultSchedules[self.schIndex], roomFrame, "Rooms & Labs"
-                )
+                    topFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    topFrame.pack(fill="x")
 
-                facultyFrame = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
-                facultyFrame.pack(expand=True, pady=(10, 50), padx=10)
+                    dropdown = createDropdown(topFrame)
+                    dropdown.pack(fill="x", pady=10)
 
-                plotWeeklyOrderSchedules(
-                    self.deafultSchedules[self.schIndex], facultyFrame, "Faculty"
-                )
+                    bottomFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    bottomFrame.pack(fill="both", expand=True)
+
+                    plotWeeklyOrderSchedules(
+                        self.deafultSchedules[self.schIndex],
+                        bottomFrame,
+                        "Rooms & Labs",
+                    )
+                elif self.selectedOrderBy == "Faculty":
+                    roomWrapper = ctk.CTkFrame(schedulesFrame, fg_color="transparent")
+                    roomWrapper.pack(fill="both", expand=True)
+
+                    topFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    topFrame.pack(fill="x")
+
+                    dropdown = createDropdown(topFrame)
+                    dropdown.pack(fill="x", pady=10)
+
+                    bottomFrame = ctk.CTkFrame(roomWrapper, fg_color="transparent")
+                    bottomFrame.pack(fill="both", expand=True)
+
+                    plotWeeklyOrderSchedules(
+                        self.deafultSchedules[self.schIndex], bottomFrame, "Faculty"
+                    )
 
         nextPrevious = ctk.CTkFrame(frame, fg_color="transparent")
         nextPrevious.pack(pady=10)
