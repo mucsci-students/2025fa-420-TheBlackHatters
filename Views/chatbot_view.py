@@ -1,27 +1,41 @@
 import customtkinter as ctk
 import threading
+from typing import Any
 from Controller.chatbot_agent import ChatbotAgent
 from Controller.main_controller import configImportBTN, configExportBTN
 
 
 class ChatbotView(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master: Any):
         super().__init__(master)
 
         # Acquire config path from main app
-        app = self.winfo_toplevel()
+        app: Any = self.winfo_toplevel()
         if hasattr(app, "configPath"):
             self.configPath = app.configPath
         else:
             # fallback if opened independently
             from tkinter import StringVar
+
             self.configPath = StringVar()
             self.configPath.set(
                 "Start editing this new Config File or Import your own. Press export to save new changes."
             )
 
+        # --- normalize to tkinter.Variable ---
+        from tkinter import StringVar, Variable
+
+        if not isinstance(self.configPath, Variable):
+            val = str(getattr(self.configPath, "get", lambda: self.configPath)())
+            self.configPath = StringVar(value=val)
+
         # Function to retrieve current config path
-        get_config_path = lambda: self.configPath.get()
+        def get_config_path() -> str:
+            from tkinter import Variable
+
+            if isinstance(self.configPath, Variable):
+                return self.configPath.get()  # type: ignore[union-attr]
+            return str(self.configPath)
 
         # Initialize chatbot agent
         self.agent = ChatbotAgent(get_config_path)
@@ -35,7 +49,9 @@ class ChatbotView(ctk.CTkFrame):
             header_frame,
             text="Import Config",
             width=150,
-            command=lambda: configImportBTN(self.configPath, getattr(app, "refresh", None)),
+            command=lambda: configImportBTN(
+                self.configPath, getattr(app, "refresh", None)
+            ),
         )
         import_btn.pack(side="left", padx=(0, 10))
 
@@ -43,7 +59,7 @@ class ChatbotView(ctk.CTkFrame):
         path_entry = ctk.CTkEntry(
             header_frame,
             state="readonly",
-            textvariable=self.configPath,
+            textvariable=self.configPath,  # guaranteed StringVar
             width=500,
         )
         path_entry.pack(side="left", padx=(0, 10), fill="x", expand=True)
@@ -70,11 +86,15 @@ class ChatbotView(ctk.CTkFrame):
         input_frame = ctk.CTkFrame(self, fg_color="transparent")
         input_frame.pack(fill="x", padx=10, pady=(0, 10))
 
-        self.entry = ctk.CTkEntry(input_frame, placeholder_text="Ask the scheduler assistant…")
+        self.entry = ctk.CTkEntry(
+            input_frame, placeholder_text="Ask the scheduler assistant…"
+        )
         self.entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self.entry.bind("<Return>", self._on_enter_pressed)
 
-        self.send_button = ctk.CTkButton(input_frame, text="Send", width=80, command=self.send_message)
+        self.send_button = ctk.CTkButton(
+            input_frame, text="Send", width=80, command=self.send_message
+        )
         self.send_button.pack(side="right")
 
         # Initial greeting

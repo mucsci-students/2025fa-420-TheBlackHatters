@@ -30,7 +30,7 @@ jobs:
       run: |
         pip install uv
         uv sync
-        uv pip install pytest pytest-cov ruff typer langchain openai ty
+        uv pip install pytest pytest-cov ruff typer langchain openai ty reportlab
 
     - name: Run Tests
       run: uv run pytest --maxfail=1 --disable-warnings -q --cov --cov-branch --cov-report=xml
@@ -42,10 +42,10 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Run Linter
-      run: uv run ruff check -e --output-format github
+      run: uv run ruff check --output-format github
 
     - name: Run Formatter
-      run: uv run ruff format --check --output-format github || true
+      run: uv run ruff format --check --output-format github
     
     - name: Run Typechecker
-      run: uv run ty check --exit-zero --output-format github
+      run: uv run ty check --output-format github

@@ -9,20 +9,23 @@
 #
 
 # Imports
-import sys, os
+import sys
+import os
 from contextlib import contextmanager
-import json, csv
+import json
+import csv
 import click
 from CLI.course_cli import mainCourseController
 from CLI.faculty_cli import mainFacultyController
+from CLI.meeting_pattern_cli import mainMeetingPatternController
+from CLI.timeslots_cli import mainTimeslotController
 from Models.Room_model import Room
 from Models.Labs_model import Lab
-from CLI.room_cli import *
-from CLI.lab_cli import *
-from scheduler import (
-    Scheduler,
-    load_config_from_file,
-)
+
+# from CLI.room_cli import *
+from CLI.room_cli import mainRoomControler
+from CLI.lab_cli import mainLabControler
+from scheduler import Scheduler, load_config_from_file
 from scheduler.config import CombinedConfig
 from CLI.display_schedule import display_schedule
 
@@ -49,15 +52,24 @@ def parseJson(path):
     Labs = Lab(config.get("labs"))
     Courses = config.get("courses")
     Faculty = config.get("faculty")
+    class_patterns = config.get("class_patterns")
+
+    if class_patterns is None:
+        tsc = fileData.get("time_slot_config", {})
+        class_patterns = tsc.get("classes", [])
+
+    Timeslots = fileData.get("time_slot_config")
 
     other = {
+        # Leaving this in case something else uses it
         "time_slot_config": fileData.get("time_slot_config", {}),
         "limit": fileData.get("limit", {}),
-        "optimizer_flags": fileData.get("optimizer_flags", {})
+        "optimizer_flags": fileData.get("optimizer_flags", {}),
+        "class_patterns": class_patterns,
     }
 
     # just return the others here as well.
-    return Rooms, Labs, Courses, Faculty, other
+    return Rooms, Labs, Courses, Faculty, Timeslots, other
 
 
 def clearTerminal():
@@ -89,17 +101,18 @@ def welcomeMessage():
 
 
 # Saves the data to the config file.
-def saveConfig(path, rooms, labs, courses, faculty, other):
+def saveConfig(path, rooms, labs, courses, faculty, timeslots, other):
     newData = {
         "config": {
             "rooms": rooms.rooms if hasattr(rooms, "rooms") else rooms,
             "labs": labs.labs,
             "courses": courses,
             "faculty": faculty,
+            "class_patterns": other.get("class_patterns", []),
         },
-        "time_slot_config": other.get("time_slot_config", {}),
+        "time_slot_config": timeslots,
         "limit": other.get("limit", int),
-        "optimizer_flags": other.get("optimizer_flags", {})
+        "optimizer_flags": other.get("optimizer_flags", {}),
     }
 
     with open(path, "w") as file:
@@ -157,7 +170,7 @@ def runScheduler(otherData):
                 "faculty_lab",
                 "same_room",
                 "same_lab",
-                "pack_rooms"
+                "pack_rooms",
             ]
             selectedOptimizeList = []
 
@@ -241,39 +254,53 @@ def runScheduler(otherData):
     # return
 
 
-def whatAction(rooms, labs, courses, faculty, other):
+def whatAction(rooms, labs, courses, faculty, timeslots, other):
     while True:
         print("Please choose an option: \n")
         print("1. Add, Modify, Delete Faculty\n")
         print("2. Add, Modify, Delete Rooms\n")
         print("3. Add, Modify, Delete Labs\n")
         print("4. Add, Modify, Delete Courses\n")
-        print("5. Chatbot Mode (natural language)\n")
+        print("5. Add, Modify, Delete Time Slots\n")
+        print("6. Add, Modify, Delete Class Meeting Patterns\n")
+        print("7. Chatbot Mode (natural language)\n")
         print("0. Go Back\n")
         choice = input("Enter choice: ")
         if choice == "1":
             ##Faculty
             mainFacultyController(faculty)
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
         elif choice == "2":
             ## Room
             mainRoomControler(rooms)
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
         elif choice == "3":
             ## Labs
             mainLabControler(labs)
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
         elif choice == "4":
             # courses
             mainCourseController(courses, rooms, labs, faculty)
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
         elif choice == "5":
+            # timeslots
+            mainTimeslotController(timeslots)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
+        elif choice == "6":
+            # Class Meeting Patterns
+            if "class_patterns" not in other or other["class_patterns"] is None:
+                other["class_patterns"] = []
+            mainMeetingPatternController(other["class_patterns"])
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
+
+        elif choice == "7":
             from CLI.chatbot_cli import main as chatbot_main
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
             chatbot_main(filePath)
 
             # reload changes made by chatbot
-            rooms, labs, courses, faculty, other = parseJson(filePath)
+            rooms, labs, courses, faculty, timeslots, other = parseJson(filePath)
             print("\nChatbot session ended. Configuration reloaded from disk.\n")
         elif choice == "0":
             # Go back to selections.
@@ -285,12 +312,12 @@ def configMessage():
     print("Please select one option: \n")
     print("1. Import Config\n")
     print("2. Create New Config\n")
-    print("3. Edit config\n")
+    print("3. Edit Config\n")
     print("4. View Current Config File\n")
     print("0. Back\n")
 
 
-def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
+def configurationPrompt(filePath, rooms, labs, courses, faculty, timeslots, other):
     while True:
         configMessage()
         choice = input("Enter choice: ")
@@ -302,7 +329,7 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
                 # Checks if the provided path is valid
                 if os.path.exists(userPath):
                     # If so, makes it the input path
-                    filePath = userPath
+                    # filePath = userPath ?  output/example.json
                     print("Config Loaded Successfully")
                     return
                 else:
@@ -313,13 +340,13 @@ def configurationPrompt(filePath, rooms, labs, courses, faculty, other):
         elif choice == "2":
             # Gives a blank config
             name = input("Enter the file name: (i.e newconfig)")
-            filePath = createEmptyJson(name)
+            createEmptyJson(name)
         elif choice == "3":
-            ##Faculty
-            whatAction(rooms, labs, courses, faculty, other)
+            # Go to prompt for config editing.
+            whatAction(rooms, labs, courses, faculty, timeslots, other)
         elif choice == "4":
             # Display the current file:
-            displayConfig(rooms, labs, courses, faculty)
+            displayConfig(rooms, labs, courses, faculty, timeslots, other)
         elif choice == "0":
             # return to main selection:
             break
@@ -335,7 +362,7 @@ def createEmptyJson(name):
     return file_name
 
 
-def displayConfig(rooms, labs, courses, faculty):
+def displayConfig(rooms, labs, courses, faculty, timeslots, other):
     # this Function will display the config File,
     # in a human readable way.
 
@@ -344,20 +371,20 @@ def displayConfig(rooms, labs, courses, faculty):
     # Rooms
     print("Rooms:")
     if hasattr(rooms, "rooms"):
-        for r in rooms.rooms:
-            print(f"  - {r}")
+        for room in rooms.rooms:
+            print(f"  - {room}")
     else:
-        for r in rooms:
-            print(f"  - {r}")
+        for room in rooms:
+            print(f"  - {room}")
 
     # Labs
     print("\nLabs:")
     if hasattr(labs, "labs"):
-        for l in labs.labs:
-            print(f"  - {l}")
+        for lab in labs.labs:
+            print(f"  - {lab}")
     else:
-        for l in labs:
-            print(f"  - {l}")
+        for lab in labs:
+            print(f"  - {lab}")
 
     # Courses
     print("\nCourses:")
@@ -410,29 +437,71 @@ def displayConfig(rooms, labs, courses, faculty):
         _print_prefs("Room Preferences", f.get("room_preferences", {}))
         _print_prefs("Lab Preferences", f.get("lab_preferences", {}))
         print()
+
+    # Timeslots
+    print("\nTime Slots:")
+    times = timeslots.get("times")
+    for day in times:
+        slot = times.get(day, [])
+        print(f"{day}:")
+        for i, slot in enumerate(slot):
+            print(
+                f"  [{i}] {slot['start']} - {slot['end']}, spacing: {slot['spacing']}"
+            )
+
+    # --- Class Meeting Patterns ---
+    patterns = []
+    if isinstance(other, dict):
+        patterns = other.get("class_patterns", []) or []
+
+    print("\nClass Meeting Patterns:")
+    if not patterns:
+        print("  (none)")
+    else:
+        for idx, p in enumerate(patterns, start=1):
+            credits = p.get("credits", "N/A")
+            start_time = p.get("start_time", None)
+            disabled = bool(p.get("disabled", False))
+            print(f"  Pattern #{idx}:")
+            print(f"    Credits: {credits}")
+            print(f"    Start Time: {start_time if start_time else '(none)'}")
+            print(f"    Disabled: {disabled}")
+            meetings = p.get("meetings", [])
+            if not meetings:
+                print("    Meetings: (none)")
+            else:
+                print("    Meetings:")
+                for m in meetings:
+                    day = m.get("day", "")
+                    duration = m.get("duration", "")
+                    lab = m.get("lab", False)
+                    lab_suffix = " (lab)" if lab else ""
+                    print(f"      - {day} {duration} minutes{lab_suffix}")
     print("\n=============================\n")
 
 
 def runCLI():
     while True:
-        rooms, labs, courses, faculty, other = parseJson(filePath)
+        rooms, labs, courses, faculty, timeslots, other = parseJson(filePath)
         welcomeMessage()
         choice = input("Enter choice: ")
         if choice == "1":
             ##Faculty
-            configurationPrompt(filePath, rooms, labs, courses, faculty, other)
+            configurationPrompt(
+                filePath, rooms, labs, courses, faculty, timeslots, other
+            )
             input("Press Enter to continue...")
         elif choice == "2":
             # Run Scheduler
             runScheduler(other)
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
             input("Press Enter to continue...")
         elif choice == "3":
             # Display saved schedules
             display_schedule()
             input("Press Enter to continue...")
         elif choice == "0":
-            saveConfig(filePath, rooms, labs, courses, faculty, other)
+            saveConfig(filePath, rooms, labs, courses, faculty, timeslots, other)
             print("Goodbye!")
             break
         else:
@@ -469,10 +538,9 @@ def main(cli, tests):
     else:
         # Suppress any prints/outputs while GUI runs
         # Use this after developement, final Commit for sprint.
-        with suppressOutput():
-            app = SchedulerApp()
-            app.mainloop()
-
+        # with suppressOutput():
+        app = SchedulerApp()
+        app.mainloop()
 
     quit()
 

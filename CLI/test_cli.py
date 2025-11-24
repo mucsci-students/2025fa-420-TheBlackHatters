@@ -7,12 +7,13 @@
 import subprocess
 import os
 
+
 def run_tests_cli():
     """Interactive test runner for Models and Controllers."""
     os.system("clear" if os.name != "nt" else "cls")
     print("=== Test Runner CLI ===\n")
     print("Choose a category of tests to run:\n")
-    print("1. Run Model_tests")
+    print("1. Run Model Tests")
     print("2. Run Controller Tests")
     print("0. Exit\n")
 
@@ -38,7 +39,7 @@ def run_tests_cli():
             "3": "tests/Model_tests/test_labs_model.py",
             "4": "tests/Model_tests/test_faculty_model.py",
             "5": "tests/Model_tests/test_course_model.py",
-            "6": "tests/Model_tests/test_data_manager.py"
+            "6": "tests/Model_tests/test_data_manager.py",
         }
 
         test_path = test_map.get(sub_choice)
