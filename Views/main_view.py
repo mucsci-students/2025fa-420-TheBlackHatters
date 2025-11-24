@@ -27,6 +27,7 @@ roomCtr = RoomsController()
 facultyCtr = FacultyController()
 labCtr = LabsController()
 courseCtr = CourseController()
+timeSlotCtr = TimeSlotController()
 
 
 # The config page has left/right. This function when called with with data will fill the left side.
@@ -2175,6 +2176,7 @@ class SchedulerApp(ctk.CTk):
         tabview.add("Courses")
         tabview.add("Rooms")
         tabview.add("Labs")
+        tabview.add("Time Slots")
 
         # this sets the current tabview, to current when we refresh
         if "ConfigPage" in self.selected_tabs:
