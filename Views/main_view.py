@@ -31,6 +31,11 @@ labCtr = LabsController()
 courseCtr = CourseController()
 # timeSlotCtr = TimeSlotController()
 
+# Font size variables
+titlefont = 24
+headingfont = 20
+textfont = 15
+subfont = 11
 
 # The config page has left/right. This function when called with with data will fill the left side.
 # right now we are not using the data varabale and just working with dummy data.
@@ -126,12 +131,12 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
     # this is the label for Name.
     # We just create and display the label here
     ctk.CTkLabel(
-        rowName, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")
+        rowName, text="Name:", width=120, anchor="w", font=("Arial", headingfont, "bold")
     ).pack(side="left", padx=10, pady=(0, 2))
 
     # this is for and entry, this is where the user can write things in
     nameEntry = ctk.CTkEntry(
-        rowName, placeholder_text="E.g: Hobbs", font=("Arial", 30, "bold")
+        rowName, placeholder_text="E.g: Hobbs", font=("Arial", textfont, "bold")
     )
     nameEntry.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -167,7 +172,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
     ctk.CTkLabel(
         rowFacultyType,
         text="Is the faculty full-time or adjunct?",
-        font=("Arial", 25, "bold"),
+        font=("Arial", headingfont, "bold"),
     ).pack(side="left", padx=10, pady=5)
     # Full-time button
     ctk.CTkRadioButton(
@@ -175,7 +180,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         text="Full-time",
         variable=facultyType,
         value="full",
-        font=("Arial", 20, "bold"),
+        font=("Arial", textfont, "bold"),
         command=onFacultyTypeChange,
     ).pack(side="left", padx=10)
     # Adjunct button
@@ -184,7 +189,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         text="Adjunct",
         variable=facultyType,
         value="adjunct",
-        font=("Arial", 20, "bold"),
+        font=("Arial", textfont, "bold"),
         command=onFacultyTypeChange,
     ).pack(side="left", padx=10)
 
@@ -204,21 +209,21 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         rowCredits,
         text="(Minimum is 0, Maximum is 4 for adjunct faculty and 12 for full-time faculty)",
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         justify="left",
         text_color="cyan",
     ).pack(anchor="w", padx=5, pady=(0, 5))
 
     # Dropdown menu, and label for minimum credits
-    ctk.CTkLabel(rowCredits, text="Min Credits:", font=("Arial", 30, "bold")).pack(
+    ctk.CTkLabel(rowCredits, text="Min Credits:", font=("Arial", headingfont, "bold")).pack(
         side="left", fill="x", padx=5
     )
     minEntry = ctk.CTkOptionMenu(
         rowCredits,
         variable=minCreditsToRead,
         values=[str(i) for i in range(0, 13)],
-        font=("Arial", 30, "bold"),
-        dropdown_font=("Arial", 20),
+        font=("Arial", textfont, "bold"),
+        dropdown_font=("Arial", textfont),
     )
     minEntry.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -226,15 +231,16 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
     rowCredits.pack(fill="x", pady=5, padx=5, expand=True)
 
     # Dropdown menu and label for maximum credits
-    ctk.CTkLabel(rowCredits, text="Max Credits:", font=("Arial", 30, "bold")).pack(
+    ctk.CTkLabel(rowCredits, text="Max Credits:", font=("Arial", headingfont, "bold")).pack(
         side="left", fill="x", padx=5
     )
     maxEntry = ctk.CTkOptionMenu(
         rowCredits,
         variable=maxCreditsToRead,
-        values=[str(i) for i in range(0, 13)],
-        font=("Arial", 30, "bold"),
-        dropdown_font=("Arial", 20),
+        values=[str(i) for 
+        i in range(0, 13)],
+        font=("Arial", textfont, "bold"),
+        dropdown_font=("Arial", textfont),
     )
     maxEntry.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -247,19 +253,19 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         rowCredits,
         text="(Minimum is 0, Maximum is 1 for adjunct faculty and 2 for full-time faculty):",
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         text_color="cyan",
         justify="left",
     ).pack(anchor="w", padx=5, pady=(0, 5))
     ctk.CTkLabel(
-        rowCredits, text="Unique Course Limit:", font=("Arial", 30, "bold")
+        rowCredits, text="Unique Course Limit:", font=("Arial", headingfont, "bold")
     ).pack(side="left", fill="x", padx=5)
     uniqueEntry = ctk.CTkOptionMenu(
         rowCredits,
         variable=uniqueLimitToRead,
         values=[str(i) for i in range(0, 3)],
-        font=("Arial", 30, "bold"),
-        dropdown_font=("Arial", 20),
+        font=("Arial", textfont, "bold"),
+        dropdown_font=("Arial", textfont),
     )
     uniqueEntry.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -278,13 +284,13 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         rowAvailability,
         text="Availability (MON-FRI):",
         anchor="w",
-        font=("Arial", 30, "bold"),
+        font=("Arial", headingfont, "bold"),
     ).pack(anchor="w", padx=10, pady=(2, 0))
     ctk.CTkLabel(
         rowAvailability,
         text='(Leave blank for 9:00-5:00, type "n/a" if they are not available on that day):',
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         justify="left",
         text_color="cyan",
     ).pack(side="top", fill="x", pady=(0, 5))
@@ -303,14 +309,14 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
 
         # Label for the day
         ctk.CTkLabel(
-            dayFrame, text=f"{day}:", width=50, anchor="w", font=("Arial", 25, "bold")
+            dayFrame, text=f"{day}:", width=50, anchor="w", font=("Arial", textfont, "bold")
         ).pack(side="left")
 
         # entry for each of the day and show it on screen
         dayEntry = ctk.CTkEntry(
             dayFrame,
             placeholder_text="E.g: 8:00-10:00, 12:30-5:00",
-            font=("Arial", 30, "bold"),
+            font=("Arial", textfont, "bold"),
         )
         dayEntry.pack(side="left", fill="x", expand=True)
 
@@ -358,14 +364,14 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
             dropdown.configure(values=available)
 
     ctk.CTkLabel(
-        rowCourse, text="Course Preferences:", anchor="w", font=("Arial", 30, "bold")
+        rowCourse, text="Course Preferences:", anchor="w", font=("Arial", headingfont, "bold")
     ).pack(anchor="w", padx=10, pady=(2, 5))
 
     ctk.CTkLabel(
         rowCourse,
         text="(Set name to None to remove - Second option is for Weight):",
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         text_color="cyan",
         justify="left",
     ).pack(anchor="w", padx=5, pady=(0, 5))
@@ -373,7 +379,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         rowCourse,
         text="(Maximum 3 entries, further are truncated):",
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         text_color="cyan",
         justify="left",
     ).pack(anchor="w", padx=5, pady=(0, 5))
@@ -403,7 +409,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
             variable=course_var,
             values=all_courses,
             width=200,
-            font=("Arial", 20),
+            font=("Arial", textfont),
         )
         course_dropdown.pack(side="left", padx=20, pady=2)
 
@@ -485,13 +491,13 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
     room_vars = []
 
     ctk.CTkLabel(
-        rowRoom, text="Room Preferences:", anchor="w", font=("Arial", 30, "bold")
+        rowRoom, text="Room Preferences:", anchor="w", font=("Arial", headingfont, "bold")
     ).pack(anchor="w", padx=10, pady=(2, 5))
     ctk.CTkLabel(
         rowRoom,
         text="(Maximum 3 entries):",
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         text_color="cyan",
         justify="left",
     ).pack(anchor="w", padx=5, pady=(0, 5))
@@ -501,6 +507,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         text="Add Room",
         width=30,
         height=20,
+        font=("Arial", textfont, "bold"),
         command=lambda: room_bar_creation("None", 5),
     ).pack(side=ctk.LEFT, padx=5)
 
@@ -519,7 +526,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
             variable=room_var,
             values=values_list,
             width=200,
-            font=("Arial", 20),
+            font=("Arial", textfont),
         )
         room_dropdown.pack(side="left", padx=20, pady=2)
 
@@ -582,13 +589,13 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
     rowLab.pack(fill="x", pady=5, padx=5)
 
     ctk.CTkLabel(
-        rowLab, text="Lab Preferences:", anchor="w", font=("Arial", 30, "bold")
+        rowLab, text="Lab Preferences:", anchor="w", font=("Arial", headingfont, "bold")
     ).pack(anchor="w", padx=10, pady=(2, 5))
     ctk.CTkLabel(
         rowLab,
         text="(Maximum 2 entries):",
         anchor="w",
-        font=("Arial", 15, "bold", "underline"),
+        font=("Arial", subfont, "bold", "underline"),
         text_color="cyan",
         justify="left",
     ).pack(anchor="w", padx=5, pady=(0, 5))
@@ -614,7 +621,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
 
         lab_var = ctk.StringVar(value=lab)
         dropdown = ctk.CTkOptionMenu(
-            labRow, variable=lab_var, values=values_list, width=200, font=("Arial", 20)
+            labRow, variable=lab_var, values=values_list, width=200, font=("Arial", textfont)
         )
         dropdown.pack(side="left", padx=20, pady=2)
 
@@ -655,7 +662,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         ctk.CTkLabel(
             popup,
             text="Please correct the following:",
-            font=("Arial", 20, "bold"),
+            font=("Arial", textfont, "bold"),
             text_color="red",
         ).pack(pady=(10, 5))
 
@@ -664,7 +671,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
             ctk.CTkLabel(
                 popup,
                 text=f"• {err}",
-                font=("Arial", 15),
+                font=("Arial", textfont),
                 anchor="w",
                 justify="left",
                 wraplength=350,
@@ -754,7 +761,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         ctk.CTkLabel(
             success_popup,
             text="Faculty successfully saved!",
-            font=("Arial", 18, "bold"),
+            font=("Arial", textfont, "bold"),
             text_color="green",
         ).pack(pady=30)
         ctk.CTkButton(success_popup, text="OK", command=success_popup.destroy).pack()
@@ -802,7 +809,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
         frame,
         text="Save Changes",
         width=100,
-        font=("Arial", 20, "bold"),
+        font=("Arial", textfont, "bold"),
         height=40,
         command=lambda: onSave(),
     ).pack(side="bottom", padx=5)
@@ -817,13 +824,13 @@ def dataRoomRight(frame, controller, refresh, data=None, app_instance=None):
 
     # we put a label, and entry for name.
     ctk.CTkLabel(
-        container, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")
+        container, text="Name:", width=120, anchor="w", font=("Arial", headingfont, "bold")
     ).grid(row=0, column=0, padx=10, pady=2)
     nameEntry = ctk.CTkEntry(
         container,
         width=350,
         placeholder_text="E.g: Roddy 140",
-        font=("Arial", 30, "bold"),
+        font=("Arial", textfont, "bold"),
     )
     nameEntry.grid(row=0, column=1, sticky="ew", padx=5)
 
@@ -851,7 +858,7 @@ def dataRoomRight(frame, controller, refresh, data=None, app_instance=None):
                 text="Please Input Valid Room Name! ",
                 width=120,
                 anchor="w",
-                font=("Arial", 30, "bold"),
+                font=("Arial", headingfont, "bold"),
                 text_color="red",
             ).grid(row=0, column=0, padx=10, pady=2)
 
@@ -859,7 +866,7 @@ def dataRoomRight(frame, controller, refresh, data=None, app_instance=None):
         frame,
         text="Save Changes",
         width=100,
-        font=("Arial", 20, "bold"),
+        font=("Arial", textfont, "bold"),
         height=40,
         command=onSave,
     ).pack(side="bottom", padx=5)
@@ -896,7 +903,7 @@ def dataRoomLeft(frame, controller, refresh, data=None, app_instance=None):
         rowFrame.pack(fill="x", pady=5, padx=5)
 
         # Label
-        ctk.CTkLabel(rowFrame, text=room, font=("Arial", 14, "bold"), anchor="w").pack(
+        ctk.CTkLabel(rowFrame, text=room, font=("Arial", textfont, "bold"), anchor="w").pack(
             side="left", fill="x", expand=True
         )
 
@@ -923,10 +930,10 @@ def dataLabsRight(frame, controller, refresh, data=None, app_instance=None):
     rowName.pack(fill="x", pady=5, padx=5)
 
     ctk.CTkLabel(
-        rowName, text="Name:", width=120, anchor="w", font=("Arial", 30, "bold")
+        rowName, text="Name:", width=120, anchor="w", font=("Arial", headingfont, "bold")
     ).grid(row=0, column=0, padx=10, pady=2)
     nameEntry = ctk.CTkEntry(
-        rowName, width=350, placeholder_text="E.g: Mac", font=("Arial", 30, "bold")
+        rowName, width=350, placeholder_text="E.g: Mac", font=("Arial", textfont, "bold")
     )
     nameEntry.grid(row=0, column=1, sticky="ew", padx=5)
 
@@ -954,7 +961,7 @@ def dataLabsRight(frame, controller, refresh, data=None, app_instance=None):
                 text="Please Input Valid Lab Name! ",
                 width=120,
                 anchor="w",
-                font=("Arial", 30, "bold"),
+                font=("Arial", headingfont, "bold"),
                 text_color="red",
             ).grid(row=0, column=0, padx=10, pady=2)
 
@@ -962,7 +969,7 @@ def dataLabsRight(frame, controller, refresh, data=None, app_instance=None):
         frame,
         text="Save Changes",
         width=100,
-        font=("Arial", 20, "bold"),
+        font=("Arial", textfont, "bold"),
         height=40,
         command=lambda: onSave(),
     ).pack(side="bottom", padx=5)
@@ -1001,7 +1008,7 @@ def dataLabsLeft(frame, controller, refresh, data=None, app_instance=None):
         rowFrame.pack(fill="x", pady=5, padx=5)
 
         # Label
-        ctk.CTkLabel(rowFrame, text=lab, font=("Arial", 14, "bold"), anchor="w").pack(
+        ctk.CTkLabel(rowFrame, text=lab, font=("Arial", textfont, "bold"), anchor="w").pack(
             side="left", fill="x", expand=True
         )
 
@@ -1051,7 +1058,7 @@ def dataCoursesLeft(frame, controller, refresh, data=None, app_instance=None):
         row.pack(fill="x", pady=5, padx=5)
 
         title = f"{course.get('course_id', '(no id)')}"
-        ctk.CTkLabel(row, text=title, font=("Arial", 14, "bold"), anchor="w").pack(
+        ctk.CTkLabel(row, text=title, font=("Arial", textfont, "bold"), anchor="w").pack(
             side="left", fill="x", expand=True
         )
 
@@ -1093,10 +1100,10 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     row_id = ctk.CTkFrame(frame, fg_color="transparent")
     row_id.pack(fill="x", pady=(5, 10), padx=5)
     ctk.CTkLabel(
-        row_id, text="Course ID:", width=140, anchor="w", font=("Arial", 30, "bold")
+        row_id, text="Course ID:", width=140, anchor="w", font=("Arial", headingfont, "bold")
     ).pack(side="left", padx=10)
     entry_id = ctk.CTkEntry(
-        row_id, placeholder_text="E.g: CMSC 140", font=("Arial", 30, "bold")
+        row_id, placeholder_text="E.g: CMSC 140", font=("Arial", textfont, "bold")
     )
     entry_id.pack(side="left", fill="x", expand=True)
 
@@ -1104,10 +1111,10 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     row_cr = ctk.CTkFrame(frame, fg_color="transparent")
     row_cr.pack(fill="x", pady=(5, 15), padx=5)
     ctk.CTkLabel(
-        row_cr, text="Credits:", width=140, anchor="w", font=("Arial", 30, "bold")
+        row_cr, text="Credits:", width=140, anchor="w", font=("Arial", headingfont, "bold")
     ).pack(side="left", padx=10)
     entry_cr = ctk.CTkEntry(
-        row_cr, placeholder_text="E.g: 4", font=("Arial", 30, "bold")
+        row_cr, placeholder_text="E.g: 4", font=("Arial", textfont, "bold")
     )
     entry_cr.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -1123,7 +1130,7 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
 
         # Section title
         ctk.CTkLabel(
-            section, text=f"{title}:", anchor="w", font=("Arial", 30, "bold")
+            section, text=f"{title}:", anchor="w", font=("Arial", headingfont, "bold")
         ).pack(anchor="w", padx=10, pady=(0, 5))
 
         row_vars = []
@@ -1170,8 +1177,8 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
                 variable=var,
                 values=["None"] + items,
                 width=200,
-                font=("Arial", 20),
-                dropdown_font=("Arial", 16),
+                font=("Arial", textfont),
+                dropdown_font=("Arial", textfont),
             )
             dropdown.pack(side="left", padx=(0, 10), pady=2)
 
@@ -1193,7 +1200,7 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
             text=add_label,
             width=100,
             height=30,
-            font=("Arial", 18, "bold"),
+            font=("Arial", textfont, "bold"),
             command=lambda: add_dropdown("None"),
         ).pack(side="left", padx=(0, 10))
 
@@ -1230,7 +1237,7 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
 
     # --- Error label ---
     error_label = ctk.CTkLabel(
-        frame, text="", text_color="red", font=("Arial", 20, "bold"), wraplength=600
+        frame, text="", text_color="red", font=("Arial", textfont, "bold"), wraplength=600
     )
     error_label.pack(pady=(10, 5))
 
@@ -1270,9 +1277,9 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     ctk.CTkButton(
         frame,
         text="Save Changes",
-        width=150,
-        font=("Arial", 22, "bold"),
-        height=45,
+        width=100,
+        font=("Arial", textfont, "bold"),
+        height=40,
         command=onSave,
     ).pack(side="bottom", pady=15)
 
@@ -1298,7 +1305,7 @@ def dataPatternsLeft(frame, controller, refresh, data=None, app_instance=None):
 
         label_text = f"Pattern #{idx + 1}"
 
-        ctk.CTkLabel(row, text=label_text, font=("Arial", 14, "bold"), anchor="w").pack(
+        ctk.CTkLabel(row, text=label_text, font=("Arial", textfont, "bold"), anchor="w").pack(
             side="left", fill="x", expand=True
         )
 
@@ -1342,11 +1349,11 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
     # --- CREDITS ---
     row_credits = ctk.CTkFrame(frame, fg_color="transparent")
     row_credits.pack(fill="x", pady=5)
-    ctk.CTkLabel(row_credits, text="Credits:", font=("Arial", 22, "bold")).pack(
+    ctk.CTkLabel(row_credits, text="Credits:", font=("Arial", headingfont, "bold")).pack(
         side="left"
     )
 
-    entry_credits = ctk.CTkEntry(row_credits, width=80, font=("Arial", 22))
+    entry_credits = ctk.CTkEntry(row_credits, width=80, font=("Arial", textfont))
     entry_credits.pack(side="left", padx=10)
     if pattern:
         entry_credits.insert(0, str(pattern.get("credits", "")))
@@ -1355,11 +1362,11 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
     row_start = ctk.CTkFrame(frame, fg_color="transparent")
     row_start.pack(fill="x", pady=5)
     ctk.CTkLabel(
-        row_start, text="Start Time (optional):", font=("Arial", 22, "bold")
+        row_start, text="Start Time (optional):", font=("Arial", headingfont, "bold")
     ).pack(side="left")
 
     entry_start = ctk.CTkEntry(
-        row_start, width=120, font=("Arial", 22), placeholder_text="HH:MM"
+        row_start, width=120, font=("Arial", textfont), placeholder_text="HH:MM"
     )
     entry_start.pack(side="left", padx=10)
     if pattern and "start_time" in pattern:
@@ -1370,11 +1377,11 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
         value=pattern.get("disabled", False) if pattern else False
     )
     ctk.CTkCheckBox(
-        frame, text="Disabled", variable=disabled_var, font=("Arial", 20)
+        frame, text="Disabled", variable=disabled_var, font=("Arial", textfont)
     ).pack(anchor="w", pady=5)
 
     # --- MEETINGS SECTION ---
-    ctk.CTkLabel(frame, text="Meetings:", font=("Arial", 26, "bold")).pack(
+    ctk.CTkLabel(frame, text="Meetings:", font=("Arial", headingfont, "bold")).pack(
         anchor="w", pady=(15, 5)
     )
 
@@ -1400,7 +1407,7 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
 
         # Duration
         dur_entry = ctk.CTkEntry(
-            row, width=80, font=("Arial", 18), placeholder_text="minutes"
+            row, width=80, font=("Arial", textfont), placeholder_text="minutes"
         )
         dur_entry.pack(side="left", padx=5)
         if meeting:
@@ -1437,7 +1444,7 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
     def show_error(msg):
         top = ctk.CTkToplevel()
         top.title("Error")
-        ctk.CTkLabel(top, text=msg, font=("Arial", 18), text_color="red").pack(pady=20)
+        ctk.CTkLabel(top, text=msg, font=("Arial", textfont), text_color="red").pack(pady=20)
         ctk.CTkButton(top, text="Close", command=top.destroy).pack(pady=10)
 
     # --- SAVE ---
@@ -1478,9 +1485,9 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
     ctk.CTkButton(
         frame,
         text="Save Changes",
-        width=150,
+        width=100,
+        font=("Arial", textfont, "bold"),
         height=40,
-        font=("Arial", 22, "bold"),
         command=save,
     ).pack(pady=20)
 
@@ -1491,7 +1498,7 @@ def showSuccessPopup(message="Successfully exported!"):
     popup.geometry("300x150")
     popup.grab_set()
 
-    ctk.CTkLabel(popup, text=message, font=("Arial", 16)).pack(pady=20)
+    ctk.CTkLabel(popup, text=message, font=("Arial", textfont)).pack(pady=20)
 
     ctk.CTkButton(popup, text="OK", width=80, command=popup.destroy).pack(pady=10)
 
@@ -1502,7 +1509,7 @@ def showErrorPopup(message="An error occurred during export!"):
     popup.geometry("300x150")
     popup.grab_set()
 
-    ctk.CTkLabel(popup, text=message, font=("Arial", 16), text_color="red").pack(
+    ctk.CTkLabel(popup, text=message, font=("Arial", textfont), text_color="red").pack(
         pady=20
     )
 
@@ -1544,7 +1551,7 @@ def defaultScheduleViewer(
         scheduleHeaderFrame,
         width=100,
         text=f"Schedule:{idx + 1} of {numOfSch}",
-        font=("Arial", 15, "bold"),
+        font=("Arial", textfont, "bold"),
     )
 
     schedulesTitle.pack(side="left", padx=(0, 10), fill="x", expand=True)
@@ -1574,7 +1581,7 @@ def defaultScheduleViewer(
     columns = ["Course", "Faculty", "Room", "Lab", "Mon", "Tue", "Wed", "Thu", "Fri"]
     for col in columns:
         lbl = ctk.CTkLabel(
-            headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w"
+            headerFrame, text=col, font=("Arial", textfont, "bold"), width=120, anchor="w"
         )
         lbl.pack(side="left", padx=5)
 
@@ -1594,7 +1601,7 @@ def defaultScheduleViewer(
 
         for idx, item in enumerate(row):
             lbl = ctk.CTkLabel(
-                rowFrame, text=item, font=("Arial", 12), width=120, anchor="w"
+                rowFrame, text=item, font=("Arial", textfont), width=120, anchor="w"
             )
             lbl.pack(side="left", padx=5)
 
@@ -1616,7 +1623,7 @@ def roomLabsScheduleViewer(
         scheduleHeaderFrame,
         width=100,
         text=f"Schedule:{idx + 1} of {numOfSch}",
-        font=("Arial", 15, "bold"),
+        font=("Arial", textfont, "bold"),
     )
 
     schedulesTitle.pack(side="left", padx=(0, 10), fill="x", expand=True)
@@ -1636,7 +1643,7 @@ def roomLabsScheduleViewer(
     tableFrame.pack(fill="both", expand=True, padx=10, pady=10)
 
     for Room, courses in schedules[0].items():
-        ctk.CTkLabel(tableFrame, text=f"{Room}", font=("Arial", 15, "bold")).pack(
+        ctk.CTkLabel(tableFrame, text=f"{Room}", font=("Arial", textfont, "bold")).pack(
             anchor="w", pady=(10, 2)
         )
 
@@ -1646,7 +1653,7 @@ def roomLabsScheduleViewer(
         daysName = ["MON", "TUE", "WED", "THU", "FRI"]
         for col in columns:
             ctk.CTkLabel(
-                headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w"
+                headerFrame, text=col, font=("Arial", textfont, "bold"), width=120, anchor="w"
             ).pack(side="left", padx=5)
 
         for row in courses:
@@ -1662,7 +1669,7 @@ def roomLabsScheduleViewer(
             values = [course, faculty] + FixedTimes
             for item in values:
                 ctk.CTkLabel(
-                    rowFrame, text=item, font=("Arial", 12), width=120, anchor="w"
+                    rowFrame, text=item, font=("Arial", textfont), width=120, anchor="w"
                 ).pack(side="left", padx=5)
 
 
@@ -1683,7 +1690,7 @@ def facultyScheduleViewer(
         scheduleHeaderFrame,
         width=100,
         text=f"Schedule:{idx + 1} of {numOfSch}",
-        font=("Arial", 15, "bold"),
+        font=("Arial", textfont, "bold"),
     )
 
     schedulesTitle.pack(side="left", padx=(0, 10), fill="x", expand=True)
@@ -1704,7 +1711,7 @@ def facultyScheduleViewer(
 
     for faculty_name, courses in schedules[0].items():
         ctk.CTkLabel(
-            tableFrame, text=f"{faculty_name}", font=("Arial", 15, "bold")
+            tableFrame, text=f"{faculty_name}", font=("Arial", textfont, "bold")
         ).pack(anchor="w", pady=(10, 2))
 
         headerFrame = ctk.CTkFrame(tableFrame)
@@ -1713,7 +1720,7 @@ def facultyScheduleViewer(
         daysName = ["MON", "TUE", "WED", "THU", "FRI"]
         for col in columns:
             ctk.CTkLabel(
-                headerFrame, text=col, font=("Arial", 12, "bold"), width=120, anchor="w"
+                headerFrame, text=col, font=("Arial", textfont, "bold"), width=120, anchor="w"
             ).pack(side="left", padx=5)
 
         for row in courses:
@@ -1733,7 +1740,7 @@ def facultyScheduleViewer(
 
             for item in values:
                 ctk.CTkLabel(
-                    rowFrame, text=item, font=("Arial", 12), width=120, anchor="w"
+                    rowFrame, text=item, font=("Arial", textfont), width=120, anchor="w"
                 ).pack(side="left", padx=5)
 
 
@@ -1788,7 +1795,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
             room_frame.pack(anchor="n")
 
             # Label for room, centered
-            ctk.CTkLabel(room_frame, text=room, font=("Arial", 20, "bold")).pack(pady=5)
+            ctk.CTkLabel(room_frame, text=room, font=("Arial", textfont, "bold")).pack(pady=5)
 
             # Create canvas for this room/class
             canvas = ctk.CTkCanvas(
@@ -1800,7 +1807,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
             for i, day in enumerate(days):
                 x = leftMargin + i * dayWidth
                 canvas.create_text(
-                    x + dayWidth / 2, 20, text=day, font=("Helvetica", 12, "bold")
+                    x + dayWidth / 2, 20, text=day, font=("Helvetica", textfont, "bold")
                 )
 
             # Draw horizontal lines and time labels
@@ -1812,7 +1819,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                     y + 10,
                     text=f"{i:02d}:00",
                     anchor="e",
-                    font=("Helvetica", 10),
+                    font=("Helvetica", subfont),
                 )
                 canvas.create_line(
                     leftMargin, y, leftMargin + len(days) * dayWidth, y, fill="#cccccc"
@@ -1863,7 +1870,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                         x + (dayWidth - 10) / 2,
                         y + height / 2,
                         text=text,
-                        font=("Helvetica", 9),
+                        font=("Helvetica", subfont),
                         fill="white",
                         justify="center",
                     )
@@ -1962,7 +1969,7 @@ class SchedulerApp(ctk.CTk):
             message_label = ctk.CTkLabel(
                 message_frame,
                 text=message,
-                font=("Arial", 14, "bold"),
+                font=("Arial", textfont, "bold"),
                 text_color="white",
             )
             message_label.pack(padx=20, pady=10)
@@ -2495,7 +2502,7 @@ class SchedulerApp(ctk.CTk):
         chatbot_entry = ctk.CTkEntry(
             chatbot_bar,
             placeholder_text="Ask: add CMSC 140, change Hardy’s max credits, remove Linux lab...",
-            font=("Arial", 18),
+            font=("Arial", textfont),
         )
         chatbot_entry.pack(side="left", fill="x", expand=True, padx=(5, 10))
         chatbot_entry.bind("<Return>", lambda e: handle_chat())
@@ -2607,7 +2614,7 @@ class SchedulerApp(ctk.CTk):
         dropDownFrame = ctk.CTkFrame(importFrame, fg_color="transparent")
         dropDownFrame.pack(side="right", padx=(0, 10))
         dropDownLabel = ctk.CTkLabel(
-            dropDownFrame, width=100, text="View: ", font=("Arial", 15, "bold")
+            dropDownFrame, width=100, text="View: ", font=("Arial", textfont, "bold")
         )
         dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
         dropdown = ctk.CTkOptionMenu(
@@ -2631,7 +2638,7 @@ class SchedulerApp(ctk.CTk):
                 dropDownFrame,
                 width=100,
                 text="Order By: ",
-                font=("Arial", 15, "bold"),
+                font=("Arial", textfont, "bold"),
             )
             dropDownLabel.pack(side="left", padx=(0, 10), fill="x", expand=True)
             dropdown = ctk.CTkOptionMenu(
@@ -2812,14 +2819,14 @@ class SchedulerApp(ctk.CTk):
         ctk.CTkLabel(
             container,
             text="How many schedules do you want to generate?",
-            font=("Arial", 20, "bold"),
+            font=("Arial", headingfont, "bold"),
             anchor="w",
         ).pack(padx=(0, 10))
         limitEntry = ctk.CTkEntry(
             container,
             textvariable=limit,
             placeholder_text="E.g: 5",
-            font=("Arial", 20, "bold"),
+            font=("Arial", textfont, "bold"),
             width=100,
         )
 
@@ -2843,7 +2850,7 @@ class SchedulerApp(ctk.CTk):
         optionsFrame.pack(padx=20, pady=0, fill="x")
 
         ctk.CTkLabel(
-            optionsFrame, text="Optimization Options", font=("Arial", 18, "bold")
+            optionsFrame, text="Optimization Options", font=("Arial", headingfont, "bold")
         ).pack(anchor="w", pady=(0, 5))
 
         for opt in optimizeList:
@@ -2870,7 +2877,7 @@ class SchedulerApp(ctk.CTk):
             if limit_value.isdigit():
                 limit_int = int(limit_value)
                 status_label = ctk.CTkLabel(
-                    container, text="Starting generation...", font=("Arial", 18, "bold")
+                    container, text="Starting generation...", font=("Arial", textfont, "bold")
                 )
                 status_label.pack(pady=(10, 0))
 
@@ -2933,7 +2940,7 @@ class SchedulerApp(ctk.CTk):
                         ctk.CTkLabel(
                             container,
                             text="Please click 'Import Config' and select a valid config file",
-                            font=("Arial", 16),
+                            font=("Arial", textfont),
                             text_color="yellow",
                         ).pack(padx=(0, 10))
                     else:
@@ -2959,7 +2966,7 @@ class SchedulerApp(ctk.CTk):
                         ctk.CTkLabel(
                             container,
                             text="Click View Schedules to see them!",
-                            font=("Arial", 20, "bold"),
+                            font=("Arial", textfont, "bold"),
                         ).pack(padx=(0, 10))
                         viewBtn = ctk.CTkButton(
                             container, text="View Schedules", width=150, command=onView
@@ -2969,7 +2976,7 @@ class SchedulerApp(ctk.CTk):
                 ctk.CTkLabel(
                     container,
                     text="Please enter a valid number!",
-                    font=("Arial", 20, "bold"),
+                    font=("Arial", textfont, "bold"),
                     text_color="red",
                 ).pack(padx=(0, 10))
 
