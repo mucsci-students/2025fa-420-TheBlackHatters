@@ -216,7 +216,7 @@ def dataFacultyRight(frame, controller, refresh, data=None, app_instance=None):
 
     # Dropdown menu, and label for minimum credits
     ctk.CTkLabel(rowCredits, text="Min Credits:", width=120, justify="left", anchor="w", font=("Arial", headingfont, "bold")).pack(
-        side="left", padx=0, expand=False
+        side="left", padx=0, pady=5, expand=False
     )
     minEntry = ctk.CTkOptionMenu(
         rowCredits,
@@ -1105,7 +1105,7 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     row_id.pack(fill="x", pady=(5, 10), padx=5)
     ctk.CTkLabel(
         row_id, text="Course ID:", width=140, anchor="w", font=("Arial", headingfont, "bold")
-    ).pack(side="left", padx=10)
+    ).pack(side="left", padx=10, expand=False)
     entry_id = ctk.CTkEntry(
         row_id, placeholder_text="E.g: CMSC 140", width=300, font=("Arial", textfont, "bold")
     )
@@ -1116,7 +1116,7 @@ def dataCoursesRight(frame, controller, refresh, data=None, app_instance=None):
     row_cr.pack(fill="x", pady=(5, 15), padx=5)
     ctk.CTkLabel(
         row_cr, text="Credits:", width=140, anchor="w", font=("Arial", headingfont, "bold")
-    ).pack(side="left", padx=10)
+    ).pack(side="left", padx=10, expand=False)
     entry_cr = ctk.CTkEntry(
         row_cr, placeholder_text="E.g: 4", width=100, font=("Arial", textfont, "bold")
     )
