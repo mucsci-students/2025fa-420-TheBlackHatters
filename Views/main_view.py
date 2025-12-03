@@ -1306,7 +1306,7 @@ def dataPatternsLeft(frame, controller, refresh, data=None, app_instance=None):
             # Record the deletion BEFORE actually deleting
             if app_instance:
                 app_instance.record_pattern_deletion(patterns[i], i)
-            
+
             controller.removePattern(i, refresh)
 
         def onEdit(i=idx, p=pattern):
@@ -1470,18 +1470,18 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
         if disabled_var.get():
             new_pattern["disabled"] = True
 
-        if edit_mode == "edit":  
-            err = controller.editPattern(pattern_index, new_pattern, refresh)  
-            if err:  
-                show_error(err)  
-            elif app_instance:  
-                app_instance.record_pattern_edit(pattern, new_pattern, pattern_index)  
-        else:  
-            err = controller.addPattern(new_pattern, refresh)  
-            if err:  
-                show_error(err)  
-            elif app_instance:  
-                app_instance.record_pattern_addition(new_pattern) 
+        if edit_mode == "edit":
+            err = controller.editPattern(pattern_index, new_pattern, refresh)
+            if err:
+                show_error(err)
+            elif app_instance:
+                app_instance.record_pattern_edit(pattern, new_pattern, pattern_index)
+        else:
+            err = controller.addPattern(new_pattern, refresh)
+            if err:
+                show_error(err)
+            elif app_instance:
+                app_instance.record_pattern_addition(new_pattern)
 
     ctk.CTkButton(
         frame,
@@ -2152,7 +2152,7 @@ class SchedulerApp(ctk.CTk):
         """Record a pattern addition for undo/redo"""
         self.record_action(
             "pattern_addition",
-            {"pattern_data": pattern_data, "name": f"Pattern {len(self.undo_stack)}"}
+            {"pattern_data": pattern_data, "name": f"Pattern {len(self.undo_stack)}"},
         )
 
     def record_pattern_edit(self, old_pattern_data, new_pattern_data, pattern_index):
@@ -2164,8 +2164,8 @@ class SchedulerApp(ctk.CTk):
                 "new_pattern_data": new_pattern_data,
                 "pattern_index": pattern_index,
                 "old_name": f"Pattern {pattern_index}",
-                "new_name": f"Pattern {pattern_index}"
-            }
+                "new_name": f"Pattern {pattern_index}",
+            },
         )
 
     def record_pattern_deletion(self, pattern_data, pattern_index):
@@ -2173,15 +2173,15 @@ class SchedulerApp(ctk.CTk):
         # Get all current patterns to save the full state
         pattern_controller = ClassPatternController()
         all_patterns = pattern_controller.listPatterns()
-        
+
         self.record_action(
             "pattern_deletion",
             {
                 "pattern_data": pattern_data,
                 "pattern_index": pattern_index,
                 "all_patterns_before": all_patterns.copy(),  # Save the state before deletion
-                "name": f"Pattern {pattern_index}"
-            }
+                "name": f"Pattern {pattern_index}",
+            },
         )
 
     def _undo_pattern_deletion(self, action):

@@ -1632,3 +1632,349 @@ def test_classpatterncontroller_operations_without_refresh():
     ctrl.DM.addClassPattern.assert_called_once()
     ctrl.DM.editClassPattern.assert_called_once()
     ctrl.DM.removeClassPattern.assert_called_once()
+
+
+# Add these tests to your test_controller.py file
+
+# --- ClassPatternController savePatterns Tests ---
+
+
+def test_classpatterncontroller_savepatterns_success(reset_dm):
+    """Test successful savePatterns operation"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager to track calls
+    mock_dm = reset_dm
+
+    # New patterns to save
+    new_patterns = [
+        {"credits": 2, "meetings": [{"day": "WED", "duration": 60}]},
+        {"credits": 5, "meetings": [{"day": "THU", "duration": 90}]},
+    ]
+
+    # Mock the remove and add methods
+    mock_dm.removeClassPattern = Mock()
+    mock_dm.addClassPattern = Mock()
+
+    # Mock getClassPatterns to return empty list initially
+    mock_dm.getClassPatterns.return_value = []
+
+    # Call savePatterns
+    result = c.savePatterns(new_patterns)
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called
+    mock_dm.getClassPatterns.assert_called_once()
+
+    # Verify that new patterns were added in order
+    assert mock_dm.addClassPattern.call_count == 2
+    mock_dm.addClassPattern.assert_any_call(new_patterns[0])
+    mock_dm.addClassPattern.assert_any_call(new_patterns[1])
+
+    # Verify remove was not called since list was empty
+    mock_dm.removeClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_empty_list(reset_dm):
+    """Test savePatterns with empty list"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Mock getClassPatterns to return empty list
+    mock_dm.getClassPatterns.return_value = []
+    mock_dm.removeClassPattern = Mock()
+    mock_dm.addClassPattern = Mock()
+
+    # Call savePatterns with empty list
+    result = c.savePatterns([])
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called
+    mock_dm.getClassPatterns.assert_called_once()
+
+    # Verify no patterns were added or removed
+    mock_dm.removeClassPattern.assert_not_called()
+    mock_dm.addClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_initial_empty(reset_dm):
+    """Test savePatterns when there are no initial patterns"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Mock getClassPatterns to return empty list
+    mock_dm.getClassPatterns.return_value = []
+
+    # New patterns to save
+    new_patterns = [{"credits": 3, "meetings": [{"day": "FRI", "duration": 45}]}]
+
+    # Mock the remove and add methods
+    mock_dm.removeClassPattern = Mock()
+    mock_dm.addClassPattern = Mock()
+
+    # Call savePatterns
+    result = c.savePatterns(new_patterns)
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called
+    mock_dm.getClassPatterns.assert_called_once()
+
+    # Verify that new pattern was added
+    mock_dm.addClassPattern.assert_called_once_with(new_patterns[0])
+
+    # Verify remove was not called since list was empty
+    mock_dm.removeClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_exception_handling(reset_dm):
+    """Test savePatterns handles exceptions in addClassPattern"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Mock getClassPatterns to return empty list
+    mock_dm.getClassPatterns.return_value = []
+
+    # Mock addClassPattern to raise exception
+    mock_dm.addClassPattern.side_effect = Exception("Add failed")
+
+    # Call savePatterns
+    result = c.savePatterns(
+        [{"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}]
+    )
+
+    # Should return False on exception
+    assert result is False
+
+
+def test_classpatterncontroller_savepatterns_preserves_order(reset_dm):
+    """Test that savePatterns preserves the order of patterns"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Mock getClassPatterns to return empty list
+    mock_dm.getClassPatterns.return_value = []
+
+    # New patterns to save (in specific order)
+    new_patterns = [
+        {"credits": 1, "meetings": [{"day": "MON", "duration": 30}], "name": "First"},
+        {"credits": 2, "meetings": [{"day": "TUE", "duration": 45}], "name": "Second"},
+        {"credits": 3, "meetings": [{"day": "WED", "duration": 60}], "name": "Third"},
+    ]
+
+    # Track the order patterns are added
+    added_patterns = []
+
+    def track_add(pattern):
+        added_patterns.append(pattern["name"])
+
+    # Mock addClassPattern to track calls
+    mock_dm.addClassPattern.side_effect = track_add
+    mock_dm.removeClassPattern = Mock()
+
+    # Call savePatterns
+    result = c.savePatterns(new_patterns)
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called
+    mock_dm.getClassPatterns.assert_called_once()
+
+    # Verify that patterns were added in the correct order
+    assert added_patterns == ["First", "Second", "Third"]
+
+    # Verify no patterns were removed
+    mock_dm.removeClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_complex_patterns(reset_dm):
+    """Test savePatterns with complex pattern structures"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Mock getClassPatterns to return empty list
+    mock_dm.getClassPatterns.return_value = []
+
+    # Complex patterns with various properties
+    complex_patterns = [
+        {
+            "credits": 3,
+            "meetings": [
+                {"day": "MON", "duration": 50, "lab": False},
+                {"day": "WED", "duration": 50, "lab": False},
+            ],
+            "start_time": "9:00",
+            "disabled": False,
+        },
+        {
+            "credits": 4,
+            "meetings": [
+                {"day": "TUE", "duration": 75, "lab": True},
+                {"day": "THU", "duration": 75, "lab": True},
+            ],
+            "start_time": "10:30",
+            "disabled": True,
+        },
+    ]
+
+    # Track added patterns
+    added_patterns = []
+
+    def track_add(pattern):
+        added_patterns.append(pattern)
+
+    # Mock addClassPattern to track calls
+    mock_dm.addClassPattern.side_effect = track_add
+    mock_dm.removeClassPattern = Mock()
+
+    # Call savePatterns
+    result = c.savePatterns(complex_patterns)
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called
+    mock_dm.getClassPatterns.assert_called_once()
+
+    # Verify that both complex patterns were added correctly
+    assert len(added_patterns) == 2
+    assert added_patterns[0] == complex_patterns[0]
+    assert added_patterns[1] == complex_patterns[1]
+
+    # Verify no patterns were removed
+    mock_dm.removeClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_null_safety(reset_dm):
+    """Test savePatterns handles None values safely"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Mock getClassPatterns to return empty list
+    mock_dm.getClassPatterns.return_value = []
+
+    # Mock methods to ensure they're not called
+    mock_dm.removeClassPattern = Mock()
+    mock_dm.addClassPattern = Mock()
+
+    # Call savePatterns with None input
+    result = c.savePatterns(None)
+
+    # The method should handle None input gracefully
+    # It should not crash, but return True since no patterns to add
+    assert result is True
+
+    # Verify getClassPatterns was called
+    mock_dm.getClassPatterns.assert_called_once()
+
+    # Verify no DM methods were called for adding/removing
+    mock_dm.removeClassPattern.assert_not_called()
+    mock_dm.addClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_empty_new_list(reset_dm):
+    """Test savePatterns with empty new list (clears existing but adds nothing)"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Simulate having existing patterns that get cleared
+    get_call_count = 0
+
+    def track_get():
+        nonlocal get_call_count
+        get_call_count += 1
+        if get_call_count == 1:
+            return [{"credits": 3, "meetings": [{"day": "MON", "duration": 50}]}]
+        else:
+            return []  # Cleared
+
+    # Mock getClassPatterns
+    mock_dm.getClassPatterns.side_effect = track_get
+
+    # Mock other methods
+    mock_dm.removeClassPattern = Mock()
+    mock_dm.addClassPattern = Mock()
+
+    # Call savePatterns with empty list
+    result = c.savePatterns([])
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called
+    assert get_call_count >= 1
+
+    # Verify existing pattern was removed
+    mock_dm.removeClassPattern.assert_called()
+
+    # Verify nothing was added
+    mock_dm.addClassPattern.assert_not_called()
+
+
+def test_classpatterncontroller_savepatterns_clears_existing_patterns(reset_dm):
+    """Test that savePatterns clears existing patterns before adding new ones"""
+    c = ctrl.ClassPatternController()
+
+    # Mock the DataManager
+    mock_dm = reset_dm
+
+    # Track calls to getClassPatterns
+    get_call_count = 0
+
+    def track_get():
+        nonlocal get_call_count
+        get_call_count += 1
+        # Return decreasing number of patterns to simulate clearing
+        if get_call_count == 1:
+            return [
+                {"credits": 3, "meetings": [{"day": "MON", "duration": 50}]},
+                {"credits": 4, "meetings": [{"day": "TUE", "duration": 75}]},
+            ]
+        elif get_call_count == 2:
+            return [{"credits": 4, "meetings": [{"day": "TUE", "duration": 75}]}]
+        else:
+            return []  # All cleared
+
+    # Mock getClassPatterns
+    mock_dm.getClassPatterns.side_effect = track_get
+
+    # Mock other methods
+    mock_dm.removeClassPattern = Mock()
+    mock_dm.addClassPattern = Mock()
+
+    # New pattern to add
+    new_pattern = {"credits": 5, "meetings": [{"day": "WED", "duration": 90}]}
+    result = c.savePatterns([new_pattern])
+
+    # Verify result
+    assert result is True
+
+    # Verify getClassPatterns was called multiple times (in the loop)
+    assert get_call_count >= 2
+
+    # Verify removeClassPattern was called for each existing pattern
+    # It should be called at least twice (once for each initial pattern)
+    assert mock_dm.removeClassPattern.call_count >= 2
+
+    # Verify new pattern was added
+    mock_dm.addClassPattern.assert_called_once_with(new_pattern)
