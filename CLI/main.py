@@ -104,7 +104,7 @@ def welcomeMessage():
 def saveConfig(path, rooms, labs, courses, faculty, timeslots, other):
     # Get class_patterns from other
     class_patterns = other.get("class_patterns", [])
-    
+
     # Build the data structure
     newData = {
         "config": {
@@ -117,17 +117,17 @@ def saveConfig(path, rooms, labs, courses, faculty, timeslots, other):
         "limit": other.get("limit", 10),  # Changed from int to 10 as default
         "optimizer_flags": other.get("optimizer_flags", {}),
     }
-    
+
     # Handle time_slot_config - merge existing timeslots with classes
     if timeslots:
         newData["time_slot_config"] = timeslots.copy()
     else:
         newData["time_slot_config"] = {}
-    
+
     # Add classes to time_slot_config if we have class_patterns
     if class_patterns:
         newData["time_slot_config"]["classes"] = class_patterns
-    
+
     with open(path, "w") as file:
         json.dump(newData, file, indent=4)
 
@@ -155,27 +155,27 @@ def runScheduler(otherData):
             try:
                 with open(configInput, "r") as f:
                     data = json.load(f)
-                
+
                 # Check if class_patterns is in the wrong place (inside config)
                 if "config" in data and "class_patterns" in data["config"]:
                     print("Fixing config file structure...")
-                    
+
                     # Move class_patterns from config to time_slot_config as 'classes'
                     class_patterns = data["config"].pop("class_patterns")
-                    
+
                     # Ensure time_slot_config exists
                     if "time_slot_config" not in data:
                         data["time_slot_config"] = {}
-                    
+
                     # Add classes to time_slot_config
                     data["time_slot_config"]["classes"] = class_patterns
-                    
+
                     # Save the fixed version
                     with open(configInput, "w") as f:
                         json.dump(data, f, indent=4)
-                    
+
                     print("Config file structure fixed!")
-                
+
             except Exception as e:
                 print(f"Error checking/fixing config file: {e}")
                 return
@@ -278,12 +278,12 @@ def runScheduler(otherData):
 
                 # Increment count
                 count += 1
-                
+
                 # Print live progress after each schedule
                 bar_length = 50
                 progress = int((count / limit) * bar_length)
                 bar = "█" * progress + "-" * (bar_length - progress)
-                
+
                 # Just print normally (will create multiple lines)
                 print(f"Progress: |{bar}| {count}/{limit}")
 
