@@ -157,9 +157,7 @@ def runScheduler(otherData):
                     data = json.load(f)
                 
                 # Check if class_patterns is in the wrong place (inside config)
-                needs_fix = False
                 if "config" in data and "class_patterns" in data["config"]:
-                    needs_fix = True
                     print("Fixing config file structure...")
                     
                     # Move class_patterns from config to time_slot_config as 'classes'
