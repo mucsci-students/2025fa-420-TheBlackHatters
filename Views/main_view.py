@@ -1470,22 +1470,18 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
         if disabled_var.get():
             new_pattern["disabled"] = True
 
-        if edit_mode == "edit":
-            # Record the edit BEFORE performing it
-            if app_instance:
-                app_instance.record_pattern_edit(pattern, new_pattern, pattern_index)
-            
-            err = controller.editPattern(pattern_index, new_pattern, refresh)
-            if err:
-                show_error(err)
-        else:
-            # Record the addition BEFORE performing it
-            if app_instance:
-                app_instance.record_pattern_addition(new_pattern)
-            
-            err = controller.addPattern(new_pattern, refresh)
-            if err:
-                show_error(err)
+        if edit_mode == "edit":  
+            err = controller.editPattern(pattern_index, new_pattern, refresh)  
+            if err:  
+                show_error(err)  
+            elif app_instance:  
+                app_instance.record_pattern_edit(pattern, new_pattern, pattern_index)  
+        else:  
+            err = controller.addPattern(new_pattern, refresh)  
+            if err:  
+                show_error(err)  
+            elif app_instance:  
+                app_instance.record_pattern_addition(new_pattern) 
 
     ctk.CTkButton(
         frame,
@@ -2407,34 +2403,6 @@ class SchedulerApp(ctk.CTk):
         pattern_index = action["data"]["pattern_index"]
         pattern_controller = ClassPatternController()
         pattern_controller.editPattern(pattern_index, new_pattern_data, refresh=None)
-        self.refresh("ConfigPage")
-
-    def _undo_pattern_deletion(self, action):
-        """Undo a pattern deletion"""
-        pattern_data = action["data"]["pattern_data"]
-        pattern_index = action["data"]["pattern_index"]
-        pattern_controller = ClassPatternController()
-        
-        # Get current patterns
-        patterns = pattern_controller.listPatterns()
-        
-        # Insert at the original index
-        if pattern_index <= len(patterns):
-            # We need to insert at the correct position
-            # Since we can't insert directly, we'll rebuild the list
-            new_patterns = patterns[:pattern_index] + [pattern_data] + patterns[pattern_index:]
-            pattern_controller.savePatterns(new_patterns)
-        else:
-            # If index is beyond current length, just add it
-            pattern_controller.addPattern(pattern_data, refresh=None)
-            
-        self.refresh("ConfigPage")
-
-    def _redo_pattern_deletion(self, action):
-        """Redo a pattern deletion"""
-        pattern_index = action["data"]["pattern_index"]
-        pattern_controller = ClassPatternController()
-        pattern_controller.removePattern(pattern_index, refresh=None)
         self.refresh("ConfigPage")
 
     def createMainPage(self):
