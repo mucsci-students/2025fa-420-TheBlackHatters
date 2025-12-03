@@ -1303,6 +1303,10 @@ def dataPatternsLeft(frame, controller, refresh, data=None, app_instance=None):
         )
 
         def onDelete(i=idx):
+            # Record the deletion BEFORE actually deleting
+            if app_instance:
+                app_instance.record_pattern_deletion(patterns[i], i)
+
             controller.removePattern(i, refresh)
 
         def onEdit(i=idx, p=pattern):
@@ -1470,10 +1474,14 @@ def dataPatternsRight(frame, controller, refresh, data=None, app_instance=None):
             err = controller.editPattern(pattern_index, new_pattern, refresh)
             if err:
                 show_error(err)
+            elif app_instance:
+                app_instance.record_pattern_edit(pattern, new_pattern, pattern_index)
         else:
             err = controller.addPattern(new_pattern, refresh)
             if err:
                 show_error(err)
+            elif app_instance:
+                app_instance.record_pattern_addition(new_pattern)
 
     ctk.CTkButton(
         frame,
@@ -1947,6 +1955,9 @@ class SchedulerApp(ctk.CTk):
             "room_addition": ("Room addition", "Room deletion"),
             "room_edit": ("Room edit", "Room edit"),
             "room_deletion": ("Room deletion", "Room addition"),
+            "pattern_addition": ("Pattern addition", "Pattern deletion"),
+            "pattern_edit": ("Pattern edit", "Pattern edit"),
+            "pattern_deletion": ("Pattern deletion", "Pattern addition"),
         }
 
         if action_type in action_messages:
@@ -2002,6 +2013,12 @@ class SchedulerApp(ctk.CTk):
                 self._undo_room_edit(action)
             elif action["type"] == "room_deletion":
                 self._undo_room_deletion(action)
+            elif action["type"] == "pattern_addition":
+                self._undo_pattern_addition(action)
+            elif action["type"] == "pattern_edit":
+                self._undo_pattern_edit(action)
+            elif action["type"] == "pattern_deletion":
+                self._undo_pattern_deletion(action)
 
             # Add to redo stack
             self.redo_stack.append(action)
@@ -2039,6 +2056,12 @@ class SchedulerApp(ctk.CTk):
                 self._redo_room_edit(action)
             elif action["type"] == "room_deletion":
                 self._redo_room_deletion(action)
+            elif action["type"] == "pattern_addition":
+                self._redo_pattern_addition(action)
+            elif action["type"] == "pattern_edit":
+                self._redo_pattern_edit(action)
+            elif action["type"] == "pattern_deletion":
+                self._redo_pattern_deletion(action)
 
             # Add back to undo stack
             self.undo_stack.append(action)
@@ -2124,6 +2147,57 @@ class SchedulerApp(ctk.CTk):
     def record_room_deletion(self, room_name):
         """Record a room deletion for undo/redo"""
         self.record_action("room_deletion", {"room_name": room_name, "name": room_name})
+
+    def record_pattern_addition(self, pattern_data):
+        """Record a pattern addition for undo/redo"""
+        self.record_action(
+            "pattern_addition",
+            {"pattern_data": pattern_data, "name": f"Pattern {len(self.undo_stack)}"},
+        )
+
+    def record_pattern_edit(self, old_pattern_data, new_pattern_data, pattern_index):
+        """Record a pattern edit for undo/redo"""
+        self.record_action(
+            "pattern_edit",
+            {
+                "old_pattern_data": old_pattern_data,
+                "new_pattern_data": new_pattern_data,
+                "pattern_index": pattern_index,
+                "old_name": f"Pattern {pattern_index}",
+                "new_name": f"Pattern {pattern_index}",
+            },
+        )
+
+    def record_pattern_deletion(self, pattern_data, pattern_index):
+        """Record a pattern deletion for undo/redo"""
+        # Get all current patterns to save the full state
+        pattern_controller = ClassPatternController()
+        all_patterns = pattern_controller.listPatterns()
+
+        self.record_action(
+            "pattern_deletion",
+            {
+                "pattern_data": pattern_data,
+                "pattern_index": pattern_index,
+                "all_patterns_before": all_patterns.copy(),  # Save the state before deletion
+                "name": f"Pattern {pattern_index}",
+            },
+        )
+
+    def _undo_pattern_deletion(self, action):
+        """Undo a pattern deletion"""
+        all_patterns_before = action["data"]["all_patterns_before"]
+        pattern_controller = ClassPatternController()
+        # Restore the entire list to its state before deletion
+        pattern_controller.savePatterns(all_patterns_before)
+        self.refresh("ConfigPage")
+
+    def _redo_pattern_deletion(self, action):
+        """Redo a pattern deletion"""
+        pattern_index = action["data"]["pattern_index"]
+        pattern_controller = ClassPatternController()
+        pattern_controller.removePattern(pattern_index, refresh=None)
+        self.refresh("ConfigPage")
 
     def _undo_lab_addition(self, action):
         """Undo a lab addition"""
@@ -2288,6 +2362,47 @@ class SchedulerApp(ctk.CTk):
         """Redo a room deletion"""
         room_name = action["data"]["room_name"]
         roomCtr.removeRoom(room_name, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_pattern_addition(self, action):
+        """Undo a pattern addition"""
+        pattern_data = action["data"]["pattern_data"]
+        pattern_controller = ClassPatternController()
+        # Get current patterns to find the index
+        patterns = pattern_controller.listPatterns()
+        # Find and remove the added pattern (should be the last one or match the data)
+        if patterns:
+            # Try to find the pattern by matching its data
+            for i, pattern in enumerate(patterns):
+                if pattern == pattern_data:
+                    pattern_controller.removePattern(i, refresh=None)
+                    break
+            else:
+                # If not found, remove the last one
+                pattern_controller.removePattern(len(patterns) - 1, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_pattern_addition(self, action):
+        """Redo a pattern addition"""
+        pattern_data = action["data"]["pattern_data"]
+        pattern_controller = ClassPatternController()
+        pattern_controller.addPattern(pattern_data, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _undo_pattern_edit(self, action):
+        """Undo a pattern edit"""
+        old_pattern_data = action["data"]["old_pattern_data"]
+        pattern_index = action["data"]["pattern_index"]
+        pattern_controller = ClassPatternController()
+        pattern_controller.editPattern(pattern_index, old_pattern_data, refresh=None)
+        self.refresh("ConfigPage")
+
+    def _redo_pattern_edit(self, action):
+        """Redo a pattern edit"""
+        new_pattern_data = action["data"]["new_pattern_data"]
+        pattern_index = action["data"]["pattern_index"]
+        pattern_controller = ClassPatternController()
+        pattern_controller.editPattern(pattern_index, new_pattern_data, refresh=None)
         self.refresh("ConfigPage")
 
     def createMainPage(self):

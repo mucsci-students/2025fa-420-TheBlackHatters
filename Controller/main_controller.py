@@ -360,3 +360,29 @@ class ClassPatternController:
             return None
         except Exception as e:
             return str(e)
+
+    def savePatterns(self, patterns):
+        """Save patterns list to the data store (for undo/redo support)."""
+        try:
+            # Clear all existing patterns
+            # Keep removing the first pattern until none are left
+            while True:
+                current_patterns = DM.getClassPatterns()
+                if not current_patterns or len(current_patterns) == 0:
+                    break
+                try:
+                    DM.removeClassPattern(0)
+                except Exception as e:
+                    # If we can't remove (maybe index out of bounds), break
+                    print(f"Warning: Could not remove pattern: {e}")
+                    break
+
+            # Add all new patterns
+            if patterns:
+                for pattern in patterns:
+                    DM.addClassPattern(pattern)
+
+            return True
+        except Exception as e:
+            print(f"Error saving patterns: {e}")
+            return False
