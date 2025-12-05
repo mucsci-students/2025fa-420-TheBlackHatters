@@ -140,25 +140,7 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     assert pathVar.set.call_args[0][0] == expected_msg
 
 
-def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
-    fake_save = tmp_path / "out.json"
 
-    monkeypatch.setattr(
-        "Controller.main_controller.filedialog.asksaveasfilename",
-        lambda **kwargs: str(fake_save),
-    )
-
-    pathVar = Mock()
-    data = [[{"course": "X"}], [{"course": "Y"}]]
-
-    ctrl.exportSchedulesBTN(data, pathVar)
-
-    written = json.loads(fake_save.read_text())
-
-    assert written == data
-
-    expected_msg = f"Schedules have been saved to: {fake_save}"
-    assert pathVar.set.call_args[0][0] == expected_msg
 
 
 def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
@@ -204,6 +186,21 @@ def test_roomscontroller_remove_nonexistent(capfd, fake_refresh):
     c.removeRoom("Missing", fake_refresh)
     out, _ = capfd.readouterr()
     assert "Room not in system" in out
+
+
+def test_roomscontroller_list_rooms_calls_DM(reset_dm):
+    c = ctrl.RoomsController()
+
+    # pretend DM returns some rooms
+    reset_dm.getRooms.return_value = ["Roddy 136", "Roddy 240"]
+
+    result = c.listRooms()
+
+    # ensure call was made
+    reset_dm.getRooms.assert_called_once()
+
+    # result should match mock return
+    assert result == ["Roddy 136", "Roddy 240"]
 
 
 # --- LabsController ---
