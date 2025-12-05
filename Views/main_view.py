@@ -1872,7 +1872,7 @@ def plotWeeklyOrderSchedules(schedules, parentFrame, order):
                         y + height / 2,
                         text=text,
                         font=("Helvetica", 9),
-                        fill="white",
+                        fill="black",
                         justify="center",
                     )
 
