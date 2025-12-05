@@ -140,9 +140,6 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     assert pathVar.set.call_args[0][0] == expected_msg
 
 
-
-
-
 def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
     fake_save = tmp_path / "out.json"
 
