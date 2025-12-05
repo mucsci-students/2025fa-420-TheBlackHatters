@@ -140,25 +140,25 @@ def test_exportOneScheduleBTN_writes_selected(monkeypatch, tmp_path):
     assert pathVar.set.call_args[0][0] == expected_msg
 
 
-# def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
-#     fake_save = tmp_path / "out.json"
+def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
+    fake_save = tmp_path / "out.json"
 
-#     monkeypatch.setattr(
-#         "Controller.main_controller.filedialog.asksaveasfilename",
-#         lambda **kwargs: str(fake_save),
-#     )
+    monkeypatch.setattr(
+        "Controller.main_controller.filedialog.asksaveasfilename",
+        lambda **kwargs: str(fake_save),
+    )
 
-#     pathVar = Mock()
-#     data = [[{"course": "X"}], [{"course": "Y"}]]
+    pathVar = Mock()
+    data = [[{"course": "X"}], [{"course": "Y"}]]
 
-#     ctrl.exportSchedulesBTN(data, pathVar)
+    ctrl.exportSchedulesBTN(data, pathVar)
 
-#     written = json.loads(fake_save.read_text())
+    written = json.loads(fake_save.read_text())
 
-#     assert written == data
+    assert written == data
 
-#     expected_msg = f"Schedules have been saved to: {fake_save}"
-#     assert pathVar.set.call_args[0][0] == expected_msg
+    expected_msg = f"Schedules have been saved to: {fake_save}"
+    assert pathVar.set.call_args[0][0] == expected_msg
 
 
 def test_exportOneScheduleBTN_invalid_num(monkeypatch, tmp_path):
