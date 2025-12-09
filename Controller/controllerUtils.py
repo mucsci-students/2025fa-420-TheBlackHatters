@@ -200,7 +200,7 @@ def drawSchedulePagePDF(canvas, data):
             canvas.rect(x, y - height, day_width - 4, height, fill=1, stroke=0)
 
             # text
-            canvas.setFillColor(colors.white)
+            canvas.setFillColor(colors.black)
             canvas.setFont("Helvetica", 9)
             block_text = f"{course}\n{prof}\n{to12h(start.hour, start.minute)} - {to12h(end.hour, end.minute)}"
 
